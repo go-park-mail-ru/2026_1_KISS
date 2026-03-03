@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    go-fmt:
+      glob: "*.go"
+      run: go fmt ./...
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run ./...
+      skip:
+        - merge
+        - rebase
+
+commit-msg:
+  commands:
+    conventional:
+      run: scripts/validate-commit.sh {1}
