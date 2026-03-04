@@ -5,9 +5,37 @@
 
 ```
 cmd/server/     # точка входа приложения
-internal/        # приватный код (сервисы, репозитории, хендлеры)
+internal/       # приватный код (сервисы, репозитории, хендлеры)
 scripts/        # скрипты (валидация коммитов и т.д.)
 ```
+
+## Запуск
+
+**Локально:** `make run` или `go run ./cmd/server`  
+**С PostgreSQL:** `cp .env.example .env && docker-compose up`
+
+Приложение — `http://localhost:8080`, PostgreSQL — порт 5432.
+
+## Запуск CI локально
+
+Проверки из GitHub Actions можно запускать на своей машине двумя способами.
+
+**1. Те же команды, что и в CI (рекомендуется):**
+```bash
+make ci
+```
+Выполняет `golangci-lint run ./...` и `go test -race ./...` — то же, что в workflow.
+
+**2. Полный прогон workflow в Docker (как на GitHub):**
+Установите [act](https://github.com/nektos/act) и выполните:
+```bash
+act pull_request
+# или для push
+act push
+```
+`act` поднимает контейнеры, ставит Go и запускает все jobs из `.github/workflows/ci.yml`. Нужен установленный Docker.
+
+* В первый раз может быть долгое выполнение
 
 ## Разработка
 
@@ -21,8 +49,9 @@ scripts/        # скрипты (валидация коммитов и т.д.)
 |----------------|------------------------|
 | `make build`   | Сборка бинарника      |
 | `make run`     | Запуск приложения     |
-| `make test`    | Запуск тестов         |
-| `make lint`    | Запуск golangci-lint  |
+| `make test`     | Запуск тестов         |
+| `make lint`     | Запуск golangci-lint  |
+| `make ci`       | Линт + тесты (как в CI) |
 | `make docker-up`   | Поднять Docker-сервисы |
 | `make docker-down` | Остановить Docker-сервисы |
 

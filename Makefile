@@ -1,4 +1,4 @@
-.PHONY: build run test lint docker-up docker-down
+.PHONY: build run test lint ci docker-up docker-down
 
 build:
 	go build -o server ./cmd/server
@@ -11,6 +11,8 @@ test:
 
 lint:
 	golangci-lint run ./...
+
+ci: lint test
 
 docker-up:
 	docker-compose up -d
