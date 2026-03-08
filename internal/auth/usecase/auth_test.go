@@ -201,3 +201,61 @@ func TestValidateSession_NotFound(t *testing.T) {
 		t.Errorf("want ErrUnauthorized, got %v", err)
 	}
 }
+
+func TestRegister_InvalidUsername(t *testing.T) {
+	uc := usecase.New(&mockUserRepo{}, &mockSessionRepo{}, 24*time.Hour)
+	_, err := uc.Register(context.Background(), "a!", "test@example.com", "password123")
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestLogin_SessionCreateError(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	userRepo := &mockUserRepo{
+		getByEmailFn: func(ctx context.Context, email string) (*domain.User, error) {
+			return &domain.User{ID: 1, Email: email, PasswordHash: string(hash)}, nil
+		},
+	}
+	sessionRepo := &mockSessionRepo{
+		createFn: func(ctx context.Context, session *domain.Session) error {
+			return errors.New("db error")
+		},
+	}
+	uc := usecase.New(userRepo, sessionRepo, 24*time.Hour)
+	_, _, err := uc.Login(context.Background(), "test@example.com", "password123")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestLogout(t *testing.T) {
+	sessionRepo := &mockSessionRepo{
+		deleteByIDFn: func(ctx context.Context, id string) error {
+			return nil
+		},
+	}
+	uc := usecase.New(&mockUserRepo{}, sessionRepo, 24*time.Hour)
+	err := uc.Logout(context.Background(), "some-session")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateSession_UserNotFound(t *testing.T) {
+	sessionRepo := &mockSessionRepo{
+		getByIDFn: func(ctx context.Context, id string) (*domain.Session, error) {
+			return &domain.Session{ID: id, UserID: 1, ExpiresAt: time.Now().Add(time.Hour)}, nil
+		},
+	}
+	userRepo := &mockUserRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.User, error) {
+			return nil, domain.ErrNotFound
+		},
+	}
+	uc := usecase.New(userRepo, sessionRepo, 24*time.Hour)
+	_, err := uc.ValidateSession(context.Background(), "valid-session")
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Errorf("want ErrUnauthorized, got %v", err)
+	}
+}

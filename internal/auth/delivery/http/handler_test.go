@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -214,4 +215,70 @@ func TestMe(t *testing.T) {
 			t.Errorf("want 401, got %d", rec.Code)
 		}
 	})
+}
+
+func TestRegisterRoutes_Auth(t *testing.T) {
+	h := authhttp.New(&mockAuthUsecase{})
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+}
+
+func TestRegister_NotFound(t *testing.T) {
+	h := authhttp.New(&mockAuthUsecase{
+		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
+			return nil, domain.ErrNotFound
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	h.Register(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestRegister_InvalidInput(t *testing.T) {
+	h := authhttp.New(&mockAuthUsecase{
+		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
+			return nil, domain.ErrInvalidInput
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	h.Register(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestRegister_Forbidden(t *testing.T) {
+	h := authhttp.New(&mockAuthUsecase{
+		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
+			return nil, domain.ErrForbidden
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	h.Register(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
+	}
+}
+
+func TestRegister_InternalError(t *testing.T) {
+	h := authhttp.New(&mockAuthUsecase{
+		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
+			return nil, errors.New("unexpected")
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	h.Register(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("want 500, got %d", rec.Code)
+	}
 }

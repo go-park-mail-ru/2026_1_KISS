@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -184,5 +185,207 @@ func TestGetByID_InvalidID(t *testing.T) {
 	h.GetByID(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestRegisterRoutes_Notebook(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	mux := http.NewServeMux()
+	noopMw := middleware.Middleware(func(next http.Handler) http.Handler { return next })
+	h.RegisterRoutes(mux, noopMw)
+}
+
+func TestGetByID_WithBlocks(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		getByIDFn: func(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error) {
+			return &domain.Notebook{
+				ID: notebookID, OwnerID: userID, Title: "Test",
+				Blocks: []domain.Block{{ID: 1, Type: "code", Language: "python"}},
+			}, nil
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks/1", nil)
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.GetByID(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestList_Error(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+			return nil, errors.New("db error")
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("want 500, got %d", rec.Code)
+	}
+}
+
+func TestList_Conflict(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+			return nil, domain.ErrConflict
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("want 409, got %d", rec.Code)
+	}
+}
+
+func TestList_Unauthorized(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+			return nil, domain.ErrUnauthorized
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d", rec.Code)
+	}
+}
+
+func TestList_InvalidInput(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+			return nil, domain.ErrInvalidInput
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestCreate_InvalidBody(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("POST", "/api/v1/notebooks", strings.NewReader(`{bad}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Create(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestCreate_Error(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		createFn: func(ctx context.Context, userID int64, title string) (*domain.Notebook, error) {
+			return nil, errors.New("db error")
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/notebooks", strings.NewReader(`{"title":"Test"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Create(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("want 500, got %d", rec.Code)
+	}
+}
+
+func TestDelete_InvalidID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/abc", nil)
+	req.SetPathValue("id", "abc")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Delete(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestDelete_Forbidden(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		deleteFn: func(ctx context.Context, userID, notebookID int64) error {
+			return domain.ErrForbidden
+		},
+	})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1", nil)
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Delete(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
+	}
+}
+
+func TestDelete_NotFound(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		deleteFn: func(ctx context.Context, userID, notebookID int64) error {
+			return domain.ErrNotFound
+		},
+	})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1", nil)
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Delete(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestAddBlock_InvalidID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("POST", "/api/v1/notebooks/abc/blocks", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "abc")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.AddBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAddBlock_InvalidBody(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("POST", "/api/v1/notebooks/1/blocks", strings.NewReader(`{bad}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.AddBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAddBlock_Error(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		addBlockFn: func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error) {
+			return nil, domain.ErrForbidden
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/notebooks/1/blocks",
+		strings.NewReader(`{"type":"code","language":"python","content":"print(1)"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.AddBlock(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
 	}
 }

@@ -7,7 +7,7 @@ run:
 	go run ./cmd/server
 
 test:
-	go test -race -coverprofile=coverage.out ./...
+	go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
 
 lint:
 	golangci-lint run ./...

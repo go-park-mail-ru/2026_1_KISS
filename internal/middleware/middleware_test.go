@@ -191,3 +191,12 @@ func TestChain(t *testing.T) {
 		t.Errorf("wrong chain order: %v", order)
 	}
 }
+
+func TestSetUserInContext(t *testing.T) {
+	user := &domain.User{ID: 42, Username: "ctx-user"}
+	ctx := middleware.SetUserInContext(context.Background(), user)
+	got := middleware.UserFromContext(ctx)
+	if got == nil || got.ID != 42 {
+		t.Errorf("want user ID=42, got %v", got)
+	}
+}
