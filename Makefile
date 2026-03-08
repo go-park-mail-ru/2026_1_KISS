@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate
+.PHONY: build run test lint ci docker-up docker-down migrate docx
 
 build:
 	go build -o server ./cmd/server
@@ -22,3 +22,6 @@ docker-down:
 
 migrate:
 	go run ./cmd/migrator
+
+docs:
+	cd docs && npx redoc-cli build swagger.json --output index.html
