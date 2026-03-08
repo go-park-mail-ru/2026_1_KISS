@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down
+.PHONY: build run test lint ci docker-up docker-down migrate
 
 build:
 	go build -o server ./cmd/server
@@ -19,3 +19,6 @@ docker-up:
 
 docker-down:
 	docker-compose down
+
+migrate:
+	go run ./cmd/migrator
