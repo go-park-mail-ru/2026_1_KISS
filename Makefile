@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docx
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover
 
 build:
 	go build -o server ./cmd/server
@@ -25,3 +25,12 @@ migrate:
 
 docs:
 	cd docs && npx redoc-cli build swagger.json --output index.html
+
+fmt:
+	go fmt ./...
+
+vet:
+	go vet ./...
+
+cover:
+	go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out

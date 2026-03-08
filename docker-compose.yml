@@ -6,11 +6,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
       SERVER_PORT: "8080"
       CORS_ALLOWED_ORIGINS: "http://localhost:3000"
       AUTH_SESSION_TTL: "24h"
+
+  migrator:
+    build: .
+    command: ["/app/migrator"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
+    restart: "no"
 
   postgres:
     image: postgres:16-alpine
