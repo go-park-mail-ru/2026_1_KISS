@@ -37,3 +37,7 @@ func UserFromContext(ctx context.Context) *domain.User {
 	user, _ := ctx.Value(userContextKey).(*domain.User)
 	return user
 }
+
+func SetUserInContext(ctx context.Context, user *domain.User) context.Context {
+	return context.WithValue(ctx, userContextKey, user)
+}

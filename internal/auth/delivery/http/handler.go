@@ -1,19 +1,26 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
-type AuthHandler struct {
-	usecase *usecase.AuthUsecase
+type authUsecase interface {
+	Register(ctx context.Context, username, email, password string) (*domain.User, error)
+	Login(ctx context.Context, email, password string) (*domain.Session, *domain.User, error)
+	Logout(ctx context.Context, sessionID string) error
+	ValidateSession(ctx context.Context, sessionID string) (*domain.User, error)
 }
 
-func New(uc *usecase.AuthUsecase) *AuthHandler {
+type AuthHandler struct {
+	usecase authUsecase
+}
+
+func New(uc authUsecase) *AuthHandler {
 	return &AuthHandler{usecase: uc}
 }
 

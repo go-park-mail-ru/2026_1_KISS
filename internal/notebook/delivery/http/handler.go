@@ -1,21 +1,29 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
-type NotebookHandler struct {
-	usecase *usecase.NotebookUsecase
+type notebookUsecase interface {
+	Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
+	GetByID(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
+	ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error)
+	Delete(ctx context.Context, userID, notebookID int64) error
+	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 }
 
-func New(uc *usecase.NotebookUsecase) *NotebookHandler {
+type NotebookHandler struct {
+	usecase notebookUsecase
+}
+
+func New(uc notebookUsecase) *NotebookHandler {
 	return &NotebookHandler{usecase: uc}
 }
 
@@ -89,7 +97,7 @@ func (h *NotebookHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, nil)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *NotebookHandler) AddBlock(w http.ResponseWriter, r *http.Request) {
