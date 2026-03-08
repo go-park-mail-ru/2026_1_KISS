@@ -3,7 +3,7 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
@@ -16,6 +16,7 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 COPY --from=builder /app/server .
+COPY migrations/ ./migrations/
 
 EXPOSE 8080
 
