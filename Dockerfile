@@ -7,7 +7,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server
+RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server && \
+    CGO_ENABLED=0 go build -o /app/migrator ./cmd/migrator
 
 # Runtime stage
 FROM alpine:3.19
@@ -16,6 +17,7 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 COPY --from=builder /app/server .
+COPY --from=builder /app/migrator .
 COPY migrations/ ./migrations/
 
 EXPOSE 8080
