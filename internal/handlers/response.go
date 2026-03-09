@@ -22,7 +22,9 @@ func RespondJSON(w http.ResponseWriter, status int, data interface{}) {
 		Data:    data,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 // JSON-ответ с ошибкой
@@ -35,7 +37,9 @@ func RespondError(w http.ResponseWriter, status int, message string) {
 		Error:   message,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode error response", http.StatusInternalServerError)
+	}
 }
 
 // чтение JSON
