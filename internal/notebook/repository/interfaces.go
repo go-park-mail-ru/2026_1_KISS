@@ -1,0 +1,19 @@
+package repository
+
+import (
+	"context"
+
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+)
+
+type NotebookRepository interface {
+	Create(ctx context.Context, notebook *domain.Notebook) (int64, error)
+	GetByID(ctx context.Context, id int64) (*domain.Notebook, error)
+	GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
+	Delete(ctx context.Context, id int64) error
+}
+
+type BlockRepository interface {
+	Create(ctx context.Context, block *domain.Block) (int64, error)
+	GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error)
+}
