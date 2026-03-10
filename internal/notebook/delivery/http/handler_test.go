@@ -15,11 +15,11 @@ import (
 )
 
 type mockNotebookUsecase struct {
-	createFn     func(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
-	getByIDFn    func(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
-	listByUserFn func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
-	updateFn     func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
-	deleteFn     func(ctx context.Context, userID, notebookID int64) error
+	createFn      func(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
+	getByIDFn     func(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
+	listByUserFn  func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	updateFn      func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
+	deleteFn      func(ctx context.Context, userID, notebookID int64) error
 	addBlockFn    func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 	updateBlockFn func(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error)
 	deleteBlockFn func(ctx context.Context, userID, notebookID, blockID int64) error

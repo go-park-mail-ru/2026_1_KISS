@@ -10,11 +10,11 @@ import (
 )
 
 type mockNotebookRepo struct {
-	createFn        func(ctx context.Context, nb *domain.Notebook) (int64, error)
-	getByIDFn       func(ctx context.Context, id int64) (*domain.Notebook, error)
-	getByOwnerIDFn  func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
-	updateFn        func(ctx context.Context, nb *domain.Notebook) error
-	deleteFn        func(ctx context.Context, id int64) error
+	createFn         func(ctx context.Context, nb *domain.Notebook) (int64, error)
+	getByIDFn        func(ctx context.Context, id int64) (*domain.Notebook, error)
+	getByOwnerIDFn   func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
+	updateFn         func(ctx context.Context, nb *domain.Notebook) error
+	deleteFn         func(ctx context.Context, id int64) error
 	countByOwnerIDFn func(ctx context.Context, ownerID int64) (int, error)
 }
 
