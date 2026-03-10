@@ -17,7 +17,7 @@ import (
 type mockNotebookUsecase struct {
 	createFn     func(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
 	getByIDFn    func(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
-	listByUserFn func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error)
+	listByUserFn func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
 	updateFn     func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	deleteFn     func(ctx context.Context, userID, notebookID int64) error
 	addBlockFn    func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
@@ -39,11 +39,11 @@ func (m *mockNotebookUsecase) GetByID(ctx context.Context, userID, notebookID in
 	return nil, domain.ErrNotFound
 }
 
-func (m *mockNotebookUsecase) ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+func (m *mockNotebookUsecase) ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
 	if m.listByUserFn != nil {
 		return m.listByUserFn(ctx, userID, limit, offset)
 	}
-	return []domain.Notebook{}, nil
+	return []domain.Notebook{}, 0, nil
 }
 
 func (m *mockNotebookUsecase) Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
@@ -90,8 +90,8 @@ var testUser = &domain.User{ID: 1, Username: "testuser", Email: "test@example.co
 
 func TestList(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
-			return []domain.Notebook{{ID: 1, Title: "Test"}}, nil
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+			return []domain.Notebook{{ID: 1, Title: "Test"}}, 1, nil
 		},
 	})
 	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
@@ -240,8 +240,8 @@ func TestGetByID_WithBlocks(t *testing.T) {
 
 func TestList_Error(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
-			return nil, errors.New("db error")
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+			return nil, 0, errors.New("db error")
 		},
 	})
 	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
@@ -255,8 +255,8 @@ func TestList_Error(t *testing.T) {
 
 func TestList_Conflict(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
-			return nil, domain.ErrConflict
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+			return nil, 0, domain.ErrConflict
 		},
 	})
 	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
@@ -270,8 +270,8 @@ func TestList_Conflict(t *testing.T) {
 
 func TestList_Unauthorized(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
-			return nil, domain.ErrUnauthorized
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+			return nil, 0, domain.ErrUnauthorized
 		},
 	})
 	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
@@ -285,8 +285,8 @@ func TestList_Unauthorized(t *testing.T) {
 
 func TestList_InvalidInput(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
-			return nil, domain.ErrInvalidInput
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+			return nil, 0, domain.ErrInvalidInput
 		},
 	})
 	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)

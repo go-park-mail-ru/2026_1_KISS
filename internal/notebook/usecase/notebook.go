@@ -48,14 +48,22 @@ func (uc *NotebookUsecase) GetByID(ctx context.Context, userID, notebookID int64
 	return nb, nil
 }
 
-func (uc *NotebookUsecase) ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+func (uc *NotebookUsecase) ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	return uc.notebookRepo.GetByOwnerID(ctx, userID, limit, offset)
+	notebooks, err := uc.notebookRepo.GetByOwnerID(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	total, err := uc.notebookRepo.CountByOwnerID(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	return notebooks, total, nil
 }
 
 func (uc *NotebookUsecase) Delete(ctx context.Context, userID, notebookID int64) error {
