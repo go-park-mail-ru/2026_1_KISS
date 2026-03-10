@@ -10,6 +10,7 @@ import (
 	authhttp "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/delivery/http"
 	authpg "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/postgres"
 	authusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/health"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	nbhttp "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/delivery/http"
 	nbpg "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository/postgres"
@@ -39,12 +40,14 @@ func New(cfg *config.Config) (*App, error) {
 
 	authHandler := authhttp.New(authUC)
 	notebookHandler := nbhttp.New(notebookUC)
+	healthHandler := health.New(db)
 
 	mux := http.NewServeMux()
 	authMw := middleware.Auth(authUC)
 
 	authHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
+	healthHandler.RegisterRoutes(mux)
 
 	handler := middleware.Chain(mux,
 		middleware.RequestID(),
