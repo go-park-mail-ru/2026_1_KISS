@@ -10,10 +10,12 @@ import (
 )
 
 type mockNotebookRepo struct {
-	createFn       func(ctx context.Context, nb *domain.Notebook) (int64, error)
-	getByIDFn      func(ctx context.Context, id int64) (*domain.Notebook, error)
-	getByOwnerIDFn func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
-	deleteFn       func(ctx context.Context, id int64) error
+	createFn        func(ctx context.Context, nb *domain.Notebook) (int64, error)
+	getByIDFn       func(ctx context.Context, id int64) (*domain.Notebook, error)
+	getByOwnerIDFn  func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
+	updateFn        func(ctx context.Context, nb *domain.Notebook) error
+	deleteFn        func(ctx context.Context, id int64) error
+	countByOwnerIDFn func(ctx context.Context, ownerID int64) (int, error)
 }
 
 func (m *mockNotebookRepo) Create(ctx context.Context, nb *domain.Notebook) (int64, error) {
@@ -37,11 +39,25 @@ func (m *mockNotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limi
 	return []domain.Notebook{}, nil
 }
 
+func (m *mockNotebookRepo) Update(ctx context.Context, nb *domain.Notebook) error {
+	if m.updateFn != nil {
+		return m.updateFn(ctx, nb)
+	}
+	return nil
+}
+
 func (m *mockNotebookRepo) Delete(ctx context.Context, id int64) error {
 	if m.deleteFn != nil {
 		return m.deleteFn(ctx, id)
 	}
 	return nil
+}
+
+func (m *mockNotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int, error) {
+	if m.countByOwnerIDFn != nil {
+		return m.countByOwnerIDFn(ctx, ownerID)
+	}
+	return 0, nil
 }
 
 type mockBlockRepo struct {
@@ -336,5 +352,73 @@ func TestAddBlock_CreateError(t *testing.T) {
 	_, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err == nil {
 		t.Error("expected error")
+	}
+}
+
+func TestUpdate_Success(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1, Title: "Old"}, nil
+		},
+		updateFn: func(ctx context.Context, nb *domain.Notebook) error {
+			if nb.Title != "New Title" {
+				t.Errorf("want title New Title, got %s", nb.Title)
+			}
+			if !nb.IsPublic {
+				t.Error("want IsPublic=true")
+			}
+			return nil
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	nb, err := uc.Update(context.Background(), 1, 42, "New Title", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nb.Title != "New Title" {
+		t.Errorf("want New Title, got %s", nb.Title)
+	}
+}
+
+func TestUpdate_EmptyTitle(t *testing.T) {
+	uc := usecase.New(&mockNotebookRepo{}, &mockBlockRepo{})
+	_, err := uc.Update(context.Background(), 1, 42, "", false)
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestUpdate_TooLongTitle(t *testing.T) {
+	longTitle := string(make([]byte, 256))
+	uc := usecase.New(&mockNotebookRepo{}, &mockBlockRepo{})
+	_, err := uc.Update(context.Background(), 1, 42, longTitle, false)
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestUpdate_Forbidden(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 2}, nil
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestUpdate_NotFound(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return nil, domain.ErrNotFound
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
 	}
 }

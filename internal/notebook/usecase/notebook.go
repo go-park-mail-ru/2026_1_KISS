@@ -69,6 +69,28 @@ func (uc *NotebookUsecase) Delete(ctx context.Context, userID, notebookID int64)
 	return uc.notebookRepo.Delete(ctx, notebookID)
 }
 
+func (uc *NotebookUsecase) Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
+	if title == "" {
+		return nil, domain.ErrInvalidInput
+	}
+	if len(title) > 255 {
+		return nil, domain.ErrInvalidInput
+	}
+	nb, err := uc.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		return nil, err
+	}
+	if nb.OwnerID != userID {
+		return nil, domain.ErrForbidden
+	}
+	nb.Title = title
+	nb.IsPublic = isPublic
+	if err := uc.notebookRepo.Update(ctx, nb); err != nil {
+		return nil, err
+	}
+	return nb, nil
+}
+
 func (uc *NotebookUsecase) AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error) {
 	nb, err := uc.notebookRepo.GetByID(ctx, notebookID)
 	if err != nil {

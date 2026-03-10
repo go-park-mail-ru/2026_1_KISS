@@ -78,3 +78,26 @@ func (r *NotebookRepo) Delete(ctx context.Context, id int64) error {
 	}
 	return nil
 }
+
+func (r *NotebookRepo) Update(ctx context.Context, notebook *domain.Notebook) error {
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE notebooks SET title = $1, is_public = $2, updated_at = NOW() WHERE id = $3 AND owner_id = $4 RETURNING updated_at`,
+		notebook.Title, notebook.IsPublic, notebook.ID, notebook.OwnerID,
+	).Scan(&notebook.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM notebooks WHERE owner_id = $1`,
+		ownerID,
+	).Scan(&count)
+	return count, err
+}

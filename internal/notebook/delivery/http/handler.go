@@ -15,6 +15,7 @@ type notebookUsecase interface {
 	Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
 	GetByID(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
 	ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error)
+	Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	Delete(ctx context.Context, userID, notebookID int64) error
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 }
@@ -31,6 +32,7 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("GET /api/v1/notebooks", authMw(http.HandlerFunc(h.List)))
 	mux.Handle("POST /api/v1/notebooks", authMw(http.HandlerFunc(h.Create)))
 	mux.Handle("GET /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.GetByID)))
+	mux.Handle("PUT /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.Update)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.Delete)))
 	mux.Handle("POST /api/v1/notebooks/{id}/blocks", authMw(http.HandlerFunc(h.AddBlock)))
 }
@@ -76,6 +78,29 @@ func (h *NotebookHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nb, err := h.usecase.GetByID(r.Context(), user.ID, id)
+	if err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, NewNotebookResponse(nb))
+}
+
+func (h *NotebookHandler) Update(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	id, err := parseID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	var req UpdateNotebookRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	nb, err := h.usecase.Update(r.Context(), user.ID, id, req.Title, req.IsPublic)
 	if err != nil {
 		mapDomainError(w, err)
 		return

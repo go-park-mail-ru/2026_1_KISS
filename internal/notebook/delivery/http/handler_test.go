@@ -18,6 +18,7 @@ type mockNotebookUsecase struct {
 	createFn     func(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
 	getByIDFn    func(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
 	listByUserFn func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error)
+	updateFn     func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	deleteFn     func(ctx context.Context, userID, notebookID int64) error
 	addBlockFn   func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 }
@@ -41,6 +42,13 @@ func (m *mockNotebookUsecase) ListByUser(ctx context.Context, userID int64, limi
 		return m.listByUserFn(ctx, userID, limit, offset)
 	}
 	return []domain.Notebook{}, nil
+}
+
+func (m *mockNotebookUsecase) Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
+	if m.updateFn != nil {
+		return m.updateFn(ctx, userID, notebookID, title, isPublic)
+	}
+	return nil, nil
 }
 
 func (m *mockNotebookUsecase) Delete(ctx context.Context, userID, notebookID int64) error {
@@ -385,6 +393,83 @@ func TestAddBlock_Error(t *testing.T) {
 	req = reqWithUser(req, testUser)
 	rec := httptest.NewRecorder()
 	h.AddBlock(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
+	}
+}
+
+func TestUpdate_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		updateFn: func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: notebookID, OwnerID: userID, Title: title, IsPublic: isPublic}, nil
+		},
+	})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1", strings.NewReader(`{"title":"Updated","is_public":true}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestUpdate_InvalidID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/abc", strings.NewReader(`{"title":"Test"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "abc")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdate_InvalidBody(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1", strings.NewReader(`{bad}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdate_NotFound_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		updateFn: func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
+			return nil, domain.ErrNotFound
+		},
+	})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/99", strings.NewReader(`{"title":"Test"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "99")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestUpdate_Forbidden_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		updateFn: func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
+			return nil, domain.ErrForbidden
+		},
+	})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1", strings.NewReader(`{"title":"Test"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("want 403, got %d", rec.Code)
 	}
