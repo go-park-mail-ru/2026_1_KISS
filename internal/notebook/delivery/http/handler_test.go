@@ -20,7 +20,9 @@ type mockNotebookUsecase struct {
 	listByUserFn func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error)
 	updateFn     func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	deleteFn     func(ctx context.Context, userID, notebookID int64) error
-	addBlockFn   func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
+	addBlockFn    func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
+	updateBlockFn func(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error)
+	deleteBlockFn func(ctx context.Context, userID, notebookID, blockID int64) error
 }
 
 func (m *mockNotebookUsecase) Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error) {
@@ -63,6 +65,20 @@ func (m *mockNotebookUsecase) AddBlock(ctx context.Context, userID, notebookID i
 		return m.addBlockFn(ctx, userID, notebookID, block)
 	}
 	return nil, nil
+}
+
+func (m *mockNotebookUsecase) UpdateBlock(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error) {
+	if m.updateBlockFn != nil {
+		return m.updateBlockFn(ctx, userID, notebookID, blockID, content, cellType, language)
+	}
+	return nil, nil
+}
+
+func (m *mockNotebookUsecase) DeleteBlock(ctx context.Context, userID, notebookID, blockID int64) error {
+	if m.deleteBlockFn != nil {
+		return m.deleteBlockFn(ctx, userID, notebookID, blockID)
+	}
+	return nil
 }
 
 func reqWithUser(req *http.Request, user *domain.User) *http.Request {
@@ -470,6 +486,182 @@ func TestUpdate_Forbidden_Handler(t *testing.T) {
 	req = reqWithUser(req, testUser)
 	rec := httptest.NewRecorder()
 	h.Update(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
+	}
+}
+
+func TestUpdateBlock_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		updateBlockFn: func(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: notebookID, Type: cellType, Language: language, Content: content}, nil
+		},
+	})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/blocks/2",
+		strings.NewReader(`{"type":"code","language":"python","content":"print(1)"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.UpdateBlock(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestUpdateBlock_InvalidNotebookID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/abc/blocks/2", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "abc")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.UpdateBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdateBlock_InvalidBlockID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/blocks/abc", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "abc")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.UpdateBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdateBlock_InvalidBody(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/blocks/2", strings.NewReader(`{bad}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.UpdateBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdateBlock_NotFound_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		updateBlockFn: func(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error) {
+			return nil, domain.ErrNotFound
+		},
+	})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/blocks/2",
+		strings.NewReader(`{"type":"code","language":"python","content":"x"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.UpdateBlock(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestUpdateBlock_Forbidden_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		updateBlockFn: func(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error) {
+			return nil, domain.ErrForbidden
+		},
+	})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/blocks/2",
+		strings.NewReader(`{"type":"code","language":"python","content":"x"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.UpdateBlock(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
+	}
+}
+
+func TestDeleteBlock_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		deleteBlockFn: func(ctx context.Context, userID, notebookID, blockID int64) error {
+			return nil
+		},
+	})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1/blocks/2", nil)
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.DeleteBlock(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("want 204, got %d", rec.Code)
+	}
+}
+
+func TestDeleteBlock_InvalidNotebookID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/abc/blocks/2", nil)
+	req.SetPathValue("id", "abc")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.DeleteBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestDeleteBlock_InvalidBlockID(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1/blocks/abc", nil)
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "abc")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.DeleteBlock(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestDeleteBlock_NotFound_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		deleteBlockFn: func(ctx context.Context, userID, notebookID, blockID int64) error {
+			return domain.ErrNotFound
+		},
+	})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1/blocks/2", nil)
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.DeleteBlock(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestDeleteBlock_Forbidden_Handler(t *testing.T) {
+	h := nbhttp.New(&mockNotebookUsecase{
+		deleteBlockFn: func(ctx context.Context, userID, notebookID, blockID int64) error {
+			return domain.ErrForbidden
+		},
+	})
+	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1/blocks/2", nil)
+	req.SetPathValue("id", "1")
+	req.SetPathValue("blockID", "2")
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.DeleteBlock(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("want 403, got %d", rec.Code)
 	}

@@ -18,6 +18,8 @@ type notebookUsecase interface {
 	Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	Delete(ctx context.Context, userID, notebookID int64) error
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
+	UpdateBlock(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error)
+	DeleteBlock(ctx context.Context, userID, notebookID, blockID int64) error
 }
 
 type NotebookHandler struct {
@@ -35,6 +37,8 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("PUT /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.Update)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.Delete)))
 	mux.Handle("POST /api/v1/notebooks/{id}/blocks", authMw(http.HandlerFunc(h.AddBlock)))
+	mux.Handle("PUT /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.UpdateBlock)))
+	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.DeleteBlock)))
 }
 
 func (h *NotebookHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -162,8 +166,69 @@ func (h *NotebookHandler) AddBlock(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusCreated, resp)
 }
 
+func (h *NotebookHandler) UpdateBlock(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	id, err := parseID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+	blockID, err := parseBlockID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid block id")
+		return
+	}
+
+	var req UpdateBlockRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	block, err := h.usecase.UpdateBlock(r.Context(), user.ID, id, blockID, req.Content, req.Type, req.Language)
+	if err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	resp := BlockResponse{
+		ID:        block.ID,
+		Type:      block.Type,
+		Language:  block.Language,
+		Content:   block.Content,
+		Position:  block.Position,
+		CreatedAt: block.CreatedAt,
+	}
+	httputil.JSON(w, http.StatusOK, resp)
+}
+
+func (h *NotebookHandler) DeleteBlock(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	id, err := parseID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+	blockID, err := parseBlockID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid block id")
+		return
+	}
+
+	if err := h.usecase.DeleteBlock(r.Context(), user.ID, id, blockID); err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func parseID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)
+}
+
+func parseBlockID(r *http.Request) (int64, error) {
+	return strconv.ParseInt(r.PathValue("blockID"), 10, 64)
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {
