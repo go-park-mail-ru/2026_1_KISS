@@ -21,6 +21,12 @@ type CreateBlockRequest struct {
 	Content  string `json:"content"`
 }
 
+type UpdateBlockRequest struct {
+	Type     string `json:"type"`
+	Language string `json:"language"`
+	Content  string `json:"content"`
+}
+
 type BlockResponse struct {
 	ID        int64     `json:"id"`
 	Type      string    `json:"type"`

@@ -62,7 +62,10 @@ func (m *mockNotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64) (i
 
 type mockBlockRepo struct {
 	createFn          func(ctx context.Context, b *domain.Block) (int64, error)
+	getByIDFn         func(ctx context.Context, blockID int64) (*domain.Block, error)
 	getByNotebookIDFn func(ctx context.Context, notebookID int64) ([]domain.Block, error)
+	updateFn          func(ctx context.Context, b *domain.Block) error
+	deleteFn          func(ctx context.Context, blockID int64) error
 }
 
 func (m *mockBlockRepo) Create(ctx context.Context, b *domain.Block) (int64, error) {
@@ -72,11 +75,32 @@ func (m *mockBlockRepo) Create(ctx context.Context, b *domain.Block) (int64, err
 	return 0, nil
 }
 
+func (m *mockBlockRepo) GetByID(ctx context.Context, blockID int64) (*domain.Block, error) {
+	if m.getByIDFn != nil {
+		return m.getByIDFn(ctx, blockID)
+	}
+	return nil, domain.ErrNotFound
+}
+
 func (m *mockBlockRepo) GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error) {
 	if m.getByNotebookIDFn != nil {
 		return m.getByNotebookIDFn(ctx, notebookID)
 	}
 	return []domain.Block{}, nil
+}
+
+func (m *mockBlockRepo) Update(ctx context.Context, b *domain.Block) error {
+	if m.updateFn != nil {
+		return m.updateFn(ctx, b)
+	}
+	return nil
+}
+
+func (m *mockBlockRepo) Delete(ctx context.Context, blockID int64) error {
+	if m.deleteFn != nil {
+		return m.deleteFn(ctx, blockID)
+	}
+	return nil
 }
 
 func TestCreate_DefaultTitle(t *testing.T) {
@@ -420,5 +444,219 @@ func TestUpdate_NotFound(t *testing.T) {
 	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestUpdateBlock_Success(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: 10, Type: "code"}, nil
+		},
+		updateFn: func(ctx context.Context, b *domain.Block) error {
+			if b.Content != "new content" {
+				t.Errorf("want new content, got %s", b.Content)
+			}
+			return nil
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	block, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "new content", "markdown", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if block.Type != "markdown" {
+		t.Errorf("want markdown, got %s", block.Type)
+	}
+}
+
+func TestUpdateBlock_NotebookNotFound(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return nil, domain.ErrNotFound
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestUpdateBlock_Forbidden(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 2}, nil
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestUpdateBlock_BlockNotFound(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return nil, domain.ErrNotFound
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestUpdateBlock_WrongNotebook(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: 999}, nil
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestUpdateBlock_RepoError(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: 10}, nil
+		},
+		updateFn: func(ctx context.Context, b *domain.Block) error {
+			return errors.New("db error")
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestDeleteBlock_Success(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: 10}, nil
+		},
+		deleteFn: func(ctx context.Context, blockID int64) error {
+			return nil
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestDeleteBlock_NotebookNotFound(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return nil, domain.ErrNotFound
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestDeleteBlock_Forbidden(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 2}, nil
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestDeleteBlock_BlockNotFound(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return nil, domain.ErrNotFound
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestDeleteBlock_WrongNotebook(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: 999}, nil
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestDeleteBlock_RepoError(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
+			return &domain.Block{ID: blockID, NotebookID: 10}, nil
+		},
+		deleteFn: func(ctx context.Context, blockID int64) error {
+			return errors.New("db error")
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
+	if err == nil {
+		t.Error("expected error")
 	}
 }

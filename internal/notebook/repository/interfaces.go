@@ -17,5 +17,8 @@ type NotebookRepository interface {
 
 type BlockRepository interface {
 	Create(ctx context.Context, block *domain.Block) (int64, error)
+	GetByID(ctx context.Context, blockID int64) (*domain.Block, error)
 	GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error)
+	Update(ctx context.Context, block *domain.Block) error
+	Delete(ctx context.Context, blockID int64) error
 }
