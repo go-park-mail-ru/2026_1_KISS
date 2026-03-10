@@ -29,7 +29,8 @@ func New(userRepo repository.UserRepository, sessionRepo repository.SessionRepos
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, email, password string) (*domain.User, error) {
 	if err := httputil.ValidateEmail(email); err != nil {
-		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
+		// TODO: логировать err (детальная причина) когда подключим логгер
+		return nil, fmt.Errorf("%w: invalid email format", domain.ErrInvalidInput)
 	}
 	if err := httputil.ValidatePassword(password); err != nil {
 		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())

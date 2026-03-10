@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -16,6 +17,27 @@ func TestValidateEmail(t *testing.T) {
 		{"no domain", "user@", true},
 		{"no tld", "user@example", true},
 		{"empty", "", true},
+
+		{"valid with plus tag", "user+tag@example.com", false},
+		{"valid with dots in local", "user.name@example.com", false},
+		{"valid numeric local", "123@example.com", false},
+		{"valid hyphen in domain", "user@my-site.com", false},
+		{"valid local 64 chars", strings.Repeat("a", 64) + "@example.com", false},
+
+		{"too long email over 255", "user@" + strings.Repeat("a", 250) + ".com", true},
+		{"local part over 64 chars", strings.Repeat("a", 65) + "@example.com", true},
+		{"double dot in local", "user..name@example.com", true},
+		{"display name with angle brackets", "\"John\" <j@ex.com>", true},
+		{"angle brackets only", "<j@ex.com>", true},
+		{"IP literal in domain", "user@[127.0.0.1]", true},
+		{"leading dot in domain", "user@.example.com", true},
+		{"trailing dot in domain", "user@example.com.", true},
+		{"leading hyphen in domain label", "user@-example.com", true},
+		{"trailing hyphen in domain label", "user@example-.com", true},
+		{"missing local part", "@example.com", true},
+		{"double at sign", "user@@example.com", true},
+		{"space in local", "user @example.com", true},
+		{"single char TLD", "user@example.c", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
