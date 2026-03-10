@@ -85,7 +85,7 @@ func (r *BlockRepo) Delete(ctx context.Context, blockID int64) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	var position int
 	var notebookID int64
