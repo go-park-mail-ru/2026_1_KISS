@@ -201,14 +201,20 @@ func TestListByUser_NormalizesLimit(t *testing.T) {
 			}
 			return []domain.Notebook{}, nil
 		},
+		countByOwnerIDFn: func(ctx context.Context, ownerID int64) (int, error) {
+			return 0, nil
+		},
 	}
 	uc := usecase.New(nbRepo, &mockBlockRepo{})
-	_, err := uc.ListByUser(context.Background(), 1, 0, 0)
+	_, total, err := uc.ListByUser(context.Background(), 1, 0, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !called {
 		t.Error("repo not called")
+	}
+	if total != 0 {
+		t.Errorf("want total=0, got %d", total)
 	}
 }
 
@@ -264,9 +270,12 @@ func TestListByUser_NegativeOffset(t *testing.T) {
 			}
 			return []domain.Notebook{}, nil
 		},
+		countByOwnerIDFn: func(ctx context.Context, ownerID int64) (int, error) {
+			return 0, nil
+		},
 	}
 	uc := usecase.New(nbRepo, &mockBlockRepo{})
-	_, err := uc.ListByUser(context.Background(), 1, 10, -5)
+	_, _, err := uc.ListByUser(context.Background(), 1, 10, -5)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
