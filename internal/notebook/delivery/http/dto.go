@@ -10,6 +10,11 @@ type CreateNotebookRequest struct {
 	Title string `json:"title"`
 }
 
+type UpdateNotebookRequest struct {
+	Title    string `json:"title"`
+	IsPublic bool   `json:"is_public"`
+}
+
 type CreateBlockRequest struct {
 	Type     string `json:"type"`
 	Language string `json:"language"`
