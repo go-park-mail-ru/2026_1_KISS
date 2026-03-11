@@ -43,7 +43,7 @@ CREATE TABLE user_account (
     name            text           NOT NULL,
     status          text           NOT NULL DEFAULT '',
     description     text           NOT NULL DEFAULT '',
-    email           text           NOT NULL,
+    email           text           NOT NULL UNIQUE,
     password_hash   text           NOT NULL,
     avatar_url      text           NOT NULL DEFAULT '',
     created_at      timestamptz    NOT NULL DEFAULT now(),
