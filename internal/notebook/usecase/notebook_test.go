@@ -191,6 +191,33 @@ func TestAddBlock_CorrectPosition(t *testing.T) {
 	}
 }
 
+func TestAddBlock_TextDefaultsLanguageToPlain(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
+			return &domain.Notebook{ID: id, OwnerID: 1}, nil
+		},
+	}
+	blockRepo := &mockBlockRepo{
+		getByNotebookIDFn: func(ctx context.Context, notebookID int64) ([]domain.Block, error) {
+			return []domain.Block{}, nil
+		},
+		createFn: func(ctx context.Context, b *domain.Block) (int64, error) {
+			if b.Language != "markdown" {
+				t.Errorf("want language markdown, got %q", b.Language)
+			}
+			return 1, nil
+		},
+	}
+	uc := usecase.New(nbRepo, blockRepo)
+	block, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "text", Language: ""})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if block.Language != "markdown" {
+		t.Errorf("want language markdown, got %q", block.Language)
+	}
+}
+
 func TestListByUser_NormalizesLimit(t *testing.T) {
 	called := false
 	nbRepo := &mockNotebookRepo{

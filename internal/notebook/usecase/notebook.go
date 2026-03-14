@@ -113,6 +113,9 @@ func (uc *NotebookUsecase) AddBlock(ctx context.Context, userID, notebookID int6
 	}
 	block.NotebookID = notebookID
 	block.Position = len(blocks)
+	if block.Type == "text" && block.Language == "" {
+		block.Language = "markdown"
+	}
 	id, err := uc.blockRepo.Create(ctx, block)
 	if err != nil {
 		return nil, err
