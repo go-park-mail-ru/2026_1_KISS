@@ -184,8 +184,8 @@ func TestValidateSession_Expired(t *testing.T) {
 	}
 	uc := usecase.New(&mockUserRepo{}, sessionRepo, 24*time.Hour)
 	_, err := uc.ValidateSession(context.Background(), "expired-session")
-	if !errors.Is(err, domain.ErrUnauthorized) {
-		t.Errorf("want ErrUnauthorized, got %v", err)
+	if !errors.Is(err, domain.ErrSessionExpired) {
+		t.Errorf("want ErrSessionExpired, got %v", err)
 	}
 }
 
@@ -197,8 +197,21 @@ func TestValidateSession_NotFound(t *testing.T) {
 	}
 	uc := usecase.New(&mockUserRepo{}, sessionRepo, 24*time.Hour)
 	_, err := uc.ValidateSession(context.Background(), "missing-session")
-	if !errors.Is(err, domain.ErrUnauthorized) {
-		t.Errorf("want ErrUnauthorized, got %v", err)
+	if !errors.Is(err, domain.ErrSessionExpired) {
+		t.Errorf("want ErrSessionExpired, got %v", err)
+	}
+}
+
+func TestValidateSession_ExpiredFromRepository(t *testing.T) {
+	sessionRepo := &mockSessionRepo{
+		getByIDFn: func(ctx context.Context, id string) (*domain.Session, error) {
+			return nil, domain.ErrSessionExpired
+		},
+	}
+	uc := usecase.New(&mockUserRepo{}, sessionRepo, 24*time.Hour)
+	_, err := uc.ValidateSession(context.Background(), "expired-session")
+	if !errors.Is(err, domain.ErrSessionExpired) {
+		t.Errorf("want ErrSessionExpired, got %v", err)
 	}
 }
 

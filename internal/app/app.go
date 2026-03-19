@@ -3,12 +3,14 @@ package app
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	authhttp "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/delivery/http"
 	authpg "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/postgres"
+	authredis "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/redis"
 	authusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/health"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
@@ -17,11 +19,13 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	redisv9 "github.com/redis/go-redis/v9"
 )
 
 type App struct {
 	srv *http.Server
 	db  *sql.DB
+	rdb *redisv9.Client
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -30,8 +34,14 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
+	rdb := redisv9.NewClient(&redisv9.Options{
+		Addr:     fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       0,
+	})
+
 	userRepo := authpg.NewUserRepository(db)
-	sessionRepo := authpg.NewSessionRepository(db)
+	sessionRepo := authredis.NewSessionRepository(rdb)
 	notebookRepo := nbpg.NewNotebookRepository(db)
 	blockRepo := nbpg.NewBlockRepository(db)
 
@@ -63,7 +73,7 @@ func New(cfg *config.Config) (*App, error) {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	return &App{srv: srv, db: db}, nil
+	return &App{srv: srv, db: db, rdb: rdb}, nil
 }
 
 func (a *App) Run() error {
@@ -77,5 +87,10 @@ func (a *App) Shutdown(ctx context.Context) {
 	}
 	if err := a.db.Close(); err != nil {
 		log.Printf("db close error: %v", err)
+	}
+	if a.rdb != nil {
+		if err := a.rdb.Close(); err != nil {
+			log.Printf("redis close error: %v", err)
+		}
 	}
 }
