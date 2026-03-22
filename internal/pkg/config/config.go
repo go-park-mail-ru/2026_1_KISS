@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Redis    RedisConfig
 	Auth     AuthConfig
 	CORS     CORSConfig
 }
@@ -27,6 +28,12 @@ type DatabaseConfig struct {
 	DBName   string
 	SSLMode  string
 	URL      string
+}
+
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
 }
 
 func (d DatabaseConfig) DSN() string {
@@ -59,6 +66,11 @@ func Load() *Config {
 			DBName:   getEnv("POSTGRES_DB", "colab"),
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 			URL:      getEnv("DATABASE_URL", ""),
+		},
+		Redis: RedisConfig{
+			Host:     getEnv("REDIS_HOST", "localhost"),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 		Auth: AuthConfig{
 			SessionTTL: getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
