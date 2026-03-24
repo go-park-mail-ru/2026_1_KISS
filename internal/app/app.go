@@ -19,6 +19,8 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container"
 	redisv9 "github.com/redis/go-redis/v9"
 )
 
@@ -26,6 +28,8 @@ type App struct {
 	srv *http.Server
 	db  *sql.DB
 	rdb *redisv9.Client
+
+	runnerManager runner.Manager
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -73,7 +77,19 @@ func New(cfg *config.Config) (*App, error) {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	return &App{srv: srv, db: db, rdb: rdb}, nil
+	runnerManager, err := container.NewManager(cfg.Runner)
+	if err != nil {
+		_ = rdb.Close()
+		_ = db.Close()
+		return nil, fmt.Errorf("init runner manager: %w", err)
+	}
+
+	return &App{
+		srv:           srv,
+		db:            db,
+		rdb:           rdb,
+		runnerManager: runnerManager,
+	}, nil
 }
 
 func (a *App) Run() error {
@@ -91,6 +107,11 @@ func (a *App) Shutdown(ctx context.Context) {
 	if a.rdb != nil {
 		if err := a.rdb.Close(); err != nil {
 			log.Printf("redis close error: %v", err)
+		}
+	}
+	if a.runnerManager != nil {
+		if err := a.runnerManager.Close(); err != nil {
+			log.Printf("runner manager close error: %v", err)
 		}
 	}
 }
