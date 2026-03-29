@@ -95,6 +95,7 @@ func testUser() *domain.User {
 }
 
 var jpegHeader = []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
+var bmpHeader = []byte{0x42, 0x4D, 0x36, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00}
 
 func TestUploadAvatar(t *testing.T) {
 	tests := []struct {
@@ -110,9 +111,14 @@ func TestUploadAvatar(t *testing.T) {
 			fileSize: int64(len(jpegHeader) + 100),
 		},
 		{
+			name:     "success bmp",
+			fileData: append(bmpHeader, make([]byte, 100)...),
+			fileSize: int64(len(bmpHeader) + 100),
+		},
+		{
 			name:      "file too large",
 			fileData:  jpegHeader,
-			fileSize:  10 << 20,
+			fileSize:  3 << 20,
 			wantErr:   true,
 			errTarget: domain.ErrInvalidInput,
 		},
@@ -134,7 +140,7 @@ func TestUploadAvatar(t *testing.T) {
 				},
 			}
 			fs := &mockFileStorage{}
-			uc := usecase.New(repo, fs, 5<<20)
+			uc := usecase.New(repo, fs, 2<<20)
 
 			_, err := uc.UploadAvatar(context.Background(), 1, bytes.NewReader(tc.fileData), tc.fileSize, "")
 			if tc.wantErr {
@@ -163,7 +169,7 @@ func TestUploadAvatar_StorageError(t *testing.T) {
 			return "", errors.New("disk full")
 		},
 	}
-	uc := usecase.New(repo, fs, 5<<20)
+	uc := usecase.New(repo, fs, 2<<20)
 
 	data := append(jpegHeader, make([]byte, 100)...)
 	_, err := uc.UploadAvatar(context.Background(), 1, bytes.NewReader(data), int64(len(data)), "")
@@ -188,7 +194,7 @@ func TestUploadAvatar_DeletesOldAvatar(t *testing.T) {
 			return nil
 		},
 	}
-	uc := usecase.New(repo, fs, 5<<20)
+	uc := usecase.New(repo, fs, 2<<20)
 
 	data := append(jpegHeader, make([]byte, 100)...)
 	_, err := uc.UploadAvatar(context.Background(), 1, bytes.NewReader(data), int64(len(data)), "")

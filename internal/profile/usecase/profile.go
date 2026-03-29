@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -45,8 +44,7 @@ func New(userRepo userRepository, fs filestorage.FileStorage, maxFileSize int64)
 var allowedMIME = map[string]string{
 	"image/jpeg": ".jpg",
 	"image/png":  ".png",
-	"image/gif":  ".gif",
-	"image/webp": ".webp",
+	"image/bmp":  ".bmp",
 }
 
 // UploadAvatar validates and saves a new avatar image for the user.
@@ -64,10 +62,6 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 
 	detected := http.DetectContentType(sniffBuf)
 	mime := strings.Split(detected, ";")[0]
-
-	if isWebP(sniffBuf) {
-		mime = "image/webp"
-	}
 
 	ext, ok := allowedMIME[mime]
 	if !ok {
@@ -167,15 +161,4 @@ func (uc *ProfileUsecase) ChangeEmail(ctx context.Context, userID int64, newEmai
 	}
 
 	return uc.userRepo.GetByID(ctx, userID)
-}
-
-func isWebP(data []byte) bool {
-	return len(data) >= 12 &&
-		string(data[:4]) == "RIFF" &&
-		string(data[8:12]) == "WEBP"
-}
-
-// ExtForMIME returns a file extension for a known MIME type (exported for tests).
-func ExtForMIME(mime string) string {
-	return filepath.Ext(allowedMIME[mime])
 }

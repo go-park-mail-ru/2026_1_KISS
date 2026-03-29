@@ -88,7 +88,7 @@ func Load() *Config {
 		},
 		Upload: UploadConfig{
 			Dir:     getEnv("UPLOAD_DIR", "./uploads"),
-			MaxSize: getEnvInt64("MAX_UPLOAD_SIZE", 5<<20),
+			MaxSize: getEnvInt64("MAX_UPLOAD_SIZE", 2<<20),
 		},
 	}
 }
