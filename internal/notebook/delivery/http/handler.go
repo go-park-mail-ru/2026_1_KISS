@@ -39,7 +39,22 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("POST /api/v1/notebooks/{id}/blocks", authMw(http.HandlerFunc(h.AddBlock)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.UpdateBlock)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.DeleteBlock)))
+	//mux.Handle("GET /api/v1/notebooks/{id}/blocks/{block_id}", authMw(http.HandlerFunc(h.RunBlock)))
 }
+
+//func (h *NotebookHandler) RunBlock(w http.ResponseWriter, r *http.Request) {
+//	user := middleware.UserFromContext(r.Context())
+//	id, err := parseID(r)
+//	if err != nil {
+//		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+//		return
+//	}
+//	block_id, err := strconv.ParseInt(r.PathValue("block_id"), 10, 64)
+//	if err != nil {
+//		httputil.Error(w, http.StatusBadRequest, "invalid block id")
+//		return
+//	}
+//}
 
 func (h *NotebookHandler) List(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())

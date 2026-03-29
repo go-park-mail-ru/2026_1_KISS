@@ -19,3 +19,5 @@ traitlets==5.14.3
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.42.0
+ipykernel==6.29.5          # <-- ДОБАВЬ ЭТО
+ipython==8.31.0            # <-- и это (зависимость ipykernel)

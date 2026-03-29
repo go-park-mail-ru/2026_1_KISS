@@ -20,14 +20,14 @@ const (
 	sessionLabelKey = "kiss.runner.session_id"
 )
 
-type Manager struct {
+type manager struct {
 	docker     dockerAPI
 	cfg        config.RunnerConfig
 	httpClient *http.Client
 	waitReady  func(ctx context.Context, httpClient *http.Client, baseURL string, timeout, interval time.Duration) error
 }
 
-func NewManager(cfg config.RunnerConfig) (*Manager, error) {
+func NewManager(cfg config.RunnerConfig) (runner.Manager, error) {
 	adapter, err := NewDockerAdapter()
 	if err != nil {
 		return nil, fmt.Errorf("create docker adapter: %w", err)
@@ -35,8 +35,8 @@ func NewManager(cfg config.RunnerConfig) (*Manager, error) {
 	return NewManagerWithAPI(cfg, adapter), nil
 }
 
-func NewManagerWithAPI(cfg config.RunnerConfig, docker dockerAPI) *Manager {
-	return &Manager{
+func NewManagerWithAPI(cfg config.RunnerConfig, docker dockerAPI) runner.Manager {
+	return &manager{
 		docker:     docker,
 		cfg:        cfg,
 		httpClient: &http.Client{},
@@ -44,11 +44,11 @@ func NewManagerWithAPI(cfg config.RunnerConfig, docker dockerAPI) *Manager {
 	}
 }
 
-func (m *Manager) Close() error {
+func (m *manager) Close() error {
 	return m.docker.Close()
 }
 
-func (m *Manager) GetContainerAddress(ctx context.Context, sessionID string) (string, error) {
+func (m *manager) GetContainerAddress(ctx context.Context, sessionID string) (string, error) {
 	inspect, err := m.inspectByName(ctx, m.containerName(sessionID))
 	if err != nil {
 		return "", err
@@ -59,7 +59,7 @@ func (m *Manager) GetContainerAddress(ctx context.Context, sessionID string) (st
 	return m.addressFromInspect(inspect)
 }
 
-func (m *Manager) StartSession(ctx context.Context, sessionID string) (string, error) {
+func (m *manager) StartSession(ctx context.Context, sessionID string) (string, error) {
 	name := m.containerName(sessionID)
 
 	for attempt := 0; attempt < 3; attempt++ {
@@ -101,7 +101,7 @@ func (m *Manager) StartSession(ctx context.Context, sessionID string) (string, e
 	return "", fmt.Errorf("start session %s: container name conflict", sessionID)
 }
 
-func (m *Manager) StopSession(ctx context.Context, sessionID string) error {
+func (m *manager) StopSession(ctx context.Context, sessionID string) error {
 	inspect, err := m.inspectByName(ctx, m.containerName(sessionID))
 	if err != nil {
 		if errors.Is(err, runner.ErrContainerNotFound) {
@@ -112,7 +112,7 @@ func (m *Manager) StopSession(ctx context.Context, sessionID string) error {
 	return m.removeContainer(ctx, inspect.ID)
 }
 
-func (m *Manager) CleanupSessions(ctx context.Context) {
+func (m *manager) CleanupSessions(ctx context.Context) {
 	args := filters.NewArgs(filters.Arg("label", managedLabelKey+"=true"))
 	containers, err := m.docker.ContainerList(ctx, container.ListOptions{All: true, Filters: args})
 	if err != nil {
@@ -127,7 +127,7 @@ func (m *Manager) CleanupSessions(ctx context.Context) {
 	}
 }
 
-func (m *Manager) inspectByName(ctx context.Context, name string) (container.InspectResponse, error) {
+func (m *manager) inspectByName(ctx context.Context, name string) (container.InspectResponse, error) {
 	inspect, err := m.docker.ContainerInspect(ctx, name)
 	if err != nil {
 		if cerrdefs.IsNotFound(err) {
@@ -138,7 +138,7 @@ func (m *Manager) inspectByName(ctx context.Context, name string) (container.Ins
 	return inspect, nil
 }
 
-func (m *Manager) createContainer(ctx context.Context, sessionID, name string) (container.CreateResponse, error) {
+func (m *manager) createContainer(ctx context.Context, sessionID, name string) (container.CreateResponse, error) {
 	containerConfig := &container.Config{
 		Image: m.cfg.Image,
 		Labels: map[string]string{
@@ -160,7 +160,7 @@ func (m *Manager) createContainer(ctx context.Context, sessionID, name string) (
 	return m.docker.ContainerCreate(ctx, containerConfig, hostConfig, networkConfig, nil, name)
 }
 
-func (m *Manager) removeContainer(ctx context.Context, containerID string) error {
+func (m *manager) removeContainer(ctx context.Context, containerID string) error {
 	err := m.docker.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 	if err != nil && !cerrdefs.IsNotFound(err) {
 		return fmt.Errorf("remove container %s: %w", containerID, err)
@@ -168,7 +168,7 @@ func (m *Manager) removeContainer(ctx context.Context, containerID string) error
 	return nil
 }
 
-func (m *Manager) containerName(sessionID string) string {
+func (m *manager) containerName(sessionID string) string {
 	prefix := m.cfg.NamePrefix
 	if prefix == "" {
 		prefix = "runner-"
@@ -176,11 +176,12 @@ func (m *Manager) containerName(sessionID string) string {
 	return prefix + sessionID
 }
 
-func (m *Manager) waitAndReturnAddress(ctx context.Context, inspect container.InspectResponse) (string, error) {
+func (m *manager) waitAndReturnAddress(ctx context.Context, inspect container.InspectResponse) (string, error) {
 	address, err := m.addressFromInspect(inspect)
 	if err != nil {
 		return "", err
 	}
+	address = "localhost"
 	baseURL := "http://" + address + ":" + m.cfg.AgentPort
 	if err := m.waitReady(ctx, m.httpClient, baseURL, m.cfg.StartupTimeout, m.cfg.HealthCheckInterval); err != nil {
 		return "", err
@@ -188,7 +189,7 @@ func (m *Manager) waitAndReturnAddress(ctx context.Context, inspect container.In
 	return address, nil
 }
 
-func (m *Manager) addressFromInspect(inspect container.InspectResponse) (string, error) {
+func (m *manager) addressFromInspect(inspect container.InspectResponse) (string, error) {
 	if inspect.NetworkSettings == nil {
 		return "", fmt.Errorf("container has no network settings")
 	}

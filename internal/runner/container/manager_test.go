@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -165,9 +164,9 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 		StartupTimeout:      time.Second,
 		HealthCheckInterval: time.Millisecond,
 	}, docker)
-	mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
-		return nil
-	}
+	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+	//	return nil
+	//}
 
 	address, err := mgr.StartSession(context.Background(), "s-1")
 	if err != nil {
@@ -199,7 +198,7 @@ func TestStartSession_ReusesRunningContainer(t *testing.T) {
 	docker.containersByID["id-existing"] = docker.containersByName["runner-s-2"]
 
 	mgr := NewManagerWithAPI(config.RunnerConfig{NamePrefix: "runner-", AgentPort: "8080"}, docker)
-	mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
+	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
 
 	address, err := mgr.StartSession(context.Background(), "s-2")
 	if err != nil {
@@ -220,7 +219,7 @@ func TestStartSession_RecreatesStoppedContainer(t *testing.T) {
 	docker.nextIP = "172.19.0.9"
 
 	mgr := NewManagerWithAPI(config.RunnerConfig{Image: "kiss-runner", NamePrefix: "runner-", AgentPort: "8080"}, docker)
-	mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
+	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
 
 	address, err := mgr.StartSession(context.Background(), "s-3")
 	if err != nil {

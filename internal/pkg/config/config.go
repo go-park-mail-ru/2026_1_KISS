@@ -91,7 +91,7 @@ func Load() *Config {
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
 		},
 		Runner: RunnerConfig{
-			Image:               getEnv("RUNNER_IMAGE", "kiss-runner"),
+			Image:               getEnv("RUNNER_IMAGE", "kiss-python-runner"),
 			NamePrefix:          getEnv("RUNNER_NAME_PREFIX", "runner-"),
 			AgentPort:           getEnv("RUNNER_AGENT_PORT", "8080"),
 			MemoryLimitBytes:    getEnvInt64("RUNNER_MEMORY_LIMIT_BYTES", 512*1024*1024),

@@ -22,6 +22,7 @@ func waitUntilReady(ctx context.Context, httpClient *http.Client, baseURL string
 	defer cancel()
 
 	healthURL := strings.TrimRight(baseURL, "/") + "/health"
+	fmt.Println(healthURL)
 	for {
 		req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, healthURL, nil)
 		if err != nil {
@@ -29,6 +30,7 @@ func waitUntilReady(ctx context.Context, httpClient *http.Client, baseURL string
 		}
 
 		resp, err := httpClient.Do(req)
+		fmt.Printf("err: %v\n", err)
 		if err == nil {
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {

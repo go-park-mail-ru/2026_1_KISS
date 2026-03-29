@@ -14,7 +14,7 @@
 
 Используются поля `RunnerConfig` из `internal/pkg/config`:
 
-- `RUNNER_IMAGE` (default `kiss-runner`)
+- `RUNNER_IMAGE` (default `kiss-python-runner`)
 - `RUNNER_NETWORK` (default `bridge`)
 - `RUNNER_NAME_PREFIX` (default `runner-`)
 - `RUNNER_AGENT_PORT` (default `8080`)
