@@ -15,6 +15,10 @@ services:
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       REDIS_HOST: "${REDIS_HOST:-redis}"
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
+    volumes:
+      # Docker-in-Docker: даём сервису доступ к daemon хоста,
+      # чтобы он мог создавать runner-контейнеры
+      - /var/run/docker.sock:/var/run/docker.sock
 
   migrator:
     build: .
