@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -13,6 +14,7 @@ type Config struct {
 	Redis    RedisConfig
 	Auth     AuthConfig
 	CORS     CORSConfig
+	Runner   RunnerConfig
 }
 
 type ServerConfig struct {
@@ -52,6 +54,16 @@ type CORSConfig struct {
 	AllowedOrigins []string
 }
 
+type RunnerConfig struct {
+	Image               string
+	NamePrefix          string
+	AgentPort           string
+	MemoryLimitBytes    int64
+	NanoCPUs            int64
+	StartupTimeout      time.Duration
+	HealthCheckInterval time.Duration
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -78,6 +90,15 @@ func Load() *Config {
 		CORS: CORSConfig{
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
 		},
+		Runner: RunnerConfig{
+			Image:               getEnv("RUNNER_IMAGE", "kiss-runner"),
+			NamePrefix:          getEnv("RUNNER_NAME_PREFIX", "runner-"),
+			AgentPort:           getEnv("RUNNER_AGENT_PORT", "8080"),
+			MemoryLimitBytes:    getEnvInt64("RUNNER_MEMORY_LIMIT_BYTES", 512*1024*1024),
+			NanoCPUs:            getEnvInt64("RUNNER_NANO_CPUS", 1_000_000_000),
+			StartupTimeout:      getEnvDuration("RUNNER_STARTUP_TIMEOUT", 20*time.Second),
+			HealthCheckInterval: getEnvDuration("RUNNER_HEALTHCHECK_INTERVAL", 300*time.Millisecond),
+		},
 	}
 }
 
@@ -92,6 +113,15 @@ func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
 	if val := os.Getenv(key); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			return d
+		}
+	}
+	return defaultVal
+}
+
+func getEnvInt64(key string, defaultVal int64) int64 {
+	if val := os.Getenv(key); val != "" {
+		if parsed, err := strconv.ParseInt(val, 10, 64); err == nil {
+			return parsed
 		}
 	}
 	return defaultVal
