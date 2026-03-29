@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -13,6 +14,13 @@ type Config struct {
 	Redis    RedisConfig
 	Auth     AuthConfig
 	CORS     CORSConfig
+	Upload   UploadConfig
+}
+
+// UploadConfig holds file upload settings.
+type UploadConfig struct {
+	Dir     string
+	MaxSize int64
 }
 
 type ServerConfig struct {
@@ -78,12 +86,25 @@ func Load() *Config {
 		CORS: CORSConfig{
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
 		},
+		Upload: UploadConfig{
+			Dir:     getEnv("UPLOAD_DIR", "./uploads"),
+			MaxSize: getEnvInt64("MAX_UPLOAD_SIZE", 5<<20),
+		},
 	}
 }
 
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
+	}
+	return defaultVal
+}
+
+func getEnvInt64(key string, defaultVal int64) int64 {
+	if val := os.Getenv(key); val != "" {
+		if n, err := strconv.ParseInt(val, 10, 64); err == nil {
+			return n
+		}
 	}
 	return defaultVal
 }

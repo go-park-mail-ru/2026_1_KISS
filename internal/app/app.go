@@ -19,6 +19,9 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
+	profilehttp "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/delivery/http"
+	profileusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/usecase"
 	redisv9 "github.com/redis/go-redis/v9"
 )
 
@@ -48,8 +51,12 @@ func New(cfg *config.Config) (*App, error) {
 	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
 	notebookUC := nbusecase.New(notebookRepo, blockRepo)
 
+	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
+	profileUC := profileusecase.New(userRepo, fs, cfg.Upload.MaxSize)
+
 	authHandler := authhttp.New(authUC)
 	notebookHandler := nbhttp.New(notebookUC)
+	profileHandler := profilehttp.New(profileUC, cfg.Upload.MaxSize)
 	healthHandler := health.New(db)
 
 	mux := http.NewServeMux()
@@ -57,7 +64,10 @@ func New(cfg *config.Config) (*App, error) {
 
 	authHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
+	profileHandler.RegisterRoutes(mux, authMw)
 	healthHandler.RegisterRoutes(mux)
+
+	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 
 	handler := middleware.Chain(mux,
 		middleware.RequestID(),
