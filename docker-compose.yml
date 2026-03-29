@@ -15,6 +15,9 @@ services:
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       REDIS_HOST: "${REDIS_HOST:-redis}"
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
 
   migrator:
     build: .
@@ -58,3 +61,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
