@@ -13,7 +13,7 @@ import (
 )
 
 type profileUsecase interface {
-	UploadAvatar(ctx context.Context, userID int64, file io.Reader, fileSize int64, contentType string) (*domain.User, error)
+	UploadAvatar(ctx context.Context, userID int64, file io.ReadSeeker, fileSize int64, contentType string) (*domain.User, error)
 	UpdateProfile(ctx context.Context, userID int64, username, status, description string) (*domain.User, error)
 	ChangePassword(ctx context.Context, userID int64, currentPassword, newPassword string) error
 	ChangeEmail(ctx context.Context, userID int64, newEmail, password string) (*domain.User, error)

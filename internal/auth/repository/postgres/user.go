@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/lib/pq"
-
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/lib/pq"
 )
 
 type UserRepo struct {

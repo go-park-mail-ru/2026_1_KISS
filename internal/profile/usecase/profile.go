@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -48,7 +47,7 @@ var allowedMIME = map[string]string{
 }
 
 // UploadAvatar validates and saves a new avatar image for the user.
-func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file io.Reader, fileSize int64, _ string) (*domain.User, error) {
+func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file io.ReadSeeker, fileSize int64, _ string) (*domain.User, error) {
 	if fileSize > uc.maxFileSize {
 		return nil, fmt.Errorf("%w: file too large", domain.ErrInvalidInput)
 	}
@@ -68,8 +67,11 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 		return nil, fmt.Errorf("%w: invalid file type", domain.ErrInvalidInput)
 	}
 
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("seek file: %w", err)
+	}
+
 	filename := uuid.New().String() + ext
-	combined := io.MultiReader(bytes.NewReader(sniffBuf), file)
 
 	user, err := uc.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -77,7 +79,7 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 	}
 	oldAvatar := user.AvatarURL
 
-	url, err := uc.fileStorage.Save(filename, combined)
+	url, err := uc.fileStorage.Save(filename, file)
 	if err != nil {
 		return nil, fmt.Errorf("save avatar: %w", err)
 	}
