@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	managedLabelKey = "kiss.runner.managed"
-	sessionLabelKey = "kiss.runner.session_id"
+	managedLabelKey     = "kiss.runner.managed"
+	sessionLabelKey     = "kiss.runner.session_id"
+	startupAttemptCount = 5
 )
 
 type Manager struct {
@@ -77,7 +78,7 @@ func (m *Manager) GetContainerAddress(ctx context.Context, sessionID string) (st
 func (m *Manager) StartSession(ctx context.Context, sessionID string) (string, error) {
 	name := m.containerName(sessionID)
 
-	for attempt := 0; attempt < 3; attempt++ {
+	for attempt := 0; attempt < startupAttemptCount; attempt++ {
 		inspect, err := m.inspectByName(ctx, name)
 		if err == nil {
 			if inspect.State != nil && inspect.State.Running {

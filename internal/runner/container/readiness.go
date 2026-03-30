@@ -10,12 +10,17 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner"
 )
 
+const (
+	defaultAttemptInterval = 250 * time.Millisecond
+	defaultTimeout         = 15 * time.Second
+)
+
 func waitUntilReady(ctx context.Context, httpClient *http.Client, baseURL string, timeout, interval time.Duration) error {
 	if interval <= 0 {
-		interval = 100 * time.Millisecond
+		interval = defaultAttemptInterval
 	}
 	if timeout <= 0 {
-		timeout = 10 * time.Second
+		timeout = defaultTimeout
 	}
 
 	healthCtx, cancel := context.WithTimeout(ctx, timeout)
