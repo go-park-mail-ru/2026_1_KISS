@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	cerrdefs "github.com/containerd/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner"
@@ -162,7 +164,21 @@ func (m *Manager) createContainer(ctx context.Context, sessionID, name string) (
 			port: struct{}{},
 		},
 	}
+
+	runtimes, err := getAvailableRuntimes()
+	if err != nil {
+		panic(err)
+	}
+	var runtimeName string
+	if slices.Contains(runtimes, "runsc") {
+		runtimeName = "runsc"
+	} else {
+		fmt.Println(fmt.Errorf("WARNING: runsc runtime not found, using runc instead"))
+		runtimeName = "runc"
+	}
 	hostConfig := &container.HostConfig{
+		AutoRemove: true, // сносим контейнер после окончания сессии
+		Runtime:    runtimeName,
 		Resources: container.Resources{
 			Memory:   m.cfg.MemoryLimitBytes,
 			NanoCPUs: m.cfg.NanoCPUs,
@@ -251,4 +267,24 @@ func (m *Manager) hostPortAddress(inspect container.InspectResponse) (string, er
 		return "", fmt.Errorf("empty host port for container port %s", port)
 	}
 	return "127.0.0.1:" + hostPort, nil
+}
+
+func getAvailableRuntimes() ([]string, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := cli.Info(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	// Собираем только названия рантаймов (ключи map)
+	var runtimes []string
+	for name := range info.Runtimes {
+		runtimes = append(runtimes, name)
+	}
+
+	return runtimes, nil
 }

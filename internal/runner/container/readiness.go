@@ -29,7 +29,6 @@ func waitUntilReady(ctx context.Context, httpClient *http.Client, baseURL string
 		}
 
 		resp, err := httpClient.Do(req)
-		fmt.Printf("err: %v\n", err)
 		if err == nil {
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
