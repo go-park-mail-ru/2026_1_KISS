@@ -99,7 +99,7 @@ func Load() *Config {
 			NanoCPUs:            getEnvInt64("RUNNER_NANO_CPUS", 1_000_000_000),
 			StartupTimeout:      getEnvDuration("RUNNER_STARTUP_TIMEOUT", 20*time.Second),
 			HealthCheckInterval: getEnvDuration("RUNNER_HEALTHCHECK_INTERVAL", 300*time.Millisecond),
-			NetworkName:         getEnv("NETWORK_NAME", "2026_1_kiss_app-network"),
+			NetworkName:         getEnv("NETWORK_NAME", "bridge"), // 2026_1_kiss_app-network
 		},
 	}
 }

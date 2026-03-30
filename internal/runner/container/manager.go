@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	cerrdefs "github.com/containerd/containerd/errdefs"
@@ -41,7 +40,13 @@ func NewManager(cfg config.RunnerConfig) (*Manager, error) {
 func NewManagerWithAPI(cfg config.RunnerConfig, docker dockerAPI) *Manager {
 	// RUNNER_USE_HOST_PORT=true означает, что сервис запущен на хосте,
 	// а не внутри Docker-сети — используем 127.0.0.1 + проброшенный порт.
-	useHostPort := os.Getenv("RUNNER_USE_HOST_PORT") == "true"
+	//useHostPort := os.Getenv("RUNNER_USE_HOST_PORT") == "true"
+
+	// Затычка - если запускать app не из контейнера, то runner-контейнеры будут слушать localhost
+	useHostPort := false
+	if cfg.NetworkName == "bridge" {
+		useHostPort = true
+	}
 
 	return &Manager{
 		docker:      docker,
@@ -162,10 +167,10 @@ func (m *Manager) createContainer(ctx context.Context, sessionID, name string) (
 			Memory:   m.cfg.MemoryLimitBytes,
 			NanoCPUs: m.cfg.NanoCPUs,
 		},
-		NetworkMode: container.NetworkMode(m.cfg.NetworkName),
+		NetworkMode: container.NetworkMode(m.cfg.NetworkName), // "bridge", // container.NetworkMode(m.cfg.NetworkName),
 		PortBindings: nat.PortMap{
 			port: []nat.PortBinding{
-				{HostIP: "0.0.0.0", HostPort: "0"}, // случайный свободный порт
+				{HostIP: "0.0.0.0", HostPort: "0"}, // случайный свободный порт или 8081
 			},
 		},
 	}
