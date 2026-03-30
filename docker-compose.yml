@@ -15,6 +15,12 @@ services:
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       REDIS_HOST: "${REDIS_HOST:-redis}"
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
+    volumes:
+      # Docker-in-Docker: даём сервису доступ к daemon хоста,
+      # чтобы он мог создавать runner-контейнеры
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-network
 
   migrator:
     build: .
@@ -25,6 +31,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
     restart: "no"
+    networks:
+      - app-network
 
   postgres:
     image: postgres:16-alpine
@@ -34,6 +42,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-colab}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -47,6 +57,8 @@ services:
     command: ["redis-server", "--appendonly", "no", "--save", "300 10", "--save", "60 1000"]
     volumes:
       - redis_data:/data
+    networks:
+      - app-network
     ports:
       - "${REDIS_PORT:-6380}:${REDIS_INTERNAL_PORT:-6379}"
     healthcheck:
@@ -54,6 +66,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:

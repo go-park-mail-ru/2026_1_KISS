@@ -5,10 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN python -m ipykernel install --user --name python3 --display-name "Python 3"
 
 RUN useradd --create-home --shell /usr/sbin/nologin runner
 
