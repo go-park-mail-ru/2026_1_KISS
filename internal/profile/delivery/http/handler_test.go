@@ -17,13 +17,13 @@ import (
 )
 
 type mockProfileUsecase struct {
-	uploadAvatarFn   func(ctx context.Context, userID int64, file io.Reader, fileSize int64, contentType string) (*domain.User, error)
+	uploadAvatarFn   func(ctx context.Context, userID int64, file io.ReadSeeker, fileSize int64, contentType string) (*domain.User, error)
 	updateProfileFn  func(ctx context.Context, userID int64, username, status, description string) (*domain.User, error)
 	changePasswordFn func(ctx context.Context, userID int64, currentPassword, newPassword string) error
 	changeEmailFn    func(ctx context.Context, userID int64, newEmail, password string) (*domain.User, error)
 }
 
-func (m *mockProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file io.Reader, fileSize int64, contentType string) (*domain.User, error) {
+func (m *mockProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file io.ReadSeeker, fileSize int64, contentType string) (*domain.User, error) {
 	if m.uploadAvatarFn != nil {
 		return m.uploadAvatarFn(ctx, userID, file, fileSize, contentType)
 	}
@@ -70,7 +70,7 @@ func TestUploadAvatar_Handler(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		user := testUser()
 		h := profilehttp.New(&mockProfileUsecase{
-			uploadAvatarFn: func(_ context.Context, _ int64, _ io.Reader, _ int64, _ string) (*domain.User, error) {
+			uploadAvatarFn: func(_ context.Context, _ int64, _ io.ReadSeeker, _ int64, _ string) (*domain.User, error) {
 				u := testUser()
 				u.AvatarURL = "/uploads/new.jpg"
 				return u, nil
@@ -116,7 +116,7 @@ func TestUploadAvatar_Handler(t *testing.T) {
 	t.Run("usecase error", func(t *testing.T) {
 		user := testUser()
 		h := profilehttp.New(&mockProfileUsecase{
-			uploadAvatarFn: func(_ context.Context, _ int64, _ io.Reader, _ int64, _ string) (*domain.User, error) {
+			uploadAvatarFn: func(_ context.Context, _ int64, _ io.ReadSeeker, _ int64, _ string) (*domain.User, error) {
 				return nil, domain.ErrInvalidInput
 			},
 		}, 5<<20)
