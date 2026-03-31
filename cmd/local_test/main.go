@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 
 	nbpg "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository/postgres"
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
@@ -67,16 +70,40 @@ func main() {
 		_ = db.Close()
 		panic(err)
 	}
-	address, err := runnerManager.StartSession(ctx, "s-3")
+	sessionID := "user-123-session-456"
+	containerIP, err := runnerManager.StartSession(ctx, sessionID)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Address: %s\n", containerIP)
 
-	fmt.Printf("Address: %s\n", address)
+	//adr2, err := runnerManager.GetContainerAddress(ctx, "s-3")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Printf("Adr2: %s\n", adr2)
 
-	adr2, err := runnerManager.GetContainerAddress(ctx, "s-3")
+	baseURL := "http://" + containerIP
+
+	resp, err := http.Get(baseURL + "/health")
 	if err != nil {
-		panic(err)
+		log.Printf("health check failed: %v", err)
+		return
 	}
-	fmt.Printf("Adr2: %s\n", adr2)
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		fmt.Println("runner is healthy")
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Body: %s\n", string(body))
+	}
+
+	if err := runnerManager.StopSession(ctx, sessionID); err != nil {
+		fmt.Printf("failed to stop session: %v", err)
+	}
+	runnerManager.CleanupSessions(ctx)
 }

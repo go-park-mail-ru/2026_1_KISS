@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
@@ -18,6 +19,7 @@ type dockerAPI interface {
 	ContainerStart(ctx context.Context, containerID string, options container.StartOptions) error
 	ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error
 	ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error)
+	GetAvailableRuntimes() ([]string, error)
 }
 
 type DockerAdapter struct {
@@ -56,4 +58,19 @@ func (a *DockerAdapter) ContainerRemove(ctx context.Context, containerID string,
 
 func (a *DockerAdapter) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
 	return a.cli.ContainerList(ctx, options)
+}
+
+func (a *DockerAdapter) GetAvailableRuntimes() ([]string, error) {
+	info, err := a.cli.Info(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("could not get info: %w", err)
+	}
+
+	// Собираем только названия рантаймов (ключи map)
+	var runtimes []string
+	for name := range info.Runtimes {
+		runtimes = append(runtimes, name)
+	}
+
+	return runtimes, nil
 }
