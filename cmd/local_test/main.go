@@ -71,7 +71,7 @@ func main() {
 		panic(err)
 	}
 	sessionID := "user-123-session-456"
-	containerIP, err := runnerManager.StartSession(ctx, sessionID)
+	containerIP, err := runnerManager.StartSession(ctx, sessionID, "python")
 	if err != nil {
 		panic(err)
 	}

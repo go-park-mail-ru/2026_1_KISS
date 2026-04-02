@@ -18,8 +18,11 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Auth.SessionTTL != 24*time.Hour {
 		t.Errorf("want 24h, got %v", cfg.Auth.SessionTTL)
 	}
-	if cfg.Runner.Image != "kiss-runner" {
-		t.Errorf("want kiss-runner, got %s", cfg.Runner.Image)
+	if cfg.Runner.Images["python"] != "kiss-python-runner" {
+		t.Errorf("want kiss-python-runner, got %s", cfg.Runner.Images["python"])
+	}
+	if cfg.Runner.Images["r"] != "kiss-r-runner" {
+		t.Errorf("want kiss-r-runner, got %s", cfg.Runner.Images["r"])
 	}
 	if cfg.Runner.StartupTimeout != 20*time.Second {
 		t.Errorf("want 20s startup timeout, got %v", cfg.Runner.StartupTimeout)
@@ -30,7 +33,8 @@ func TestLoad_FromEnv(t *testing.T) {
 	t.Setenv("SERVER_PORT", "9090")
 	t.Setenv("POSTGRES_HOST", "myhost")
 	t.Setenv("AUTH_SESSION_TTL", "48h")
-	t.Setenv("RUNNER_IMAGE", "kiss-python-runner")
+	t.Setenv("RUNNER_IMAGE_PYTHON", "custom-py-runner")
+	t.Setenv("RUNNER_IMAGE_R", "custom-r-runner")
 	t.Setenv("RUNNER_MEMORY_LIMIT_BYTES", "104857600")
 	t.Setenv("RUNNER_STARTUP_TIMEOUT", "35s")
 
@@ -44,8 +48,11 @@ func TestLoad_FromEnv(t *testing.T) {
 	if cfg.Auth.SessionTTL != 48*time.Hour {
 		t.Errorf("want 48h, got %v", cfg.Auth.SessionTTL)
 	}
-	if cfg.Runner.Image != "kiss-python-runner" {
-		t.Errorf("want kiss-python-runner, got %s", cfg.Runner.Image)
+	if cfg.Runner.Images["python"] != "custom-py-runner" {
+		t.Errorf("want custom-py-runner, got %s", cfg.Runner.Images["python"])
+	}
+	if cfg.Runner.Images["r"] != "custom-r-runner" {
+		t.Errorf("want custom-r-runner, got %s", cfg.Runner.Images["r"])
 	}
 	if cfg.Runner.MemoryLimitBytes != 104857600 {
 		t.Errorf("want 104857600, got %d", cfg.Runner.MemoryLimitBytes)

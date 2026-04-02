@@ -149,6 +149,10 @@ func (f *fakeDocker) ContainerList(_ context.Context, options container.ListOpti
 	return list, nil
 }
 
+func (f *fakeDocker) GetAvailableRuntimes() ([]string, error) {
+	return []string{"runc"}, nil
+}
+
 func (f *fakeDocker) Close() error {
 	return nil
 }
@@ -156,7 +160,7 @@ func (f *fakeDocker) Close() error {
 func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	docker := newFakeDocker()
 	mgr := NewManagerWithAPI(config.RunnerConfig{
-		Image:               "kiss-runner",
+		Images:              map[string]string{"python": "kiss-python-runner", "r": "kiss-r-runner"},
 		NamePrefix:          "runner-",
 		AgentPort:           "8080",
 		MemoryLimitBytes:    128 * 1024 * 1024,
@@ -168,7 +172,7 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	//	return nil
 	//}
 
-	address, err := mgr.StartSession(context.Background(), "s-1")
+	address, err := mgr.StartSession(context.Background(), "s-1", "python")
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
@@ -178,8 +182,8 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	if docker.lastCreatedName != "runner-s-1" {
 		t.Fatalf("want container name runner-s-1, got %s", docker.lastCreatedName)
 	}
-	if docker.lastCreatedImage != "kiss-runner" {
-		t.Fatalf("want image kiss-runner, got %s", docker.lastCreatedImage)
+	if docker.lastCreatedImage != "kiss-python-runner" {
+		t.Fatalf("want image kiss-python-runner, got %s", docker.lastCreatedImage)
 	}
 	if docker.lastCreatedMemory != 128*1024*1024 {
 		t.Fatalf("unexpected memory limit: %d", docker.lastCreatedMemory)
@@ -197,10 +201,10 @@ func TestStartSession_ReusesRunningContainer(t *testing.T) {
 	docker.containersByName["runner-s-2"] = &fakeContainer{id: "id-existing", name: "runner-s-2", ip: "172.19.0.8", running: true}
 	docker.containersByID["id-existing"] = docker.containersByName["runner-s-2"]
 
-	mgr := NewManagerWithAPI(config.RunnerConfig{NamePrefix: "runner-", AgentPort: "8080"}, docker)
+	mgr := NewManagerWithAPI(config.RunnerConfig{Images: map[string]string{"python": "kiss-python-runner"}, NamePrefix: "runner-", AgentPort: "8080"}, docker)
 	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
 
-	address, err := mgr.StartSession(context.Background(), "s-2")
+	address, err := mgr.StartSession(context.Background(), "s-2", "python")
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
@@ -218,10 +222,10 @@ func TestStartSession_RecreatesStoppedContainer(t *testing.T) {
 	docker.containersByID["id-old"] = docker.containersByName["runner-s-3"]
 	docker.nextIP = "172.19.0.9"
 
-	mgr := NewManagerWithAPI(config.RunnerConfig{Image: "kiss-runner", NamePrefix: "runner-", AgentPort: "8080"}, docker)
+	mgr := NewManagerWithAPI(config.RunnerConfig{Images: map[string]string{"python": "kiss-python-runner"}, NamePrefix: "runner-", AgentPort: "8080"}, docker)
 	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
 
-	address, err := mgr.StartSession(context.Background(), "s-3")
+	address, err := mgr.StartSession(context.Background(), "s-3", "python")
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
