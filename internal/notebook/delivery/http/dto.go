@@ -6,6 +6,39 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
 
+// GrantPermissionRequest — тело запроса на выдачу/обновление разрешения.
+type GrantPermissionRequest struct {
+	Level string `json:"level"`
+}
+
+// PermissionResponse — разрешение одного пользователя на ноутбук.
+type PermissionResponse struct {
+	NotebookID      int64  `json:"notebook_id"`
+	UserID          int64  `json:"user_id"`
+	PermissionLevel string `json:"permission_level"`
+}
+
+// PermissionListResponse — список разрешений ноутбука.
+type PermissionListResponse struct {
+	Permissions []PermissionResponse `json:"permissions"`
+}
+
+func newPermissionResponse(p domain.FilePermission) PermissionResponse {
+	return PermissionResponse{
+		NotebookID:      p.NotebookID,
+		UserID:          p.UserID,
+		PermissionLevel: p.PermissionLevel,
+	}
+}
+
+func newPermissionListResponse(perms []domain.FilePermission) PermissionListResponse {
+	items := make([]PermissionResponse, len(perms))
+	for i, p := range perms {
+		items[i] = newPermissionResponse(p)
+	}
+	return PermissionListResponse{Permissions: items}
+}
+
 type CreateNotebookRequest struct {
 	Title string `json:"title"`
 }

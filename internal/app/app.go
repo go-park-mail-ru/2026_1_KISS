@@ -47,9 +47,10 @@ func New(cfg *config.Config) (*App, error) {
 	sessionRepo := authredis.NewSessionRepository(rdb)
 	notebookRepo := nbpg.NewNotebookRepository(db)
 	blockRepo := nbpg.NewBlockRepository(db)
+	permRepo := nbpg.NewPermissionRepository(db)
 
 	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
-	notebookUC := nbusecase.New(notebookRepo, blockRepo)
+	notebookUC := nbusecase.New(notebookRepo, blockRepo, permRepo)
 
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
 	profileUC := profileusecase.New(userRepo, fs, cfg.Upload.MaxSize)

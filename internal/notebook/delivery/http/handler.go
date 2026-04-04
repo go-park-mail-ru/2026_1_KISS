@@ -20,6 +20,10 @@ type notebookUsecase interface {
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 	UpdateBlock(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error)
 	DeleteBlock(ctx context.Context, userID, notebookID, blockID int64) error
+	GrantPermission(ctx context.Context, requesterID, notebookID, targetUserID int64, level string) error
+	RevokePermission(ctx context.Context, requesterID, notebookID, targetUserID int64) error
+	ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error)
+	ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
 }
 
 type NotebookHandler struct {
@@ -33,12 +37,17 @@ func New(uc notebookUsecase) *NotebookHandler {
 func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Middleware) {
 	mux.Handle("GET /api/v1/notebooks", authMw(http.HandlerFunc(h.List)))
 	mux.Handle("POST /api/v1/notebooks", authMw(http.HandlerFunc(h.Create)))
+	// Литеральный сегмент "shared" имеет приоритет над {id}, поэтому регистрируем первым.
+	mux.Handle("GET /api/v1/notebooks/shared", authMw(http.HandlerFunc(h.ListShared)))
 	mux.Handle("GET /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.GetByID)))
 	mux.Handle("PUT /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.Update)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}", authMw(http.HandlerFunc(h.Delete)))
 	mux.Handle("POST /api/v1/notebooks/{id}/blocks", authMw(http.HandlerFunc(h.AddBlock)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.UpdateBlock)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.DeleteBlock)))
+	mux.Handle("GET /api/v1/notebooks/{id}/permissions", authMw(http.HandlerFunc(h.ListPermissions)))
+	mux.Handle("PUT /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.GrantPermission)))
+	mux.Handle("DELETE /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.RevokePermission)))
 }
 
 func (h *NotebookHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -223,12 +232,103 @@ func (h *NotebookHandler) DeleteBlock(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ListShared возвращает ноутбуки, доступные текущему пользователю по явному разрешению.
+func (h *NotebookHandler) ListShared(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	notebooks, total, err := h.usecase.ListSharedWithUser(r.Context(), user.ID, limit, offset)
+	if err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, NewNotebookListResponse(notebooks, total, limit, offset))
+}
+
+// ListPermissions возвращает список разрешений ноутбука. Только для владельца.
+func (h *NotebookHandler) ListPermissions(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	id, err := parseID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	perms, err := h.usecase.ListPermissions(r.Context(), user.ID, id)
+	if err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, newPermissionListResponse(perms))
+}
+
+// GrantPermission выдаёт или обновляет разрешение пользователю на ноутбук. Только для владельца.
+func (h *NotebookHandler) GrantPermission(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	id, err := parseID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+	targetUserID, err := parseTargetUserID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	var req GrantPermissionRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.usecase.GrantPermission(r.Context(), user.ID, id, targetUserID, req.Level); err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, PermissionResponse{
+		NotebookID:      id,
+		UserID:          targetUserID,
+		PermissionLevel: req.Level,
+	})
+}
+
+// RevokePermission отзывает разрешение пользователя на ноутбук. Только для владельца.
+func (h *NotebookHandler) RevokePermission(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	id, err := parseID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+	targetUserID, err := parseTargetUserID(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	if err := h.usecase.RevokePermission(r.Context(), user.ID, id, targetUserID); err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func parseID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)
 }
 
 func parseBlockID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("blockID"), 10, 64)
+}
+
+func parseTargetUserID(r *http.Request) (int64, error) {
+	return strconv.ParseInt(r.PathValue("userID"), 10, 64)
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {

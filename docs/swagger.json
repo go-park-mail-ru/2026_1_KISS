@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080",
+      "url": "http://localhost:8083",
       "description": "Local development"
     }
   ],
@@ -334,6 +334,112 @@
         }
       }
     },
+    "/api/v1/notebooks/shared": {
+      "get": {
+        "tags": ["permissions"],
+        "summary": "List notebooks shared with current user",
+        "description": "Returns notebooks to which the current user has been explicitly granted access (readonly or editor). Does not include notebooks owned by the user.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of shared notebooks",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions": {
+      "get": {
+        "tags": ["permissions"],
+        "summary": "List permissions for a notebook",
+        "description": "Returns all user permissions granted on the notebook. Only the notebook owner can call this endpoint.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of permissions",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions/{userID}": {
+      "put": {
+        "tags": ["permissions"],
+        "summary": "Grant or update permission",
+        "description": "Grants a permission level to a user on the notebook, or updates an existing one. Only the notebook owner can call this endpoint. Allowed levels: `readonly`, `editor`.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/TargetUserID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrantPermissionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permission granted or updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["permissions"],
+        "summary": "Revoke permission",
+        "description": "Removes a user's access to the notebook. Only the notebook owner can call this endpoint.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/TargetUserID" }
+        ],
+        "responses": {
+          "204": { "description": "Permission revoked" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": ["health"],
@@ -390,6 +496,13 @@
         "name": "blockID",
         "in": "path",
         "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "TargetUserID": {
+        "name": "userID",
+        "in": "path",
+        "required": true,
+        "description": "ID пользователя, которому выдаётся/отзывается разрешение",
         "schema": { "type": "integer", "format": "int64" }
       }
     },
@@ -558,6 +671,46 @@
         "type": "object",
         "properties": {
           "data": { "$ref": "#/components/schemas/BlockResponse" }
+        }
+      },
+      "GrantPermissionRequest": {
+        "type": "object",
+        "required": ["level"],
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["readonly", "editor"],
+            "description": "Уровень доступа: readonly — только просмотр, editor — просмотр и редактирование блоков"
+          }
+        }
+      },
+      "PermissionResponse": {
+        "type": "object",
+        "properties": {
+          "notebook_id": { "type": "integer", "format": "int64" },
+          "user_id": { "type": "integer", "format": "int64" },
+          "permission_level": { "type": "string", "enum": ["readonly", "editor"] }
+        }
+      },
+      "DataPermissionResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PermissionResponse" }
+        }
+      },
+      "PermissionListResponse": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PermissionResponse" }
+          }
+        }
+      },
+      "DataPermissionListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PermissionListResponse" }
         }
       }
     }

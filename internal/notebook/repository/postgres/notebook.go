@@ -101,3 +101,38 @@ func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int, 
 	).Scan(&count)
 	return count, err
 }
+
+func (r *NotebookRepo) GetSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT n.id, n.owner_id, n.title, n.is_public, n.created_at, n.updated_at
+		FROM notebooks n
+		JOIN file_permissions fp ON fp.notebook_id = n.id
+		WHERE fp.user_id = $1
+		ORDER BY n.created_at DESC
+		LIMIT $2 OFFSET $3`,
+		userID, limit, offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var notebooks []domain.Notebook
+	for rows.Next() {
+		var nb domain.Notebook
+		if err := rows.Scan(&nb.ID, &nb.OwnerID, &nb.Title, &nb.IsPublic, &nb.CreatedAt, &nb.UpdatedAt); err != nil {
+			return nil, err
+		}
+		notebooks = append(notebooks, nb)
+	}
+	return notebooks, rows.Err()
+}
+
+func (r *NotebookRepo) CountSharedWithUser(ctx context.Context, userID int64) (int, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM file_permissions WHERE user_id = $1`,
+		userID,
+	).Scan(&count)
+	return count, err
+}
