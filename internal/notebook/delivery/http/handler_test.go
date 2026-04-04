@@ -81,6 +81,22 @@ func (m *mockNotebookUsecase) DeleteBlock(ctx context.Context, userID, notebookI
 	return nil
 }
 
+func (m *mockNotebookUsecase) GrantPermission(_ context.Context, _, _, _ int64, _ string) error {
+	return nil
+}
+
+func (m *mockNotebookUsecase) RevokePermission(_ context.Context, _, _, _ int64) error {
+	return nil
+}
+
+func (m *mockNotebookUsecase) ListPermissions(_ context.Context, _, _ int64) ([]domain.FilePermission, error) {
+	return nil, nil
+}
+
+func (m *mockNotebookUsecase) ListSharedWithUser(_ context.Context, _ int64, _, _ int) ([]domain.Notebook, int, error) {
+	return []domain.Notebook{}, 0, nil
+}
+
 func reqWithUser(req *http.Request, user *domain.User) *http.Request {
 	ctx := middleware.SetUserInContext(req.Context(), user)
 	return req.WithContext(ctx)

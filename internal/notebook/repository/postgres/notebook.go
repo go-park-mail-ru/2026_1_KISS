@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
@@ -51,7 +52,11 @@ func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, o
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("rows.Close: %v", err)
+		}
+	}()
 
 	notebooks := []domain.Notebook{}
 	for rows.Next() {
@@ -115,7 +120,11 @@ func (r *NotebookRepo) GetSharedWithUser(ctx context.Context, userID int64, limi
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("rows.Close: %v", err)
+		}
+	}()
 
 	var notebooks []domain.Notebook
 	for rows.Next() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
@@ -52,7 +53,11 @@ func (r *BlockRepo) GetByNotebookID(ctx context.Context, notebookID int64) ([]do
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("rows.Close: %v", err)
+		}
+	}()
 
 	blocks := []domain.Block{}
 	for rows.Next() {
