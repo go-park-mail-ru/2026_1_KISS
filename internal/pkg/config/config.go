@@ -15,6 +15,13 @@ type Config struct {
 	Auth     AuthConfig
 	CORS     CORSConfig
 	Runner   RunnerConfig
+	Upload   UploadConfig
+}
+
+// UploadConfig holds file upload settings.
+type UploadConfig struct {
+	Dir     string
+	MaxSize int64
 }
 
 type ServerConfig struct {
@@ -68,28 +75,32 @@ type RunnerConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Host: getEnv("SERVER_HOST", ""),
-			Port: getEnv("SERVER_PORT", "8080"),
+			Host: getEnv("SERVER_HOST", "", parseString),
+			Port: getEnv("SERVER_PORT", "8080", parseString),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnv("POSTGRES_HOST", "localhost"),
-			Port:     getEnv("POSTGRES_PORT", "5432"),
-			User:     getEnv("POSTGRES_USER", "postgres"),
-			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
-			DBName:   getEnv("POSTGRES_DB", "colab"),
-			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
-			URL:      getEnv("DATABASE_URL", ""),
+			Host:     getEnv("POSTGRES_HOST", "localhost", parseString),
+			Port:     getEnv("POSTGRES_PORT", "5432", parseString),
+			User:     getEnv("POSTGRES_USER", "postgres", parseString),
+			Password: getEnv("POSTGRES_PASSWORD", "postgres", parseString),
+			DBName:   getEnv("POSTGRES_DB", "colab", parseString),
+			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable", parseString),
+			URL:      getEnv("DATABASE_URL", "", parseString),
 		},
 		Redis: RedisConfig{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnv("REDIS_PORT", "6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
+			Host:     getEnv("REDIS_HOST", "localhost", parseString),
+			Port:     getEnv("REDIS_PORT", "6379", parseString),
+			Password: getEnv("REDIS_PASSWORD", "", parseString),
 		},
 		Auth: AuthConfig{
-			SessionTTL: getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
+			SessionTTL: getEnv("AUTH_SESSION_TTL", 24*time.Hour, time.ParseDuration),
 		},
 		CORS: CORSConfig{
-			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000", parseString), ","),
+		},
+		Upload: UploadConfig{
+			Dir:     getEnv("UPLOAD_DIR", "./uploads", parseString),
+			MaxSize: getEnv("MAX_UPLOAD_SIZE", int64(2<<20), parseInt64),
 		},
 		Runner: RunnerConfig{
 			Images: map[string]string{
@@ -107,21 +118,15 @@ func Load() *Config {
 	}
 }
 
-func getEnv(key, defaultVal string) string {
+func getEnv[T any](key string, defaultVal T, parse func(string) (T, error)) T {
 	if val := os.Getenv(key); val != "" {
-		return val
-	}
-	return defaultVal
-}
-
-func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
-	if val := os.Getenv(key); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			return d
+		if parsed, err := parse(val); err == nil {
+			return parsed
 		}
 	}
 	return defaultVal
 }
+
 
 func getEnvInt64(key string, defaultVal int64) int64 {
 	if val := os.Getenv(key); val != "" {
@@ -131,3 +136,7 @@ func getEnvInt64(key string, defaultVal int64) int64 {
 	}
 	return defaultVal
 }
+
+func parseString(s string) (string, error) { return s, nil }
+func parseInt64(s string) (int64, error)   { return strconv.ParseInt(s, 10, 64) }
+

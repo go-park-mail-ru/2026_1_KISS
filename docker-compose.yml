@@ -16,10 +16,12 @@ services:
       REDIS_HOST: "${REDIS_HOST:-redis}"
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
       NETWORK_NAME: "2026_1_kiss_app-network"
+      UPLOAD_DIR: /app/uploads
     volumes:
       # Docker-in-Docker: даём сервису доступ к daemon хоста,
       # чтобы он мог создавать runner-контейнеры
       - /var/run/docker.sock:/var/run/docker.sock
+      - uploads_data:/app/uploads
     networks:
       - app-network
 
@@ -75,3 +77,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
