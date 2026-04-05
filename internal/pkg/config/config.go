@@ -138,6 +138,3 @@ func getEnvInt64(key string, defaultVal int64) int64 {
 	}
 	return defaultVal
 }
-
-func parseString(s string) (string, error) { return s, nil }
-func parseInt64(s string) (int64, error)   { return strconv.ParseInt(s, 10, 64) }
