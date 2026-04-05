@@ -16,6 +16,7 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 )
 
 type App struct {
@@ -34,7 +35,16 @@ func New(cfg *config.Config) (*App, error) {
 	notebookRepo := nbpg.NewNotebookRepository(db)
 	blockRepo := nbpg.NewBlockRepository(db)
 
-	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
+	verificationRepo := authpg.NewVerificationRepository(db)
+	mailService := mail.New()
+
+	authUC := authusecase.New(
+		userRepo,
+		sessionRepo,
+		verificationRepo,
+		mailService,
+		cfg.Auth.SessionTTL,
+	)
 	notebookUC := nbusecase.New(notebookRepo, blockRepo)
 
 	authHandler := authhttp.New(authUC)

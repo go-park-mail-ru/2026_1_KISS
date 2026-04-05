@@ -18,6 +18,7 @@ type mockAuthUsecase struct {
 	loginFn           func(ctx context.Context, email, password string) (*domain.Session, *domain.User, error)
 	logoutFn          func(ctx context.Context, sessionID string) error
 	validateSessionFn func(ctx context.Context, sessionID string) (*domain.User, error)
+	confirmEmailFn    func(ctx context.Context, token string) error
 }
 
 func (m *mockAuthUsecase) Register(ctx context.Context, username, email, password string) (*domain.User, error) {
@@ -46,6 +47,43 @@ func (m *mockAuthUsecase) ValidateSession(ctx context.Context, sessionID string)
 		return m.validateSessionFn(ctx, sessionID)
 	}
 	return nil, domain.ErrUnauthorized
+}
+
+func (m *mockAuthUsecase) ConfirmEmail(ctx context.Context, token string) error {
+	if m.confirmEmailFn != nil {
+		return m.confirmEmailFn(ctx, token)
+	}
+	return nil
+}
+
+type mockVerificationRepo struct {
+	createFn func(ctx context.Context, v *domain.VerificationToken) error
+	getFn    func(ctx context.Context, token string) (*domain.VerificationToken, error)
+}
+
+func (m *mockVerificationRepo) Create(ctx context.Context, v *domain.VerificationToken) error {
+	if m.createFn != nil {
+		return m.createFn(ctx, v)
+	}
+	return nil
+}
+
+func (m *mockVerificationRepo) Get(ctx context.Context, token string) (*domain.VerificationToken, error) {
+	if m.getFn != nil {
+		return m.getFn(ctx, token)
+	}
+	return nil, nil
+}
+
+type mockMailService struct {
+	sendFn func(to, subject, body string) error
+}
+
+func (m *mockMailService) Send(to, subject, body string) error {
+	if m.sendFn != nil {
+		return m.sendFn(to, subject, body)
+	}
+	return nil
 }
 
 func TestRegister(t *testing.T) {

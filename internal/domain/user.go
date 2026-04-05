@@ -10,6 +10,7 @@ type User struct {
 	AvatarURL    string
 	Status       string
 	Description  string
+	IsVerified   bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

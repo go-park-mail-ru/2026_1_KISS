@@ -36,9 +36,9 @@ func (r *UserRepo) Create(ctx context.Context, user *domain.User) (int64, error)
 func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) {
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, avatar_url, status, description, created_at, updated_at FROM users WHERE id = $1`,
+		`SELECT id, username, email, password_hash, avatar_url, status, description, created_at, updated_at, is_verified FROM users WHERE id = $1`,
 		id,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.CreatedAt, &u.UpdatedAt, &u.IsVerified)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
@@ -51,9 +51,9 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, avatar_url, status, description, created_at, updated_at FROM users WHERE email = $1`,
+		`SELECT id, username, email, password_hash, avatar_url, status, description, created_at, updated_at, is_verified FROM users WHERE email = $1`,
 		email,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.CreatedAt, &u.UpdatedAt, &u.IsVerified)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
@@ -69,4 +69,12 @@ func isUniqueViolation(err error) bool {
 		return pqErr.Code == "23505"
 	}
 	return false
+}
+
+func (r *UserRepo) UpdateVerified(ctx context.Context, userID int64) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET is_verified = true WHERE id = $1`,
+		userID,
+	)
+	return err
 }

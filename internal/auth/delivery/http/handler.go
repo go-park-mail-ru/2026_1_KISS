@@ -14,6 +14,7 @@ type authUsecase interface {
 	Login(ctx context.Context, email, password string) (*domain.Session, *domain.User, error)
 	Logout(ctx context.Context, sessionID string) error
 	ValidateSession(ctx context.Context, sessionID string) (*domain.User, error)
+	ConfirmEmail(ctx context.Context, token string) error
 }
 
 type AuthHandler struct {
@@ -22,13 +23,6 @@ type AuthHandler struct {
 
 func New(uc authUsecase) *AuthHandler {
 	return &AuthHandler{usecase: uc}
-}
-
-func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
-	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
-	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
-	mux.HandleFunc("GET /api/v1/auth/me", h.Me)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +39,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.JSON(w, http.StatusCreated, NewUserResponse(user))
+}
+
+func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
+	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
+	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
+	mux.HandleFunc("GET /api/v1/auth/me", h.Me)
+	mux.HandleFunc("GET /api/v1/auth/confirm", h.ConfirmEmail)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -124,4 +126,22 @@ func mapDomainError(w http.ResponseWriter, err error) {
 	default:
 		httputil.Error(w, http.StatusInternalServerError, "internal server error")
 	}
+}
+
+func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+
+	if token == "" {
+		httputil.Error(w, http.StatusBadRequest, "token required")
+		return
+	}
+
+	if err := h.usecase.ConfirmEmail(r.Context(), token); err != nil {
+		mapDomainError(w, err)
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, map[string]string{
+		"message": "email confirmed",
+	})
 }
