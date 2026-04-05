@@ -5,6 +5,7 @@ from queue import Empty
 
 from jupyter_client import KernelManager
 
+from .config import KERNEL_NAME
 from .models import ExecuteResponse
 
 
@@ -22,7 +23,7 @@ class KernelBridge:
             return
 
         logger.info("Starting Jupyter kernel")
-        km = KernelManager(kernel_name="python3")
+        km = KernelManager(kernel_name=KERNEL_NAME)
         km.start_kernel()
         kc = km.blocking_client()
         kc.start_channels()
