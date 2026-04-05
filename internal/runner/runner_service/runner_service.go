@@ -55,7 +55,7 @@ func (s *runnerService) StartSession(ctx context.Context, notebookID int64) erro
 		}
 
 		sessionID := uuid.New().String()
-		containerIP, err := s.runnerManager.StartSession(ctx, sessionID)
+		containerIP, err := s.runnerManager.StartSession(ctx, sessionID, "python")
 		if err != nil {
 			return err
 		}

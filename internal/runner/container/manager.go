@@ -30,7 +30,7 @@ var (
 
 type Manager interface {
 	GetContainerAddress(ctx context.Context, sessionID string) (string, error)
-	StartSession(ctx context.Context, sessionID string) (string, error)
+	StartSession(ctx context.Context, sessionID string, language string) (string, error)
 	StopSession(ctx context.Context, sessionID string) error
 	CleanupSessions(ctx context.Context)
 	Close() error
@@ -89,7 +89,7 @@ func (m *manager) GetContainerAddress(ctx context.Context, sessionID string) (st
 	return m.addressFromInspect(inspect)
 }
 
-func (m *manager) StartSession(ctx context.Context, sessionID string) (string, error) {
+func (m *manager) StartSession(ctx context.Context, sessionID string, language string) (string, error) {
 	name := m.containerName(sessionID)
 
 	for attempt := 0; attempt < startupAttemptCount; attempt++ {
@@ -107,7 +107,7 @@ func (m *manager) StartSession(ctx context.Context, sessionID string) (string, e
 			return "", err
 		}
 
-		createResp, err := m.createContainer(ctx, sessionID, name)
+		createResp, err := m.createContainer(ctx, sessionID, name, language)
 		if err != nil {
 			if cerrdefs.IsConflict(err) {
 				continue
@@ -166,11 +166,16 @@ func (m *manager) inspectByName(ctx context.Context, name string) (container.Ins
 	return inspect, nil
 }
 
-func (m *manager) createContainer(ctx context.Context, sessionID, name string) (container.CreateResponse, error) {
+func (m *manager) createContainer(ctx context.Context, sessionID, name string, language string) (container.CreateResponse, error) {
+	image, ok := m.cfg.Images[language]
+	if !ok {
+		return container.CreateResponse{}, fmt.Errorf("unsupported language %q: no runner image configured", language)
+	}
+
 	port := nat.Port(m.cfg.AgentPort + "/tcp")
 
 	containerConfig := &container.Config{
-		Image: m.cfg.Image,
+		Image: image,
 		Labels: map[string]string{
 			managedLabelKey: "true",
 			sessionLabelKey: sessionID,

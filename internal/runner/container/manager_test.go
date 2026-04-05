@@ -160,7 +160,7 @@ func (f *fakeDocker) Close() error {
 func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	docker := newFakeDocker()
 	mgr := NewManagerWithAPI(config.RunnerConfig{
-		Image:               "kiss-python-runner",
+		Images:              map[string]string{"python": "kiss-python-runner", "r": "kiss-r-runner"},
 		NamePrefix:          "runner-",
 		AgentPort:           "8080",
 		MemoryLimitBytes:    128 * 1024 * 1024,
@@ -171,7 +171,7 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 		return nil
 	})
 
-	address, err := mgr.StartSession(context.Background(), "s-1")
+	address, err := mgr.StartSession(context.Background(), "s-1", "python")
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
@@ -201,12 +201,12 @@ func TestStartSession_ReusesRunningContainer(t *testing.T) {
 	docker.containersByID["id-existing"] = docker.containersByName["runner-s-2"]
 
 	mgr := NewManagerWithAPI(
-		config.RunnerConfig{NamePrefix: "runner-", AgentPort: "8080"},
+		config.RunnerConfig{Images: map[string]string{"python": "kiss-python-runner"}, NamePrefix: "runner-", AgentPort: "8080"},
 		docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
 			return nil
 		})
 
-	address, err := mgr.StartSession(context.Background(), "s-2")
+	address, err := mgr.StartSession(context.Background(), "s-2", "python")
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
@@ -225,14 +225,14 @@ func TestStartSession_RecreatesStoppedContainer(t *testing.T) {
 	docker.nextIP = "172.19.0.9"
 
 	mgr := NewManagerWithAPI(
-		config.RunnerConfig{Image: "kiss-python-runner", NamePrefix: "runner-", AgentPort: "8080"},
+		config.RunnerConfig{Images: map[string]string{"python": "kiss-python-runner"}, NamePrefix: "runner-", AgentPort: "8080"},
 		docker,
 		func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
 			return nil
 		})
 	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
 
-	address, err := mgr.StartSession(context.Background(), "s-3")
+	address, err := mgr.StartSession(context.Background(), "s-3", "python")
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
