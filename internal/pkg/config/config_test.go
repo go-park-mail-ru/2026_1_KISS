@@ -18,8 +18,8 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Auth.SessionTTL != 24*time.Hour {
 		t.Errorf("want 24h, got %v", cfg.Auth.SessionTTL)
 	}
-	if cfg.Runner.Image != "kiss-runner" {
-		t.Errorf("want kiss-runner, got %s", cfg.Runner.Image)
+	if cfg.Runner.Image != "kiss-python-runner" {
+		t.Errorf("want kiss-python-runner, got %s", cfg.Runner.Image)
 	}
 	if cfg.Runner.StartupTimeout != 20*time.Second {
 		t.Errorf("want 20s startup timeout, got %v", cfg.Runner.StartupTimeout)

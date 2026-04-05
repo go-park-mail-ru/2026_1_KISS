@@ -1,4 +1,4 @@
-package container
+package docker_adapter
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-type dockerAPI interface {
+type DockerAdapter interface {
 	Close() error
 	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
 	ContainerCreate(ctx context.Context, config *container.Config,
@@ -22,45 +22,45 @@ type dockerAPI interface {
 	GetAvailableRuntimes() ([]string, error)
 }
 
-type DockerAdapter struct {
+type dockerAdapter struct {
 	cli *client.Client
 }
 
-func NewDockerAdapter() (*DockerAdapter, error) {
+func NewDockerAdapter() (DockerAdapter, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
 	}
-	return &DockerAdapter{cli: cli}, nil
+	return &dockerAdapter{cli: cli}, nil
 }
 
-func (a *DockerAdapter) Close() error {
+func (a *dockerAdapter) Close() error {
 	return a.cli.Close()
 }
 
-func (a *DockerAdapter) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error) {
+func (a *dockerAdapter) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error) {
 	return a.cli.ContainerInspect(ctx, containerID)
 }
 
-func (a *DockerAdapter) ContainerCreate(ctx context.Context, config *container.Config,
+func (a *dockerAdapter) ContainerCreate(ctx context.Context, config *container.Config,
 	hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig,
 	platform *ocispec.Platform, containerName string) (container.CreateResponse, error) {
 	return a.cli.ContainerCreate(ctx, config, hostConfig, networkingConfig, platform, containerName)
 }
 
-func (a *DockerAdapter) ContainerStart(ctx context.Context, containerID string, options container.StartOptions) error {
+func (a *dockerAdapter) ContainerStart(ctx context.Context, containerID string, options container.StartOptions) error {
 	return a.cli.ContainerStart(ctx, containerID, options)
 }
 
-func (a *DockerAdapter) ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error {
+func (a *dockerAdapter) ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error {
 	return a.cli.ContainerRemove(ctx, containerID, options)
 }
 
-func (a *DockerAdapter) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
+func (a *dockerAdapter) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
 	return a.cli.ContainerList(ctx, options)
 }
 
-func (a *DockerAdapter) GetAvailableRuntimes() ([]string, error) {
+func (a *dockerAdapter) GetAvailableRuntimes() ([]string, error) {
 	info, err := a.cli.Info(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("could not get info: %w", err)

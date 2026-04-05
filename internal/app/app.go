@@ -19,8 +19,10 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container"
+	runnerhandler "github.com/go-park-mail-ru/2026_1_KISS/internal/runner/delivery"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/session_repository"
 	redisv9 "github.com/redis/go-redis/v9"
 )
 
@@ -29,7 +31,11 @@ type App struct {
 	db  *sql.DB
 	rdb *redisv9.Client
 
-	runnerManager runner.Manager
+	runnerManager container.Manager
+}
+
+func NoOpMiddleware(next http.Handler) http.Handler {
+	return next
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -56,11 +62,22 @@ func New(cfg *config.Config) (*App, error) {
 	notebookHandler := nbhttp.New(notebookUC)
 	healthHandler := health.New(db)
 
+	runnerManager, err := container.NewManager(cfg.Runner)
+	if err != nil {
+		_ = rdb.Close()
+		_ = db.Close()
+		return nil, fmt.Errorf("init runner manager: %w", err)
+	}
+	execSessionRepo := session_repository.NewExecutionSessionRepository()
+	runnerServ := runner_service.NewRunnerService(runnerManager, execSessionRepo, notebookRepo, blockRepo)
+	runnerHandler := runnerhandler.NewRunnerHandler(runnerServ)
+
 	mux := http.NewServeMux()
 	authMw := middleware.Auth(authUC)
 
 	authHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
+	runnerHandler.RegisterRoutes(mux, NoOpMiddleware)
 	healthHandler.RegisterRoutes(mux)
 
 	handler := middleware.Chain(mux,
@@ -75,13 +92,6 @@ func New(cfg *config.Config) (*App, error) {
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
-	}
-
-	runnerManager, err := container.NewManager(cfg.Runner)
-	if err != nil {
-		_ = rdb.Close()
-		_ = db.Close()
-		return nil, fmt.Errorf("init runner manager: %w", err)
 	}
 
 	return &App{

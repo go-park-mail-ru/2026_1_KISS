@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner"
 )
 
 const (
@@ -43,7 +41,7 @@ func waitUntilReady(ctx context.Context, httpClient *http.Client, baseURL string
 
 		select {
 		case <-healthCtx.Done():
-			return fmt.Errorf("%w: %s", runner.ErrContainerNotReady, healthURL)
+			return fmt.Errorf("%w: %s", ErrContainerNotReady, healthURL)
 		case <-time.After(interval):
 		}
 	}

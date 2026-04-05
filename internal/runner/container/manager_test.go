@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/errdefs"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -149,6 +149,10 @@ func (f *fakeDocker) ContainerList(_ context.Context, options container.ListOpti
 	return list, nil
 }
 
+func (f *fakeDocker) GetAvailableRuntimes() ([]string, error) {
+	return []string{}, nil
+}
+
 func (f *fakeDocker) Close() error {
 	return nil
 }
@@ -156,17 +160,16 @@ func (f *fakeDocker) Close() error {
 func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	docker := newFakeDocker()
 	mgr := NewManagerWithAPI(config.RunnerConfig{
-		Image:               "kiss-runner",
+		Image:               "kiss-python-runner",
 		NamePrefix:          "runner-",
 		AgentPort:           "8080",
 		MemoryLimitBytes:    128 * 1024 * 1024,
 		NanoCPUs:            500_000_000,
 		StartupTimeout:      time.Second,
 		HealthCheckInterval: time.Millisecond,
-	}, docker)
-	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
-	//	return nil
-	//}
+	}, docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+		return nil
+	})
 
 	address, err := mgr.StartSession(context.Background(), "s-1")
 	if err != nil {
@@ -178,8 +181,8 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	if docker.lastCreatedName != "runner-s-1" {
 		t.Fatalf("want container name runner-s-1, got %s", docker.lastCreatedName)
 	}
-	if docker.lastCreatedImage != "kiss-runner" {
-		t.Fatalf("want image kiss-runner, got %s", docker.lastCreatedImage)
+	if docker.lastCreatedImage != "kiss-python-runner" {
+		t.Fatalf("want image kiss-python-runner, got %s", docker.lastCreatedImage)
 	}
 	if docker.lastCreatedMemory != 128*1024*1024 {
 		t.Fatalf("unexpected memory limit: %d", docker.lastCreatedMemory)
@@ -197,8 +200,11 @@ func TestStartSession_ReusesRunningContainer(t *testing.T) {
 	docker.containersByName["runner-s-2"] = &fakeContainer{id: "id-existing", name: "runner-s-2", ip: "172.19.0.8", running: true}
 	docker.containersByID["id-existing"] = docker.containersByName["runner-s-2"]
 
-	mgr := NewManagerWithAPI(config.RunnerConfig{NamePrefix: "runner-", AgentPort: "8080"}, docker)
-	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
+	mgr := NewManagerWithAPI(
+		config.RunnerConfig{NamePrefix: "runner-", AgentPort: "8080"},
+		docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+			return nil
+		})
 
 	address, err := mgr.StartSession(context.Background(), "s-2")
 	if err != nil {
@@ -218,7 +224,12 @@ func TestStartSession_RecreatesStoppedContainer(t *testing.T) {
 	docker.containersByID["id-old"] = docker.containersByName["runner-s-3"]
 	docker.nextIP = "172.19.0.9"
 
-	mgr := NewManagerWithAPI(config.RunnerConfig{Image: "kiss-runner", NamePrefix: "runner-", AgentPort: "8080"}, docker)
+	mgr := NewManagerWithAPI(
+		config.RunnerConfig{Image: "kiss-python-runner", NamePrefix: "runner-", AgentPort: "8080"},
+		docker,
+		func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+			return nil
+		})
 	//mgr.waitReady = func(context.Context, *http.Client, string, time.Duration, time.Duration) error { return nil }
 
 	address, err := mgr.StartSession(context.Background(), "s-3")
@@ -234,9 +245,14 @@ func TestStartSession_RecreatesStoppedContainer(t *testing.T) {
 }
 
 func TestGetContainerAddress_NotFound(t *testing.T) {
-	mgr := NewManagerWithAPI(config.RunnerConfig{NamePrefix: "runner-"}, newFakeDocker())
+	mgr := NewManagerWithAPI(
+		config.RunnerConfig{NamePrefix: "runner-"},
+		newFakeDocker(),
+		func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+			return nil
+		})
 	_, err := mgr.GetContainerAddress(context.Background(), "missing")
-	if !errors.Is(err, runner.ErrContainerNotFound) {
+	if !errors.Is(err, ErrContainerNotFound) {
 		t.Fatalf("want ErrContainerNotFound, got %v", err)
 	}
 }
@@ -246,7 +262,11 @@ func TestStopSession_RemovesContainer(t *testing.T) {
 	docker.containersByName["runner-s-4"] = &fakeContainer{id: "id-4", name: "runner-s-4", ip: "172.19.0.4", running: true}
 	docker.containersByID["id-4"] = docker.containersByName["runner-s-4"]
 
-	mgr := NewManagerWithAPI(config.RunnerConfig{NamePrefix: "runner-"}, docker)
+	mgr := NewManagerWithAPI(
+		config.RunnerConfig{NamePrefix: "runner-"},
+		docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+			return nil
+		})
 	if err := mgr.StopSession(context.Background(), "s-4"); err != nil {
 		t.Fatalf("StopSession() error = %v", err)
 	}
@@ -262,7 +282,11 @@ func TestCleanupSessions_RemovesOnlyManaged(t *testing.T) {
 	docker.containersByName["other-b"] = &fakeContainer{id: "id-b", name: "other-b", labels: map[string]string{"other": "true"}}
 	docker.containersByID["id-b"] = docker.containersByName["other-b"]
 
-	mgr := NewManagerWithAPI(config.RunnerConfig{NamePrefix: "runner-"}, docker)
+	mgr := NewManagerWithAPI(
+		config.RunnerConfig{NamePrefix: "runner-"},
+		docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+			return nil
+		})
 	mgr.CleanupSessions(context.Background())
 
 	if len(docker.removedContainerIDs) != 1 || docker.removedContainerIDs[0] != "id-a" {
