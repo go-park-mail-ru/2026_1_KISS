@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -48,7 +49,8 @@ func New(
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, email, password string) (*domain.User, error) {
 	if err := httputil.ValidateEmail(email); err != nil {
-		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
+		// TODO: логировать err (детальная причина) когда подключим логгер
+		return nil, fmt.Errorf("%w: invalid email format", domain.ErrInvalidInput)
 	}
 
 	if err := httputil.ValidatePassword(password); err != nil {
@@ -130,12 +132,17 @@ func (uc *AuthUsecase) Logout(ctx context.Context, sessionID string) error {
 func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*domain.User, error) {
 	session, err := uc.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
-		return nil, domain.ErrUnauthorized
+		switch {
+		case errors.Is(err, domain.ErrSessionExpired), errors.Is(err, domain.ErrNotFound):
+			return nil, domain.ErrSessionExpired
+		default:
+			return nil, domain.ErrUnauthorized
+		}
 	}
 
 	if session.IsExpired() {
 		_ = uc.sessionRepo.DeleteByID(ctx, sessionID)
-		return nil, domain.ErrUnauthorized
+		return nil, domain.ErrSessionExpired
 	}
 
 	user, err := uc.userRepo.GetByID(ctx, session.UserID)

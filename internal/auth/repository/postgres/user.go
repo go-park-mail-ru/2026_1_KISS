@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/lib/pq"
-
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/lib/pq"
 )
 
 type UserRepo struct {
@@ -61,6 +60,88 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 		return nil, err
 	}
 	return u, nil
+}
+
+// UpdateAvatarURL sets the avatar URL for a user.
+func (r *UserRepo) UpdateAvatarURL(ctx context.Context, userID int64, avatarURL string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET avatar_url = $1 WHERE id = $2`,
+		avatarURL, userID,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+// UpdateProfile updates username, status and description for a user.
+func (r *UserRepo) UpdateProfile(ctx context.Context, user *domain.User) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET username = $1, status = $2, description = $3 WHERE id = $4`,
+		user.Username, user.Status, user.Description, user.ID,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.ErrConflict
+		}
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+// UpdatePassword sets a new password hash for a user.
+func (r *UserRepo) UpdatePassword(ctx context.Context, userID int64, passwordHash string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET password_hash = $1 WHERE id = $2`,
+		passwordHash, userID,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+// UpdateEmail sets a new email for a user.
+func (r *UserRepo) UpdateEmail(ctx context.Context, userID int64, email string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET email = $1 WHERE id = $2`,
+		email, userID,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.ErrConflict
+		}
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 func isUniqueViolation(err error) bool {

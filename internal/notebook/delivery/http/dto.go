@@ -10,7 +10,18 @@ type CreateNotebookRequest struct {
 	Title string `json:"title"`
 }
 
+type UpdateNotebookRequest struct {
+	Title    string `json:"title"`
+	IsPublic bool   `json:"is_public"`
+}
+
 type CreateBlockRequest struct {
+	Type     string `json:"type"`
+	Language string `json:"language"`
+	Content  string `json:"content"`
+}
+
+type UpdateBlockRequest struct {
 	Type     string `json:"type"`
 	Language string `json:"language"`
 	Content  string `json:"content"`
@@ -60,10 +71,22 @@ func NewNotebookResponse(nb *domain.Notebook) NotebookResponse {
 	return resp
 }
 
-func NewNotebookListResponse(notebooks []domain.Notebook) []NotebookResponse {
-	result := make([]NotebookResponse, len(notebooks))
+type NotebookListResponse struct {
+	Notebooks []NotebookResponse `json:"notebooks"`
+	Total     int                `json:"total"`
+	Limit     int                `json:"limit"`
+	Offset    int                `json:"offset"`
+}
+
+func NewNotebookListResponse(notebooks []domain.Notebook, total, limit, offset int) NotebookListResponse {
+	items := make([]NotebookResponse, len(notebooks))
 	for i := range notebooks {
-		result[i] = NewNotebookResponse(&notebooks[i])
+		items[i] = NewNotebookResponse(&notebooks[i])
 	}
-	return result
+	return NotebookListResponse{
+		Notebooks: items,
+		Total:     total,
+		Limit:     limit,
+		Offset:    offset,
+	}
 }

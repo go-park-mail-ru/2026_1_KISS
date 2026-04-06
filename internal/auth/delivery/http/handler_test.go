@@ -223,6 +223,24 @@ func TestMe(t *testing.T) {
 			t.Errorf("want 401, got %d", rec.Code)
 		}
 	})
+
+	t.Run("expired session", func(t *testing.T) {
+		h := authhttp.New(&mockAuthUsecase{
+			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
+				return nil, domain.ErrSessionExpired
+			},
+		})
+		req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
+		req.AddCookie(&http.Cookie{Name: "session_id", Value: "expired"})
+		rec := httptest.NewRecorder()
+		h.Me(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("want 401, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Header().Get("Set-Cookie"), "session_id=") {
+			t.Error("expected session_id cookie to be cleared")
+		}
+	})
 }
 
 func TestRegisterRoutes_Auth(t *testing.T) {

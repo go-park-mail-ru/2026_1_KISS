@@ -83,14 +83,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = h.usecase.Logout(r.Context(), cookie.Value)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
+	clearSessionCookie(w)
 
 	httputil.JSON(w, http.StatusOK, nil)
 }
@@ -104,11 +97,24 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.usecase.ValidateSession(r.Context(), cookie.Value)
 	if err != nil {
+		if errors.Is(err, domain.ErrSessionExpired) {
+			clearSessionCookie(w)
+		}
 		mapDomainError(w, err)
 		return
 	}
 
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
+}
+
+func clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {
@@ -117,6 +123,8 @@ func mapDomainError(w http.ResponseWriter, err error) {
 		httputil.Error(w, http.StatusNotFound, err.Error())
 	case errors.Is(err, domain.ErrConflict):
 		httputil.Error(w, http.StatusConflict, "email or username already exists")
+	case errors.Is(err, domain.ErrSessionExpired):
+		httputil.Error(w, http.StatusUnauthorized, "session expired")
 	case errors.Is(err, domain.ErrUnauthorized):
 		httputil.Error(w, http.StatusUnauthorized, "invalid credentials")
 	case errors.Is(err, domain.ErrInvalidInput):
