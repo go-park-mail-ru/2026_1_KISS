@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	redisv9 "github.com/redis/go-redis/v9"
+
 	authhttp "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/delivery/http"
 	authpg "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/postgres"
 	authredis "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/redis"
@@ -19,14 +21,13 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
+	profilehttp "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/delivery/http"
+	profileusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container"
 	runnerhandler "github.com/go-park-mail-ru/2026_1_KISS/internal/runner/delivery"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/session_repository"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
-	profilehttp "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/delivery/http"
-	profileusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/usecase"
-	redisv9 "github.com/redis/go-redis/v9"
 )
 
 type App struct {
