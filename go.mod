@@ -8,7 +8,6 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.11.2
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/redis/go-redis/v9 v9.18.0
