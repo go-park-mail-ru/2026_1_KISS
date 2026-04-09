@@ -10,7 +10,7 @@ import (
 type NotebookService interface {
 	Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
 	GetByID(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
-	ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	ListByUser(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error)
 	Delete(ctx context.Context, userID, notebookID int64) error
 	Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
@@ -59,18 +59,18 @@ func (s *notebookService) GetByID(ctx context.Context, userID, notebookID int64)
 	return nb, nil
 }
 
-func (s *notebookService) ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+func (s *notebookService) ListByUser(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	notebooks, err := s.notebookRepo.GetByOwnerID(ctx, userID, limit, offset)
+	notebooks, err := s.notebookRepo.GetByOwnerID(ctx, userID, limit, offset, search)
 	if err != nil {
 		return nil, 0, err
 	}
-	total, err := s.notebookRepo.CountByOwnerID(ctx, userID)
+	total, err := s.notebookRepo.CountByOwnerID(ctx, userID, search)
 	if err != nil {
 		return nil, 0, err
 	}

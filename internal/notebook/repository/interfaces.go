@@ -9,10 +9,10 @@ import (
 type NotebookRepository interface {
 	Create(ctx context.Context, notebook *domain.Notebook) (int64, error)
 	GetByID(ctx context.Context, id int64) (*domain.Notebook, error)
-	GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
+	GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error)
 	Update(ctx context.Context, notebook *domain.Notebook) error
 	Delete(ctx context.Context, id int64) error
-	CountByOwnerID(ctx context.Context, ownerID int64) (int, error)
+	CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error)
 }
 
 type BlockRepository interface {

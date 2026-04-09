@@ -12,10 +12,10 @@ import (
 type mockNotebookRepo struct {
 	createFn         func(ctx context.Context, nb *domain.Notebook) (int64, error)
 	getByIDFn        func(ctx context.Context, id int64) (*domain.Notebook, error)
-	getByOwnerIDFn   func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error)
+	getByOwnerIDFn   func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error)
 	updateFn         func(ctx context.Context, nb *domain.Notebook) error
 	deleteFn         func(ctx context.Context, id int64) error
-	countByOwnerIDFn func(ctx context.Context, ownerID int64) (int, error)
+	countByOwnerIDFn func(ctx context.Context, ownerID int64, search string) (int, error)
 }
 
 func (m *mockNotebookRepo) Create(ctx context.Context, nb *domain.Notebook) (int64, error) {
@@ -32,9 +32,9 @@ func (m *mockNotebookRepo) GetByID(ctx context.Context, id int64) (*domain.Noteb
 	return nil, domain.ErrNotFound
 }
 
-func (m *mockNotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error) {
+func (m *mockNotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 	if m.getByOwnerIDFn != nil {
-		return m.getByOwnerIDFn(ctx, ownerID, limit, offset)
+		return m.getByOwnerIDFn(ctx, ownerID, limit, offset, search)
 	}
 	return []domain.Notebook{}, nil
 }
@@ -53,9 +53,9 @@ func (m *mockNotebookRepo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (m *mockNotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int, error) {
+func (m *mockNotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error) {
 	if m.countByOwnerIDFn != nil {
-		return m.countByOwnerIDFn(ctx, ownerID)
+		return m.countByOwnerIDFn(ctx, ownerID, search)
 	}
 	return 0, nil
 }
@@ -221,19 +221,19 @@ func TestAddBlock_TextDefaultsLanguageToPlain(t *testing.T) {
 func TestListByUser_NormalizesLimit(t *testing.T) {
 	called := false
 	nbRepo := &mockNotebookRepo{
-		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error) {
+		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 			called = true
 			if limit != 20 {
 				t.Errorf("want limit=20, got %d", limit)
 			}
 			return []domain.Notebook{}, nil
 		},
-		countByOwnerIDFn: func(ctx context.Context, ownerID int64) (int, error) {
+		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
 			return 0, nil
 		},
 	}
 	uc := usecase.New(nbRepo, &mockBlockRepo{})
-	_, total, err := uc.ListByUser(context.Background(), 1, 0, 0)
+	_, total, err := uc.ListByUser(context.Background(), 1, 0, 0, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -291,20 +291,71 @@ func TestGetByID_BlocksError(t *testing.T) {
 
 func TestListByUser_NegativeOffset(t *testing.T) {
 	nbRepo := &mockNotebookRepo{
-		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error) {
+		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 			if offset != 0 {
 				t.Errorf("want offset=0, got %d", offset)
 			}
 			return []domain.Notebook{}, nil
 		},
-		countByOwnerIDFn: func(ctx context.Context, ownerID int64) (int, error) {
+		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
 			return 0, nil
 		},
 	}
 	uc := usecase.New(nbRepo, &mockBlockRepo{})
-	_, _, err := uc.ListByUser(context.Background(), 1, 10, -5)
+	_, _, err := uc.ListByUser(context.Background(), 1, 10, -5, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestListByUser_SearchPropagates(t *testing.T) {
+	gotSearchRepo := ""
+	gotSearchCount := ""
+	nbRepo := &mockNotebookRepo{
+		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+			gotSearchRepo = search
+			return []domain.Notebook{{ID: 1, Title: "foo test bar"}}, nil
+		},
+		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
+			gotSearchCount = search
+			return 1, nil
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	notebooks, total, err := uc.ListByUser(context.Background(), 1, 10, 0, "test")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotSearchRepo != "test" {
+		t.Errorf("search not propagated to GetByOwnerID: got %q", gotSearchRepo)
+	}
+	if gotSearchCount != "test" {
+		t.Errorf("search not propagated to CountByOwnerID: got %q", gotSearchCount)
+	}
+	if len(notebooks) != 1 || total != 1 {
+		t.Errorf("want 1 notebook and total=1, got %d notebooks, total=%d", len(notebooks), total)
+	}
+}
+
+func TestListByUser_EmptySearchReturnsAll(t *testing.T) {
+	nbRepo := &mockNotebookRepo{
+		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+			if search != "" {
+				t.Errorf("want empty search, got %q", search)
+			}
+			return []domain.Notebook{{ID: 1}, {ID: 2}}, nil
+		},
+		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
+			return 2, nil
+		},
+	}
+	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	notebooks, total, err := uc.ListByUser(context.Background(), 1, 10, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(notebooks) != 2 || total != 2 {
+		t.Errorf("want 2 notebooks, got %d, total=%d", len(notebooks), total)
 	}
 }
 
