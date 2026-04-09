@@ -14,7 +14,7 @@ import (
 type notebookUsecase interface {
 	Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
 	GetByID(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
-	ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	ListByUser(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error)
 	Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	Delete(ctx context.Context, userID, notebookID int64) error
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
@@ -60,8 +60,9 @@ func (h *NotebookHandler) List(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	search := r.URL.Query().Get("search")
 
-	notebooks, total, err := h.usecase.ListByUser(r.Context(), user.ID, limit, offset)
+	notebooks, total, err := h.usecase.ListByUser(r.Context(), user.ID, limit, offset, search)
 	if err != nil {
 		mapDomainError(w, err)
 		return

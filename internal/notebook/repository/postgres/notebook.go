@@ -43,10 +43,15 @@ func (r *NotebookRepo) GetByID(ctx context.Context, id int64) (*domain.Notebook,
 	return nb, nil
 }
 
-func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error) {
+func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, owner_id, title, is_public, created_at, updated_at FROM notebooks WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-		ownerID, limit, offset,
+		`SELECT id, owner_id, title, is_public, created_at, updated_at
+		 FROM notebooks
+		 WHERE owner_id = $1
+		   AND ($2 = '' OR title ILIKE '%' || $2 || '%')
+		 ORDER BY created_at DESC
+		 LIMIT $3 OFFSET $4`,
+		ownerID, search, limit, offset,
 	)
 	if err != nil {
 		return nil, err
@@ -93,11 +98,13 @@ func (r *NotebookRepo) Update(ctx context.Context, notebook *domain.Notebook) er
 	return nil
 }
 
-func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int, error) {
+func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM notebooks WHERE owner_id = $1`,
-		ownerID,
+		`SELECT COUNT(*) FROM notebooks
+		 WHERE owner_id = $1
+		   AND ($2 = '' OR title ILIKE '%' || $2 || '%')`,
+		ownerID, search,
 	).Scan(&count)
 	return count, err
 }

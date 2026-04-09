@@ -17,7 +17,7 @@ import (
 type mockNotebookUsecase struct {
 	createFn      func(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
 	getByIDFn     func(ctx context.Context, userID, notebookID int64) (*domain.Notebook, error)
-	listByUserFn  func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	listByUserFn  func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error)
 	updateFn      func(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error)
 	deleteFn      func(ctx context.Context, userID, notebookID int64) error
 	addBlockFn    func(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
@@ -39,9 +39,9 @@ func (m *mockNotebookUsecase) GetByID(ctx context.Context, userID, notebookID in
 	return nil, domain.ErrNotFound
 }
 
-func (m *mockNotebookUsecase) ListByUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+func (m *mockNotebookUsecase) ListByUser(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 	if m.listByUserFn != nil {
-		return m.listByUserFn(ctx, userID, limit, offset)
+		return m.listByUserFn(ctx, userID, limit, offset, search)
 	}
 	return []domain.Notebook{}, 0, nil
 }
@@ -90,7 +90,7 @@ var testUser = &domain.User{ID: 1, Username: "testuser", Email: "test@example.co
 
 func TestList(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 			return []domain.Notebook{{ID: 1, Title: "Test"}}, 1, nil
 		},
 	})
@@ -100,6 +100,46 @@ func TestList(t *testing.T) {
 	h.List(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestList_SearchQueryParamPropagates(t *testing.T) {
+	gotSearch := ""
+	h := nbhttp.New(&mockNotebookUsecase{
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
+			gotSearch = search
+			return []domain.Notebook{}, 0, nil
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks?limit=7&offset=0&search=foo", nil)
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+	if gotSearch != "foo" {
+		t.Errorf("search not propagated: got %q, want %q", gotSearch, "foo")
+	}
+}
+
+func TestList_NoSearchQueryParamSendsEmpty(t *testing.T) {
+	gotSearch := "not-set"
+	h := nbhttp.New(&mockNotebookUsecase{
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
+			gotSearch = search
+			return []domain.Notebook{}, 0, nil
+		},
+	})
+	req := httptest.NewRequest("GET", "/api/v1/notebooks?limit=7&offset=0", nil)
+	req = reqWithUser(req, testUser)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+	if gotSearch != "" {
+		t.Errorf("want empty search, got %q", gotSearch)
 	}
 }
 
@@ -240,7 +280,7 @@ func TestGetByID_WithBlocks(t *testing.T) {
 
 func TestList_Error(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 			return nil, 0, errors.New("db error")
 		},
 	})
@@ -255,7 +295,7 @@ func TestList_Error(t *testing.T) {
 
 func TestList_Conflict(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 			return nil, 0, domain.ErrConflict
 		},
 	})
@@ -270,7 +310,7 @@ func TestList_Conflict(t *testing.T) {
 
 func TestList_Unauthorized(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 			return nil, 0, domain.ErrUnauthorized
 		},
 	})
@@ -285,7 +325,7 @@ func TestList_Unauthorized(t *testing.T) {
 
 func TestList_InvalidInput(t *testing.T) {
 	h := nbhttp.New(&mockNotebookUsecase{
-		listByUserFn: func(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+		listByUserFn: func(ctx context.Context, userID int64, limit, offset int, search string) ([]domain.Notebook, int, error) {
 			return nil, 0, domain.ErrInvalidInput
 		},
 	})
