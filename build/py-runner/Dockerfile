@@ -3,15 +3,19 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    KERNEL_NAME=python3
+    KERNEL_NAME=python3 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:$PATH
+
+RUN useradd --create-home --shell /usr/sbin/nologin runner \
+ && python -m venv /opt/venv \
+ && chown -R runner:runner /opt/venv
 
 WORKDIR /app
 
 COPY py-runner/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
-RUN python -m ipykernel install --user --name python3 --display-name "Python 3"
-
-RUN useradd --create-home --shell /usr/sbin/nologin runner
+RUN pip install --no-cache-dir -r /app/requirements.txt \
+ && python -m ipykernel install --sys-prefix --name python3 --display-name "Python 3"
 
 COPY runner/agent.py /app/agent.py
 COPY runner/runner_app /app/runner_app

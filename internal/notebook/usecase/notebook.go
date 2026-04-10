@@ -151,8 +151,12 @@ func (s *notebookService) UpdateBlock(ctx context.Context, userID, notebookID, b
 		return nil, domain.ErrNotFound
 	}
 	block.Content = content
-	block.Type = cellType
-	block.Language = language
+	if cellType != "" {
+		block.Type = cellType
+	}
+	if language != "" {
+		block.Language = language
+	}
 	if err := s.blockRepo.Update(ctx, block); err != nil {
 		return nil, err
 	}

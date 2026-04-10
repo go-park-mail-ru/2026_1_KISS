@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -132,7 +133,15 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", s.BaseURL+"/execute", bytes.NewBuffer(jsonData))
+	// if port is not specified - use 8080 as default (when network in docker is bridge ew should use default)
+	var fullURL string
+	if strings.Count(s.BaseURL, ":") > 1 {
+		fullURL = s.BaseURL + "/execute"
+	} else {
+		fullURL = s.BaseURL + ":8080/execute"
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
