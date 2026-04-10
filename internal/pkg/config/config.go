@@ -111,6 +111,10 @@ func Load() *Config {
 			HealthCheckInterval: getEnvDuration("RUNNER_HEALTHCHECK_INTERVAL", 300*time.Millisecond),
 			NetworkName:         getEnv("NETWORK_NAME", "bridge"), // 2026_1_kiss_app-network
 		},
+		Upload: UploadConfig{
+			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),
+			MaxSize: getEnvInt64("UPLOAD_MAX_SIZE", 2*1024*1024),
+		},
 	}
 }
 
