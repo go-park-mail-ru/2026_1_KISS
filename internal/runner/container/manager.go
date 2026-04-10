@@ -243,7 +243,7 @@ func (m *manager) waitAndReturnAddress(ctx context.Context, inspect container.In
 	if err := m.waitReady(ctx, m.httpClient, baseURL, m.cfg.StartupTimeout, m.cfg.HealthCheckInterval); err != nil {
 		return "", err
 	}
-	return address, nil
+	return baseURL, nil
 }
 
 // addressFromInspect возвращает адрес контейнера в зависимости от режима:

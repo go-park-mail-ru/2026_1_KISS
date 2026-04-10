@@ -175,8 +175,8 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
-	if address != "172.19.0.2" {
-		t.Fatalf("want address 172.19.0.2, got %s", address)
+	if address != "http://172.19.0.2:8080" {
+		t.Fatalf("want address http://172.19.0.2:8080, got %s", address)
 	}
 	if docker.lastCreatedName != "runner-s-1" {
 		t.Fatalf("want container name runner-s-1, got %s", docker.lastCreatedName)
@@ -210,8 +210,8 @@ func TestStartSession_ReusesRunningContainer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
-	if address != "172.19.0.8" {
-		t.Fatalf("want existing address, got %s", address)
+	if address != "http://172.19.0.8:8080" {
+		t.Fatalf("want existing address http://172.19.0.8:8080, got %s", address)
 	}
 	if len(docker.startedContainerIDs) != 0 {
 		t.Fatalf("expected no starts, got %d", len(docker.startedContainerIDs))
@@ -236,8 +236,8 @@ func TestStartSession_RecreatesStoppedContainer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartSession() error = %v", err)
 	}
-	if address != "172.19.0.9" {
-		t.Fatalf("want recreated address 172.19.0.9, got %s", address)
+	if address != "http://172.19.0.9:8080" {
+		t.Fatalf("want recreated address http://172.19.0.9:8080, got %s", address)
 	}
 	if len(docker.removedContainerIDs) != 1 || docker.removedContainerIDs[0] != "id-old" {
 		t.Fatalf("expected removed old container id-old, got %+v", docker.removedContainerIDs)

@@ -55,11 +55,10 @@ func (s *runnerService) StartSession(ctx context.Context, notebookID int64) erro
 		}
 
 		sessionID := uuid.New().String()
-		containerIP, err := s.runnerManager.StartSession(ctx, sessionID, "python")
+		baseURL, err := s.runnerManager.StartSession(ctx, sessionID, "python")
 		if err != nil {
 			return err
 		}
-		baseURL := "http://" + containerIP
 
 		_, err = s.sessionRepo.CreateSession(notebook, baseURL, sessionID)
 		if err != nil {
