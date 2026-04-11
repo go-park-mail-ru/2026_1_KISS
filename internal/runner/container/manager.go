@@ -198,8 +198,8 @@ func (m *manager) createContainer(ctx context.Context, sessionID, name string, l
 	}
 	pidsLimit := m.cfg.PidsLimit
 	hostConfig := &container.HostConfig{
-		AutoRemove: true,
-		Runtime:    runtimeName,
+		AutoRemove:     true,
+		Runtime:        runtimeName,
 		ReadonlyRootfs: true,
 		Tmpfs: map[string]string{
 			"/home/runner": "size=" + m.cfg.TmpfsSize,
