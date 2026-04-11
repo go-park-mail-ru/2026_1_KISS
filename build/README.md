@@ -6,7 +6,6 @@ FastAPI bridge over a single long-lived Jupyter kernel using `jupyter_client`.
 build/
   runner/      # shared app code (agent.py, runner_app/)
   py-runner/   # Python-specific Dockerfile + requirements.txt
-  r-runner/    # R-specific Dockerfile + requirements.txt
 ```
 
 The kernel is selected via the `KERNEL_NAME` env var (set in each Dockerfile).
@@ -42,16 +41,12 @@ Build context must be `build/` so both Dockerfiles can access shared `runner/` c
 ```shell
 # Python runner
 docker build -t kiss-python-runner -f py-runner/Dockerfile .
-
-# R runner
-docker build -t kiss-r-runner -f r-runner/Dockerfile .
 ```
 
 Run:
 
 ```shell
 docker run --rm -p 8080:8080 kiss-python-runner
-docker run --rm -p 8080:8080 kiss-r-runner
 ```
 
 ## Local run (Python runner)

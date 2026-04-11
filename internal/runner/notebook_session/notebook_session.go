@@ -37,7 +37,7 @@ func NewNotebookSession(NotebookID int64,
 		LastExecuted: LastExecuted,
 		BlockStates:  BlockStates,
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 135 * time.Second,
 		},
 	}
 }
@@ -125,7 +125,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 	startTime := time.Now()
 	req := domain.ExecuteRequest{
 		Code:    block.Content,
-		Timeout: 30, // Default timeout
+		Timeout: 120,
 	}
 
 	jsonData, err := json.Marshal(req)

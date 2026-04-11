@@ -102,7 +102,7 @@ func New(cfg *config.Config) (*App, error) {
 		Addr:         cfg.Server.Host + ":" + cfg.Server.Port,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 180 * time.Second,
 	}
 
 	return &App{

@@ -196,17 +196,24 @@ func (m *manager) createContainer(ctx context.Context, sessionID, name string, l
 		fmt.Println(fmt.Errorf("WARNING: runsc runtime not found, using runc instead"))
 		runtimeName = "runc"
 	}
+	pidsLimit := m.cfg.PidsLimit
 	hostConfig := &container.HostConfig{
-		AutoRemove: true, // сносим контейнер после окончания сессии
+		AutoRemove: true,
 		Runtime:    runtimeName,
-		Resources: container.Resources{
-			Memory:   m.cfg.MemoryLimitBytes,
-			NanoCPUs: m.cfg.NanoCPUs,
+		ReadonlyRootfs: true,
+		Tmpfs: map[string]string{
+			"/home/runner": "size=" + m.cfg.TmpfsSize,
+			"/tmp":         "size=" + m.cfg.TmpfsSize,
 		},
-		NetworkMode: container.NetworkMode(m.cfg.NetworkName), // "bridge", // container.NetworkMode(m.cfg.NetworkName),
+		Resources: container.Resources{
+			Memory:    m.cfg.MemoryLimitBytes,
+			NanoCPUs:  m.cfg.NanoCPUs,
+			PidsLimit: &pidsLimit,
+		},
+		NetworkMode: container.NetworkMode(m.cfg.NetworkName),
 		PortBindings: nat.PortMap{
 			port: []nat.PortBinding{
-				{HostIP: "0.0.0.0", HostPort: "0"}, // случайный свободный порт или 8081
+				{HostIP: "0.0.0.0", HostPort: "0"},
 			},
 		},
 	}

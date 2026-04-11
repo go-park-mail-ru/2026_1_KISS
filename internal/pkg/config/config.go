@@ -70,6 +70,8 @@ type RunnerConfig struct {
 	StartupTimeout      time.Duration
 	HealthCheckInterval time.Duration
 	NetworkName         string
+	TmpfsSize           string
+	PidsLimit           int64
 }
 
 func Load() *Config {
@@ -101,7 +103,6 @@ func Load() *Config {
 		Runner: RunnerConfig{
 			Images: map[string]string{
 				"python": getEnv("RUNNER_IMAGE_PYTHON", "kiss-python-runner"),
-				"r":      getEnv("RUNNER_IMAGE_R", "kiss-r-runner"),
 			},
 			NamePrefix:          getEnv("RUNNER_NAME_PREFIX", "runner-"),
 			AgentPort:           getEnv("RUNNER_AGENT_PORT", "8080"),
@@ -110,6 +111,8 @@ func Load() *Config {
 			StartupTimeout:      getEnvDuration("RUNNER_STARTUP_TIMEOUT", 20*time.Second),
 			HealthCheckInterval: getEnvDuration("RUNNER_HEALTHCHECK_INTERVAL", 300*time.Millisecond),
 			NetworkName:         getEnv("NETWORK_NAME", "bridge"), // 2026_1_kiss_app-network
+			TmpfsSize:           getEnv("RUNNER_TMPFS_SIZE", "100m"),
+			PidsLimit:           getEnvInt64("RUNNER_PIDS_LIMIT", 64),
 		},
 		Upload: UploadConfig{
 			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),

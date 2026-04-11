@@ -36,6 +36,8 @@ type fakeDocker struct {
 	lastCreatedMemory     int64
 	lastCreatedNanoCPUs   int64
 	lastCreatedNetwork    string
+	lastCreatedTmpfs      map[string]string
+	lastCreatedPidsLimit  *int64
 	removedContainerIDs   []string
 	startedContainerIDs   []string
 	containerListOverride []container.Summary
@@ -100,6 +102,8 @@ func (f *fakeDocker) ContainerCreate(_ context.Context, cfg *container.Config, h
 	f.lastCreatedMemory = hostConfig.Resources.Memory
 	f.lastCreatedNanoCPUs = hostConfig.Resources.NanoCPUs
 	f.lastCreatedNetwork = string(hostConfig.NetworkMode)
+	f.lastCreatedTmpfs = hostConfig.Tmpfs
+	f.lastCreatedPidsLimit = hostConfig.Resources.PidsLimit
 
 	return container.CreateResponse{ID: id}, nil
 }
@@ -160,13 +164,15 @@ func (f *fakeDocker) Close() error {
 func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	docker := newFakeDocker()
 	mgr := NewManagerWithAPI(config.RunnerConfig{
-		Images:              map[string]string{"python": "kiss-python-runner", "r": "kiss-r-runner"},
+		Images:              map[string]string{"python": "kiss-python-runner"},
 		NamePrefix:          "runner-",
 		AgentPort:           "8080",
 		MemoryLimitBytes:    128 * 1024 * 1024,
 		NanoCPUs:            500_000_000,
 		StartupTimeout:      time.Second,
 		HealthCheckInterval: time.Millisecond,
+		TmpfsSize:           "100m",
+		PidsLimit:           64,
 	}, docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
 		return nil
 	})
@@ -192,6 +198,15 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	}
 	if len(docker.startedContainerIDs) != 1 {
 		t.Fatalf("expected 1 started container, got %d", len(docker.startedContainerIDs))
+	}
+	if docker.lastCreatedTmpfs["/home/runner"] == "" {
+		t.Fatal("expected tmpfs mount on /home/runner")
+	}
+	if docker.lastCreatedTmpfs["/tmp"] == "" {
+		t.Fatal("expected tmpfs mount on /tmp")
+	}
+	if docker.lastCreatedPidsLimit == nil || *docker.lastCreatedPidsLimit != 64 {
+		t.Fatal("expected pids limit of 64")
 	}
 }
 
