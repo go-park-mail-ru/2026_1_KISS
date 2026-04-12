@@ -14,6 +14,7 @@ type ExecutionSessionRepository interface {
 	CreateSession(notebook *domain.Notebook, runnerBaseURL string, sessionID string) (notebook_session.NotebookSession, error)
 	GetSession(notebookID int64) (notebook_session.NotebookSession, bool)
 	DeleteSession(notebookID int64)
+	ListSessions() map[int64]notebook_session.NotebookSession
 }
 
 type executionSessionRepository struct {
@@ -58,4 +59,14 @@ func (e *executionSessionRepository) DeleteSession(notebookID int64) {
 	e.sessionsMu.Lock()
 	delete(e.sessions, notebookID)
 	e.sessionsMu.Unlock()
+}
+
+func (e *executionSessionRepository) ListSessions() map[int64]notebook_session.NotebookSession {
+	e.sessionsMu.RLock()
+	defer e.sessionsMu.RUnlock()
+	result := make(map[int64]notebook_session.NotebookSession, len(e.sessions))
+	for id, s := range e.sessions {
+		result[id] = s
+	}
+	return result
 }

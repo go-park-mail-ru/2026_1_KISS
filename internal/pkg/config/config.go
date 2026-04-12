@@ -72,6 +72,7 @@ type RunnerConfig struct {
 	NetworkName         string
 	TmpfsSize           string
 	PidsLimit           int64
+	IdleTimeout         time.Duration
 }
 
 func Load() *Config {
@@ -113,6 +114,7 @@ func Load() *Config {
 			NetworkName:         getEnv("NETWORK_NAME", "bridge"), // 2026_1_kiss_app-network
 			TmpfsSize:           getEnv("RUNNER_TMPFS_SIZE", "100m"),
 			PidsLimit:           getEnvInt64("RUNNER_PIDS_LIMIT", 64),
+			IdleTimeout:         getEnvDuration("RUNNER_IDLE_TIMEOUT", 15*time.Minute),
 		},
 		Upload: UploadConfig{
 			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),

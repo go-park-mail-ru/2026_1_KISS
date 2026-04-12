@@ -3,6 +3,8 @@ package runner_service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository"
@@ -20,6 +22,7 @@ type RunnerService interface {
 	ExecuteFromPosition(ctx context.Context, notebookID int64, startPosition int) ([]*domain.BlockExecutionResult, error)
 	ExecuteBlock(ctx context.Context, notebookID int64, blockPosition int) (*domain.BlockExecutionResult, error)
 	StopSession(ctx context.Context, notebookID int64) error
+	StartIdleReaper(ctx context.Context)
 }
 
 type runnerService struct {
@@ -27,17 +30,20 @@ type runnerService struct {
 	sessionRepo   session_rep.ExecutionSessionRepository
 	notebookRepo  repository.NotebookRepository
 	blockRepo     repository.BlockRepository
+	idleTimeout   time.Duration
 }
 
 func NewRunnerService(
 	runnerManager container.Manager, sessionRepo session_rep.ExecutionSessionRepository,
 	notebookRepo repository.NotebookRepository, blockRepo repository.BlockRepository,
+	idleTimeout time.Duration,
 ) RunnerService {
 	return &runnerService{
 		runnerManager: runnerManager,
 		sessionRepo:   sessionRepo,
 		notebookRepo:  notebookRepo,
 		blockRepo:     blockRepo,
+		idleTimeout:   idleTimeout,
 	}
 }
 
@@ -120,4 +126,38 @@ func (s *runnerService) StopSession(ctx context.Context, notebookID int64) error
 		return err
 	}
 	return nil
+}
+
+// StartIdleReaper запускает фоновую горутину, которая каждую минуту проверяет сессии
+// и убивает контейнеры, к которым не было обращений дольше idleTimeout.
+func (s *runnerService) StartIdleReaper(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.evictIdleSessions(ctx)
+		}
+	}
+}
+
+func (s *runnerService) evictIdleSessions(ctx context.Context) {
+	sessions := s.sessionRepo.ListSessions()
+	now := time.Now()
+	for notebookID, session := range sessions {
+		fmt.Println("SUB IS: ", now.Sub(session.LastActivity()))
+		fmt.Println("TIMEOUT: ", s.idleTimeout)
+		if now.Sub(session.LastActivity()) < s.idleTimeout {
+			continue
+		}
+		s.sessionRepo.DeleteSession(notebookID)
+		err := s.runnerManager.StopSession(ctx, session.GetSessionID())
+		if err != nil {
+			fmt.Printf("idle reaper: ERROR failed to stop session %s (notebook %d): %v\n", session.GetSessionID(), notebookID, err)
+			continue
+		}
+		fmt.Printf("idle reaper: stopped idle session %s (notebook %d)\n", session.GetSessionID(), notebookID)
+	}
 }

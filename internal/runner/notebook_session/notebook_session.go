@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
@@ -17,6 +18,7 @@ import (
 
 type NotebookSession interface {
 	GetSessionID() string
+	LastActivity() time.Time
 	ExecuteFromPosition(ctx context.Context, notebook *domain.Notebook, startPosition int) ([]*domain.BlockExecutionResult, error)
 	ExecuteBlock(ctx context.Context, block domain.Block) (*domain.BlockExecutionResult, error)
 	//UpdateAndExecuteFromBlock(ctx context.Context, notebook *domain.Notebook, blockID int64, newContent string) ([]*domain.BlockExecutionResult, error)
@@ -30,7 +32,7 @@ func NewNotebookSession(NotebookID int64,
 	BlockStates map[int64]*domain.BlockState,
 ) NotebookSession {
 
-	return &notebookSession{
+	s := &notebookSession{
 		NotebookID:   NotebookID,
 		SessionID:    SessionID,
 		BaseURL:      BaseURL,
@@ -40,6 +42,8 @@ func NewNotebookSession(NotebookID int64,
 			Timeout: 135 * time.Second,
 		},
 	}
+	s.lastActivity.Store(time.Now().UnixNano())
+	return s
 }
 
 type notebookSession struct {
@@ -50,10 +54,15 @@ type notebookSession struct {
 	BlockStates  map[int64]*domain.BlockState
 	mu           sync.RWMutex
 	client       *http.Client
+	lastActivity atomic.Int64 // Unix nanoseconds, updated on every execution
 }
 
 func (s *notebookSession) GetSessionID() string {
 	return s.SessionID
+}
+
+func (s *notebookSession) LastActivity() time.Time {
+	return time.Unix(0, s.lastActivity.Load())
 }
 
 func (s *notebookSession) ExecuteFromPosition(
@@ -185,6 +194,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		Duration:   time.Since(startTime),
 	}
 
+	s.lastActivity.Store(time.Now().UnixNano())
 	return result, nil
 }
 
