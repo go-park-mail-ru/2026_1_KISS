@@ -1,3 +1,4 @@
+//go:generate mockgen -source=docker_adapter.go -destination=../../../mocks/docker_adapter_mock.go -package=mocks
 package docker_adapter
 
 import (

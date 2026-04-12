@@ -1,3 +1,4 @@
+//go:generate mockgen -destination=../../mocks/filestorage_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage FileStorage
 package filestorage
 
 import "io"

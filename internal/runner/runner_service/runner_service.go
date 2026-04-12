@@ -1,3 +1,4 @@
+//go:generate mockgen -destination=../../mocks/runner_service_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service RunnerService
 package runner_service
 
 import (
