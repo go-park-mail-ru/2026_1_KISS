@@ -1,5 +1,7 @@
 package usecase
 
+//go:generate mockgen -source=profile.go -destination=../../mocks/profile_repo_mock.go -package=mocks
+
 import (
 	"context"
 	"fmt"

@@ -1,3 +1,4 @@
+//go:generate mockgen -source=auth.go -destination=../mocks/middleware_mock.go -package=mocks
 package middleware
 
 import (
