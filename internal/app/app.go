@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -110,25 +110,25 @@ func New(cfg *config.Config) (*App, error) {
 }
 
 func (a *App) Run() error {
-	log.Printf("server started on %s", a.srv.Addr)
+	slog.Info("server started", "addr", a.srv.Addr)
 	return a.srv.ListenAndServe()
 }
 
 func (a *App) Shutdown(ctx context.Context) {
 	if err := a.srv.Shutdown(ctx); err != nil {
-		log.Printf("server shutdown error: %v", err)
+		slog.Error("server shutdown error", "error", err)
 	}
 	if err := a.db.Close(); err != nil {
-		log.Printf("db close error: %v", err)
+		slog.Error("db close error", "error", err)
 	}
 	if a.rdb != nil {
 		if err := a.rdb.Close(); err != nil {
-			log.Printf("redis close error: %v", err)
+			slog.Error("redis close error", "error", err)
 		}
 	}
 	if a.runnerManager != nil {
 		if err := a.runnerManager.Close(); err != nil {
-			log.Printf("runner manager close error: %v", err)
+			slog.Error("runner manager close error", "error", err)
 		}
 	}
 }

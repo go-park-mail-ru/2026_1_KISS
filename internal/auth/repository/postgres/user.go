@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	"github.com/lib/pq"
 )
 
@@ -18,6 +20,7 @@ func NewUserRepository(db *sql.DB) *UserRepo {
 }
 
 func (r *UserRepo) Create(ctx context.Context, user *domain.User) (int64, error) {
+	start := time.Now()
 	var id int64
 	err := r.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`,
@@ -25,14 +28,18 @@ func (r *UserRepo) Create(ctx context.Context, user *domain.User) (int64, error)
 	).Scan(&id, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if isUniqueViolation(err) {
+			logger.Error(ctx, "repo.users.Create", "error", domain.ErrConflict, "duration", time.Since(start), "email", user.Email)
 			return 0, domain.ErrConflict
 		}
+		logger.Error(ctx, "repo.users.Create", "error", err, "duration", time.Since(start), "email", user.Email)
 		return 0, err
 	}
+	logger.Info(ctx, "repo.users.Create", "duration", time.Since(start), "user_id", id)
 	return id, nil
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) {
+	start := time.Now()
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, avatar_url, status, description, created_at, updated_at FROM users WHERE id = $1`,
@@ -40,14 +47,18 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) 
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error(ctx, "repo.users.GetByID", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", id)
 			return nil, domain.ErrNotFound
 		}
+		logger.Error(ctx, "repo.users.GetByID", "error", err, "duration", time.Since(start), "user_id", id)
 		return nil, err
 	}
+	logger.Info(ctx, "repo.users.GetByID", "duration", time.Since(start), "user_id", id)
 	return u, nil
 }
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	start := time.Now()
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, avatar_url, status, description, created_at, updated_at FROM users WHERE email = $1`,
@@ -55,92 +66,113 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error(ctx, "repo.users.GetByEmail", "error", domain.ErrNotFound, "duration", time.Since(start), "email", email)
 			return nil, domain.ErrNotFound
 		}
+		logger.Error(ctx, "repo.users.GetByEmail", "error", err, "duration", time.Since(start), "email", email)
 		return nil, err
 	}
+	logger.Info(ctx, "repo.users.GetByEmail", "duration", time.Since(start), "user_id", u.ID)
 	return u, nil
 }
 
-// UpdateAvatarURL sets the avatar URL for a user.
 func (r *UserRepo) UpdateAvatarURL(ctx context.Context, userID int64, avatarURL string) error {
+	start := time.Now()
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE users SET avatar_url = $1 WHERE id = $2`,
 		avatarURL, userID,
 	)
 	if err != nil {
+		logger.Error(ctx, "repo.users.UpdateAvatarURL", "error", err, "duration", time.Since(start), "user_id", userID)
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
+		logger.Error(ctx, "repo.users.UpdateAvatarURL", "error", err, "duration", time.Since(start), "user_id", userID)
 		return err
 	}
 	if n == 0 {
+		logger.Error(ctx, "repo.users.UpdateAvatarURL", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", userID)
 		return domain.ErrNotFound
 	}
+	logger.Info(ctx, "repo.users.UpdateAvatarURL", "duration", time.Since(start), "user_id", userID)
 	return nil
 }
 
-// UpdateProfile updates username, status and description for a user.
 func (r *UserRepo) UpdateProfile(ctx context.Context, user *domain.User) error {
+	start := time.Now()
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE users SET username = $1, status = $2, description = $3 WHERE id = $4`,
 		user.Username, user.Status, user.Description, user.ID,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
+			logger.Error(ctx, "repo.users.UpdateProfile", "error", domain.ErrConflict, "duration", time.Since(start), "user_id", user.ID)
 			return domain.ErrConflict
 		}
+		logger.Error(ctx, "repo.users.UpdateProfile", "error", err, "duration", time.Since(start), "user_id", user.ID)
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
+		logger.Error(ctx, "repo.users.UpdateProfile", "error", err, "duration", time.Since(start), "user_id", user.ID)
 		return err
 	}
 	if n == 0 {
+		logger.Error(ctx, "repo.users.UpdateProfile", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", user.ID)
 		return domain.ErrNotFound
 	}
+	logger.Info(ctx, "repo.users.UpdateProfile", "duration", time.Since(start), "user_id", user.ID)
 	return nil
 }
 
-// UpdatePassword sets a new password hash for a user.
 func (r *UserRepo) UpdatePassword(ctx context.Context, userID int64, passwordHash string) error {
+	start := time.Now()
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE users SET password_hash = $1 WHERE id = $2`,
 		passwordHash, userID,
 	)
 	if err != nil {
+		logger.Error(ctx, "repo.users.UpdatePassword", "error", err, "duration", time.Since(start), "user_id", userID)
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
+		logger.Error(ctx, "repo.users.UpdatePassword", "error", err, "duration", time.Since(start), "user_id", userID)
 		return err
 	}
 	if n == 0 {
+		logger.Error(ctx, "repo.users.UpdatePassword", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", userID)
 		return domain.ErrNotFound
 	}
+	logger.Info(ctx, "repo.users.UpdatePassword", "duration", time.Since(start), "user_id", userID)
 	return nil
 }
 
-// UpdateEmail sets a new email for a user.
 func (r *UserRepo) UpdateEmail(ctx context.Context, userID int64, email string) error {
+	start := time.Now()
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE users SET email = $1 WHERE id = $2`,
 		email, userID,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
+			logger.Error(ctx, "repo.users.UpdateEmail", "error", domain.ErrConflict, "duration", time.Since(start), "user_id", userID)
 			return domain.ErrConflict
 		}
+		logger.Error(ctx, "repo.users.UpdateEmail", "error", err, "duration", time.Since(start), "user_id", userID)
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
+		logger.Error(ctx, "repo.users.UpdateEmail", "error", err, "duration", time.Since(start), "user_id", userID)
 		return err
 	}
 	if n == 0 {
+		logger.Error(ctx, "repo.users.UpdateEmail", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", userID)
 		return domain.ErrNotFound
 	}
+	logger.Info(ctx, "repo.users.UpdateEmail", "duration", time.Since(start), "user_id", userID)
 	return nil
 }
 

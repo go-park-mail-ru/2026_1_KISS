@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
 
 type AuthUsecase struct {
@@ -29,19 +30,24 @@ func New(userRepo repository.UserRepository, sessionRepo repository.SessionRepos
 }
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, email, password string) (*domain.User, error) {
+	logger.Info(ctx, "usecase.auth.Register", "email", email)
+
 	if err := httputil.ValidateEmail(email); err != nil {
-		// TODO: логировать err (детальная причина) когда подключим логгер
+		logger.Error(ctx, "usecase.auth.Register", "error", err)
 		return nil, fmt.Errorf("%w: invalid email format", domain.ErrInvalidInput)
 	}
 	if err := httputil.ValidatePassword(password); err != nil {
+		logger.Error(ctx, "usecase.auth.Register", "error", err)
 		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
 	}
 	if err := httputil.ValidateUsername(username); err != nil {
+		logger.Error(ctx, "usecase.auth.Register", "error", err)
 		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		logger.Error(ctx, "usecase.auth.Register", "error", err)
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
@@ -53,19 +59,25 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, email, password s
 
 	id, err := uc.userRepo.Create(ctx, user)
 	if err != nil {
+		logger.Error(ctx, "usecase.auth.Register", "error", err)
 		return nil, err
 	}
 	user.ID = id
+	logger.Info(ctx, "usecase.auth.Register", "user_id", user.ID)
 	return user, nil
 }
 
 func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (*domain.Session, *domain.User, error) {
+	logger.Info(ctx, "usecase.auth.Login", "email", email)
+
 	user, err := uc.userRepo.GetByEmail(ctx, email)
 	if err != nil {
+		logger.Error(ctx, "usecase.auth.Login", "error", domain.ErrUnauthorized)
 		return nil, nil, domain.ErrUnauthorized
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		logger.Error(ctx, "usecase.auth.Login", "error", domain.ErrUnauthorized)
 		return nil, nil, domain.ErrUnauthorized
 	}
 
@@ -76,20 +88,27 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (*doma
 	}
 
 	if err := uc.sessionRepo.Create(ctx, session); err != nil {
+		logger.Error(ctx, "usecase.auth.Login", "error", err)
 		return nil, nil, fmt.Errorf("create session: %w", err)
 	}
 
+	logger.Info(ctx, "usecase.auth.Login", "user_id", user.ID)
 	return session, user, nil
 }
 
 func (uc *AuthUsecase) Logout(ctx context.Context, sessionID string) error {
+	logger.Info(ctx, "usecase.auth.Logout", "session_id", sessionID)
 	_ = uc.sessionRepo.DeleteByID(ctx, sessionID)
+	logger.Info(ctx, "usecase.auth.Logout", "status", "ok")
 	return nil
 }
 
 func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*domain.User, error) {
+	logger.Info(ctx, "usecase.auth.ValidateSession", "session_id", sessionID)
+
 	session, err := uc.sessionRepo.GetByID(ctx, sessionID)
 	if err != nil {
+		logger.Error(ctx, "usecase.auth.ValidateSession", "error", err)
 		switch {
 		case errors.Is(err, domain.ErrSessionExpired), errors.Is(err, domain.ErrNotFound):
 			return nil, domain.ErrSessionExpired
@@ -99,14 +118,17 @@ func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*
 	}
 
 	if session.IsExpired() {
+		logger.Error(ctx, "usecase.auth.ValidateSession", "error", "session expired")
 		_ = uc.sessionRepo.DeleteByID(ctx, sessionID)
 		return nil, domain.ErrSessionExpired
 	}
 
 	user, err := uc.userRepo.GetByID(ctx, session.UserID)
 	if err != nil {
+		logger.Error(ctx, "usecase.auth.ValidateSession", "error", err)
 		return nil, domain.ErrUnauthorized
 	}
 
+	logger.Info(ctx, "usecase.auth.ValidateSession", "user_id", user.ID)
 	return user, nil
 }
