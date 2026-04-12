@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -248,18 +247,5 @@ func parseBlockID(r *http.Request) (int64, error) {
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		httputil.Error(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, domain.ErrConflict):
-		httputil.Error(w, http.StatusConflict, "conflict")
-	case errors.Is(err, domain.ErrUnauthorized):
-		httputil.Error(w, http.StatusUnauthorized, "invalid credentials")
-	case errors.Is(err, domain.ErrInvalidInput):
-		httputil.Error(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, domain.ErrForbidden):
-		httputil.Error(w, http.StatusForbidden, "access denied")
-	default:
-		httputil.Error(w, http.StatusInternalServerError, "internal server error")
-	}
+	httputil.MapDomainError(w, err)
 }
