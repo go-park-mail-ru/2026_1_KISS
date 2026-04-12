@@ -16,6 +16,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
 type userRepository interface {
@@ -128,9 +129,9 @@ func (uc *ProfileUsecase) UpdateProfile(ctx context.Context, userID int64, usern
 
 	user := &domain.User{
 		ID:          userID,
-		Username:    username,
-		Status:      status,
-		Description: description,
+		Username:    sanitize.EscapeHTML(username),
+		Status:      sanitize.EscapeHTML(status),
+		Description: sanitize.EscapeHTML(description),
 	}
 	if err := uc.userRepo.UpdateProfile(ctx, user); err != nil {
 		logger.Error(ctx, "usecase.profile.UpdateProfile", "error", err)

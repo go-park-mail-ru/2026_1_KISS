@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
 type NotebookService interface {
@@ -34,6 +35,7 @@ func New(nr repository.NotebookRepository, br repository.BlockRepository) Notebo
 func (s *notebookService) Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error) {
 	logger.Info(ctx, "usecase.notebook.Create", "user_id", userID, "title", title)
 
+	title = sanitize.EscapeHTML(title)
 	if title == "" {
 		title = "Untitled"
 	}
@@ -116,6 +118,7 @@ func (s *notebookService) Delete(ctx context.Context, userID, notebookID int64) 
 func (s *notebookService) Update(ctx context.Context, userID, notebookID int64, title string, isPublic bool) (*domain.Notebook, error) {
 	logger.Info(ctx, "usecase.notebook.Update", "user_id", userID, "notebook_id", notebookID)
 
+	title = sanitize.EscapeHTML(title)
 	if title == "" {
 		logger.Error(ctx, "usecase.notebook.Update", "error", domain.ErrInvalidInput)
 		return nil, domain.ErrInvalidInput
