@@ -26,6 +26,7 @@ func testUser() *domain.User {
 
 var jpegHeader = []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
 var bmpHeader = []byte{0x42, 0x4D, 0x36, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00}
+var pngHeader = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52}
 
 func TestUploadAvatar(t *testing.T) {
 	tests := []struct {
@@ -44,6 +45,11 @@ func TestUploadAvatar(t *testing.T) {
 			name:     "success bmp",
 			fileData: append(bmpHeader, make([]byte, 100)...),
 			fileSize: int64(len(bmpHeader) + 100),
+		},
+		{
+			name:     "success png",
+			fileData: append(pngHeader, make([]byte, 100)...),
+			fileSize: int64(len(pngHeader) + 100),
 		},
 		{
 			name:      "file too large",
@@ -130,6 +136,70 @@ func TestUploadAvatar_DeletesOldAvatar(t *testing.T) {
 	fs.EXPECT().Save(gomock.Any(), gomock.Any()).Return("/uploads/new.jpg", nil)
 	repo.EXPECT().UpdateAvatarURL(gomock.Any(), int64(1), "/uploads/new.jpg").Return(nil)
 	fs.EXPECT().Delete("/uploads/old-avatar.jpg").Return(nil)
+	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
+
+	uc := usecase.New(repo, fs, 2<<20)
+
+	data := append(jpegHeader, make([]byte, 100)...)
+	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestUploadAvatar_UpdateAvatarURLError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	user := testUser()
+	repo := mocks.NewMockuserRepository(ctrl)
+	fs := mocks.NewMockFileStorage(ctrl)
+
+	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
+	fs.EXPECT().Save(gomock.Any(), gomock.Any()).Return("/uploads/new.jpg", nil)
+	repo.EXPECT().UpdateAvatarURL(gomock.Any(), int64(1), "/uploads/new.jpg").Return(errors.New("db error"))
+	fs.EXPECT().Delete("/uploads/new.jpg").Return(nil)
+
+	uc := usecase.New(repo, fs, 2<<20)
+
+	data := append(jpegHeader, make([]byte, 100)...)
+	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestUploadAvatar_GetByIDError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := mocks.NewMockuserRepository(ctrl)
+	fs := mocks.NewMockFileStorage(ctrl)
+
+	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(repo, fs, 2<<20)
+
+	data := append(jpegHeader, make([]byte, 100)...)
+	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestUploadAvatar_NoOldAvatar(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	user := testUser()
+	user.AvatarURL = ""
+
+	repo := mocks.NewMockuserRepository(ctrl)
+	fs := mocks.NewMockFileStorage(ctrl)
+
+	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
+	fs.EXPECT().Save(gomock.Any(), gomock.Any()).Return("/uploads/new.jpg", nil)
+	repo.EXPECT().UpdateAvatarURL(gomock.Any(), int64(1), "/uploads/new.jpg").Return(nil)
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 
 	uc := usecase.New(repo, fs, 2<<20)
