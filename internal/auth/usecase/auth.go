@@ -13,6 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
 type AuthUsecase struct {
@@ -52,7 +53,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, email, password s
 	}
 
 	user := &domain.User{
-		Username:     username,
+		Username:     sanitize.EscapeHTML(username),
 		Email:        email,
 		PasswordHash: string(hash),
 	}

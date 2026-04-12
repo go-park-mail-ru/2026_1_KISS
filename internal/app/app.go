@@ -87,11 +87,19 @@ func New(cfg *config.Config) (*App, error) {
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 
+	csrfSkip := map[string]bool{
+		"/api/v1/auth/login":    true,
+		"/api/v1/auth/register": true,
+	}
+
 	handler := middleware.Chain(mux,
 		middleware.RequestID(),
 		middleware.Logging(),
 		middleware.Recovery(),
 		middleware.CORS(cfg.CORS.AllowedOrigins),
+		middleware.SecurityHeaders(),
+		middleware.CSRF(csrfSkip),
+		middleware.RateLimit(100, time.Minute),
 	)
 
 	srv := &http.Server{

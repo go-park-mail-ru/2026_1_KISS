@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
@@ -70,6 +71,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	middleware.SetCSRFCookie(w, nil)
+
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
 }
 
@@ -82,6 +85,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	_ = h.usecase.Logout(r.Context(), cookie.Value)
 	clearSessionCookie(w)
+	middleware.ClearCSRFCookie(w)
 
 	httputil.JSON(w, http.StatusOK, nil)
 }
