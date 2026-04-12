@@ -38,10 +38,6 @@ type App struct {
 	runnerManager container.Manager
 }
 
-func NoOpMiddleware(next http.Handler) http.Handler {
-	return next
-}
-
 func New(cfg *config.Config) (*App, error) {
 	db, err := database.Connect(cfg.Database.DSN())
 	if err != nil {
@@ -85,7 +81,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	authHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
-	runnerHandler.RegisterRoutes(mux, NoOpMiddleware)
+	runnerHandler.RegisterRoutes(mux, authMw)
 	profileHandler.RegisterRoutes(mux, authMw)
 	healthHandler.RegisterRoutes(mux)
 

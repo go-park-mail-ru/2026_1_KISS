@@ -2,11 +2,9 @@ package http
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 
-	authhttp "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/delivery/http"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
@@ -66,7 +64,7 @@ func (h *ProfileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, authhttp.NewUserResponse(updated))
+	httputil.JSON(w, http.StatusOK, NewUserResponse(updated))
 }
 
 // UpdateProfile handles profile field updates.
@@ -89,7 +87,7 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, authhttp.NewUserResponse(updated))
+	httputil.JSON(w, http.StatusOK, NewUserResponse(updated))
 }
 
 // ChangePassword handles password changes.
@@ -134,22 +132,9 @@ func (h *ProfileHandler) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, authhttp.NewUserResponse(updated))
+	httputil.JSON(w, http.StatusOK, NewUserResponse(updated))
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		httputil.Error(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, domain.ErrConflict):
-		httputil.Error(w, http.StatusConflict, "email or username already exists")
-	case errors.Is(err, domain.ErrUnauthorized):
-		httputil.Error(w, http.StatusUnauthorized, "invalid credentials")
-	case errors.Is(err, domain.ErrInvalidInput):
-		httputil.Error(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, domain.ErrForbidden):
-		httputil.Error(w, http.StatusForbidden, "access denied")
-	default:
-		httputil.Error(w, http.StatusInternalServerError, "internal server error")
-	}
+	httputil.MapDomainError(w, err)
 }

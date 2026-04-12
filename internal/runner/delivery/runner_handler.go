@@ -1,7 +1,6 @@
 package delivery
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
@@ -44,7 +43,7 @@ func (c *runnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		blockPosition = int64(0)
 	}
-	ctx := context.Background()
+	ctx := r.Context()
 	if err := c.runnerServ.StartSession(ctx, notebookID); err != nil {
 		httputil.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -68,7 +67,7 @@ func (c *runnerHandler) ExecuteBlock(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		blockPosition = int64(0)
 	}
-	ctx := context.Background()
+	ctx := r.Context()
 	if err := c.runnerServ.StartSession(ctx, notebookID); err != nil {
 		httputil.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -82,7 +81,7 @@ func (c *runnerHandler) ExecuteBlock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *runnerHandler) StopExecSession(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := r.Context()
 	notebookID, err := strconv.ParseInt(r.PathValue("notebook_id"), 10, 64)
 	if err != nil {
 		httputil.Error(w, http.StatusBadRequest, err.Error())
