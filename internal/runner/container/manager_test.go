@@ -25,11 +25,12 @@ type fakeContainer struct {
 }
 
 type fakeDocker struct {
-	containersByName map[string]*fakeContainer
-	containersByID   map[string]*fakeContainer
-	nextID           int
-	nextIP           string
-	createErr        error
+	containersByName    map[string]*fakeContainer
+	containersByID      map[string]*fakeContainer
+	nextID              int
+	nextIP              string
+	createErr           error
+	storageOptSupported bool
 
 	lastCreatedName       string
 	lastCreatedImage      string
@@ -37,6 +38,8 @@ type fakeDocker struct {
 	lastCreatedNanoCPUs   int64
 	lastCreatedNetwork    string
 	lastCreatedTmpfs      map[string]string
+	lastCreatedStorageOpt map[string]string
+	lastCreatedReadonly   bool
 	lastCreatedPidsLimit  *int64
 	removedContainerIDs   []string
 	startedContainerIDs   []string
@@ -81,6 +84,9 @@ func (f *fakeDocker) ContainerCreate(_ context.Context, cfg *container.Config, h
 	if f.createErr != nil {
 		return container.CreateResponse{}, f.createErr
 	}
+	if hostConfig.StorageOpt != nil && !f.storageOptSupported {
+		return container.CreateResponse{}, errors.New("storage_opt is not supported by the storage driver")
+	}
 	if _, exists := f.containersByName[containerName]; exists {
 		return container.CreateResponse{}, errdefs.Conflict(errors.New("name conflict"))
 	}
@@ -103,6 +109,8 @@ func (f *fakeDocker) ContainerCreate(_ context.Context, cfg *container.Config, h
 	f.lastCreatedNanoCPUs = hostConfig.Resources.NanoCPUs
 	f.lastCreatedNetwork = string(hostConfig.NetworkMode)
 	f.lastCreatedTmpfs = hostConfig.Tmpfs
+	f.lastCreatedStorageOpt = hostConfig.StorageOpt
+	f.lastCreatedReadonly = hostConfig.ReadonlyRootfs
 	f.lastCreatedPidsLimit = hostConfig.Resources.PidsLimit
 
 	return container.CreateResponse{ID: id}, nil
@@ -207,6 +215,44 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	}
 	if docker.lastCreatedPidsLimit == nil || *docker.lastCreatedPidsLimit != 64 {
 		t.Fatal("expected pids limit of 64")
+	}
+	if !docker.lastCreatedReadonly {
+		t.Fatal("expected ReadonlyRootfs in tmpfs fallback path")
+	}
+	if docker.lastCreatedStorageOpt != nil {
+		t.Fatalf("expected no storage_opt in fallback path, got %v", docker.lastCreatedStorageOpt)
+	}
+}
+
+func TestStartSession_UsesStorageOptWhenSupported(t *testing.T) {
+	docker := newFakeDocker()
+	docker.storageOptSupported = true
+	mgr := NewManagerWithAPI(config.RunnerConfig{
+		Images:              map[string]string{"python": "kiss-python-runner"},
+		NamePrefix:          "runner-",
+		AgentPort:           "8080",
+		StartupTimeout:      time.Second,
+		HealthCheckInterval: time.Millisecond,
+		TmpfsSize:           "100m",
+		PidsLimit:           64,
+	}, docker, func(context.Context, *http.Client, string, time.Duration, time.Duration) error {
+		return nil
+	})
+
+	if _, err := mgr.StartSession(context.Background(), "s-opt", "python"); err != nil {
+		t.Fatalf("StartSession() error = %v", err)
+	}
+	if docker.lastCreatedStorageOpt["size"] != "100m" {
+		t.Fatalf("expected storage_opt size=100m, got %v", docker.lastCreatedStorageOpt)
+	}
+	if docker.lastCreatedReadonly {
+		t.Fatal("expected writable rootfs when storage_opt is supported")
+	}
+	if docker.lastCreatedTmpfs["/home/runner"] != "" {
+		t.Fatalf("expected no /home/runner tmpfs in storage_opt path, got %v", docker.lastCreatedTmpfs)
+	}
+	if docker.lastCreatedTmpfs["/tmp"] == "" {
+		t.Fatal("expected /tmp tmpfs in storage_opt path")
 	}
 }
 

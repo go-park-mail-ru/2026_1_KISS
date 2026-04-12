@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 import time
 from queue import Empty
@@ -11,6 +12,11 @@ from .models import ExecuteResponse
 
 logger = logging.getLogger(__name__)
 
+# Каталог, куда pip --target ставит пользовательские пакеты (см. PIP_TARGET в Dockerfile)
+# Должен существовать до старта kernel'а: иначе Python закеширует NullImporter
+# для отсутствующего пути и далее импорты установленных пакетов будут падать
+USER_SITE_PACKAGES = os.environ.get("PIP_TARGET", "/home/runner/.local/site-packages")
+
 
 class KernelBridge:
     def __init__(self):
@@ -21,6 +27,8 @@ class KernelBridge:
     def start(self):
         if self._km is not None:
             return
+
+        os.makedirs(USER_SITE_PACKAGES, exist_ok=True)
 
         logger.info("Starting Jupyter kernel")
         km = KernelManager(kernel_name=KERNEL_NAME)
