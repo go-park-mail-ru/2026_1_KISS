@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"runtime/debug"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
 
 func Recovery() Middleware {
@@ -13,7 +13,10 @@ func Recovery() Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if rec := recover(); rec != nil {
-					log.Printf("panic recovered: %v\n%s", rec, debug.Stack())
+					logger.Error(r.Context(), "panic recovered",
+						"error", rec,
+						"stack", string(debug.Stack()),
+					)
 					httputil.Error(w, http.StatusInternalServerError, "internal server error")
 				}
 			}()

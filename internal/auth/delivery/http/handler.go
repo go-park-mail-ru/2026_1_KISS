@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
@@ -70,6 +71,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	middleware.SetCSRFCookie(w, nil)
+
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
 }
 
@@ -82,6 +85,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	_ = h.usecase.Logout(r.Context(), cookie.Value)
 	clearSessionCookie(w)
+	middleware.ClearCSRFCookie(w)
 
 	httputil.JSON(w, http.StatusOK, nil)
 }
@@ -116,20 +120,5 @@ func clearSessionCookie(w http.ResponseWriter) {
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		httputil.Error(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, domain.ErrConflict):
-		httputil.Error(w, http.StatusConflict, "email or username already exists")
-	case errors.Is(err, domain.ErrSessionExpired):
-		httputil.Error(w, http.StatusUnauthorized, "session expired")
-	case errors.Is(err, domain.ErrUnauthorized):
-		httputil.Error(w, http.StatusUnauthorized, "invalid credentials")
-	case errors.Is(err, domain.ErrInvalidInput):
-		httputil.Error(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, domain.ErrForbidden):
-		httputil.Error(w, http.StatusForbidden, "access denied")
-	default:
-		httputil.Error(w, http.StatusInternalServerError, "internal server error")
-	}
+	httputil.MapDomainError(w, err)
 }

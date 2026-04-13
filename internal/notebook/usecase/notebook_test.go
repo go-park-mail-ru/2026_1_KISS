@@ -6,113 +6,26 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
+	"go.uber.org/mock/gomock"
 )
 
-type mockNotebookRepo struct {
-	createFn         func(ctx context.Context, nb *domain.Notebook) (int64, error)
-	getByIDFn        func(ctx context.Context, id int64) (*domain.Notebook, error)
-	getByOwnerIDFn   func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error)
-	updateFn         func(ctx context.Context, nb *domain.Notebook) error
-	deleteFn         func(ctx context.Context, id int64) error
-	countByOwnerIDFn func(ctx context.Context, ownerID int64, search string) (int, error)
-}
-
-func (m *mockNotebookRepo) Create(ctx context.Context, nb *domain.Notebook) (int64, error) {
-	if m.createFn != nil {
-		return m.createFn(ctx, nb)
-	}
-	return 0, nil
-}
-
-func (m *mockNotebookRepo) GetByID(ctx context.Context, id int64) (*domain.Notebook, error) {
-	if m.getByIDFn != nil {
-		return m.getByIDFn(ctx, id)
-	}
-	return nil, domain.ErrNotFound
-}
-
-func (m *mockNotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
-	if m.getByOwnerIDFn != nil {
-		return m.getByOwnerIDFn(ctx, ownerID, limit, offset, search)
-	}
-	return []domain.Notebook{}, nil
-}
-
-func (m *mockNotebookRepo) Update(ctx context.Context, nb *domain.Notebook) error {
-	if m.updateFn != nil {
-		return m.updateFn(ctx, nb)
-	}
-	return nil
-}
-
-func (m *mockNotebookRepo) Delete(ctx context.Context, id int64) error {
-	if m.deleteFn != nil {
-		return m.deleteFn(ctx, id)
-	}
-	return nil
-}
-
-func (m *mockNotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error) {
-	if m.countByOwnerIDFn != nil {
-		return m.countByOwnerIDFn(ctx, ownerID, search)
-	}
-	return 0, nil
-}
-
-type mockBlockRepo struct {
-	createFn          func(ctx context.Context, b *domain.Block) (int64, error)
-	getByIDFn         func(ctx context.Context, blockID int64) (*domain.Block, error)
-	getByNotebookIDFn func(ctx context.Context, notebookID int64) ([]domain.Block, error)
-	updateFn          func(ctx context.Context, b *domain.Block) error
-	deleteFn          func(ctx context.Context, blockID int64) error
-}
-
-func (m *mockBlockRepo) Create(ctx context.Context, b *domain.Block) (int64, error) {
-	if m.createFn != nil {
-		return m.createFn(ctx, b)
-	}
-	return 0, nil
-}
-
-func (m *mockBlockRepo) GetByID(ctx context.Context, blockID int64) (*domain.Block, error) {
-	if m.getByIDFn != nil {
-		return m.getByIDFn(ctx, blockID)
-	}
-	return nil, domain.ErrNotFound
-}
-
-func (m *mockBlockRepo) GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error) {
-	if m.getByNotebookIDFn != nil {
-		return m.getByNotebookIDFn(ctx, notebookID)
-	}
-	return []domain.Block{}, nil
-}
-
-func (m *mockBlockRepo) Update(ctx context.Context, b *domain.Block) error {
-	if m.updateFn != nil {
-		return m.updateFn(ctx, b)
-	}
-	return nil
-}
-
-func (m *mockBlockRepo) Delete(ctx context.Context, blockID int64) error {
-	if m.deleteFn != nil {
-		return m.deleteFn(ctx, blockID)
-	}
-	return nil
-}
-
 func TestCreate_DefaultTitle(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		createFn: func(ctx context.Context, nb *domain.Notebook) (int64, error) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nb *domain.Notebook) (int64, error) {
 			if nb.Title != "Untitled" {
 				t.Errorf("want Untitled, got %s", nb.Title)
 			}
 			return 1, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	nb, err := uc.Create(context.Background(), 1, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -123,12 +36,15 @@ func TestCreate_DefaultTitle(t *testing.T) {
 }
 
 func TestGetByID_Forbidden(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2, IsPublic: false}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 2, IsPublic: false}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.GetByID(context.Background(), 1, 42)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -136,12 +52,17 @@ func TestGetByID_Forbidden(t *testing.T) {
 }
 
 func TestGetByID_PublicAccess(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2, IsPublic: true}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 2, IsPublic: true}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(42)).
+		Return([]domain.Block{}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	nb, err := uc.GetByID(context.Background(), 1, 42)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -152,12 +73,15 @@ func TestGetByID_PublicAccess(t *testing.T) {
 }
 
 func TestDelete_Forbidden(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 2}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.Delete(context.Background(), 1, 42)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -165,23 +89,24 @@ func TestDelete_Forbidden(t *testing.T) {
 }
 
 func TestAddBlock_CorrectPosition(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByNotebookIDFn: func(ctx context.Context, notebookID int64) ([]domain.Block, error) {
-			return []domain.Block{{ID: 1}, {ID: 2}}, nil
-		},
-		createFn: func(ctx context.Context, b *domain.Block) (int64, error) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return([]domain.Block{{ID: 1}, {ID: 2}}, nil)
+	blockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, b *domain.Block) (int64, error) {
 			if b.Position != 2 {
 				t.Errorf("want position 2, got %d", b.Position)
 			}
 			return 3, nil
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	block, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -192,23 +117,24 @@ func TestAddBlock_CorrectPosition(t *testing.T) {
 }
 
 func TestAddBlock_TextDefaultsLanguageToPlain(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByNotebookIDFn: func(ctx context.Context, notebookID int64) ([]domain.Block, error) {
-			return []domain.Block{}, nil
-		},
-		createFn: func(ctx context.Context, b *domain.Block) (int64, error) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return([]domain.Block{}, nil)
+	blockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, b *domain.Block) (int64, error) {
 			if b.Language != "markdown" {
 				t.Errorf("want language markdown, got %q", b.Language)
 			}
 			return 1, nil
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	block, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "text", Language: ""})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -219,20 +145,24 @@ func TestAddBlock_TextDefaultsLanguageToPlain(t *testing.T) {
 }
 
 func TestListByUser_NormalizesLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
 	called := false
-	nbRepo := &mockNotebookRepo{
-		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+	notebookRepo.EXPECT().GetByOwnerID(gomock.Any(), int64(1), gomock.Any(), gomock.Any(), "").
+		DoAndReturn(func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 			called = true
 			if limit != 20 {
 				t.Errorf("want limit=20, got %d", limit)
 			}
 			return []domain.Notebook{}, nil
-		},
-		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
-			return 0, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+		})
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").
+		Return(0, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, total, err := uc.ListByUser(context.Background(), 1, 0, 0, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -246,12 +176,15 @@ func TestListByUser_NormalizesLimit(t *testing.T) {
 }
 
 func TestCreate_RepoError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		createFn: func(ctx context.Context, nb *domain.Notebook) (int64, error) {
-			return 0, errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		Return(int64(0), errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.Create(context.Background(), 1, "test")
 	if err == nil {
 		t.Error("expected error")
@@ -259,12 +192,15 @@ func TestCreate_RepoError(t *testing.T) {
 }
 
 func TestGetByID_RepoError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return nil, errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(nil, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.GetByID(context.Background(), 1, 42)
 	if err == nil {
 		t.Error("expected error")
@@ -272,17 +208,17 @@ func TestGetByID_RepoError(t *testing.T) {
 }
 
 func TestGetByID_BlocksError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByNotebookIDFn: func(ctx context.Context, notebookID int64) ([]domain.Block, error) {
-			return nil, errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return(nil, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.GetByID(context.Background(), 1, 1)
 	if err == nil {
 		t.Error("expected error")
@@ -290,18 +226,22 @@ func TestGetByID_BlocksError(t *testing.T) {
 }
 
 func TestListByUser_NegativeOffset(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByOwnerID(gomock.Any(), int64(1), gomock.Any(), gomock.Any(), "").
+		DoAndReturn(func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 			if offset != 0 {
 				t.Errorf("want offset=0, got %d", offset)
 			}
 			return []domain.Notebook{}, nil
-		},
-		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
-			return 0, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+		})
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").
+		Return(0, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, _, err := uc.ListByUser(context.Background(), 1, 10, -5, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -309,19 +249,25 @@ func TestListByUser_NegativeOffset(t *testing.T) {
 }
 
 func TestListByUser_SearchPropagates(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
 	gotSearchRepo := ""
 	gotSearchCount := ""
-	nbRepo := &mockNotebookRepo{
-		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+	notebookRepo.EXPECT().GetByOwnerID(gomock.Any(), int64(1), gomock.Any(), gomock.Any(), "test").
+		DoAndReturn(func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 			gotSearchRepo = search
 			return []domain.Notebook{{ID: 1, Title: "foo test bar"}}, nil
-		},
-		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
+		})
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "test").
+		DoAndReturn(func(ctx context.Context, ownerID int64, search string) (int, error) {
 			gotSearchCount = search
 			return 1, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	notebooks, total, err := uc.ListByUser(context.Background(), 1, 10, 0, "test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -338,18 +284,22 @@ func TestListByUser_SearchPropagates(t *testing.T) {
 }
 
 func TestListByUser_EmptySearchReturnsAll(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByOwnerIDFn: func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByOwnerID(gomock.Any(), int64(1), gomock.Any(), gomock.Any(), "").
+		DoAndReturn(func(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 			if search != "" {
 				t.Errorf("want empty search, got %q", search)
 			}
 			return []domain.Notebook{{ID: 1}, {ID: 2}}, nil
-		},
-		countByOwnerIDFn: func(ctx context.Context, ownerID int64, search string) (int, error) {
-			return 2, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+		})
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").
+		Return(2, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	notebooks, total, err := uc.ListByUser(context.Background(), 1, 10, 0, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -360,15 +310,17 @@ func TestListByUser_EmptySearchReturnsAll(t *testing.T) {
 }
 
 func TestDelete_Success(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-		deleteFn: func(ctx context.Context, id int64) error {
-			return nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 1}, nil)
+	notebookRepo.EXPECT().Delete(gomock.Any(), int64(42)).
+		Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.Delete(context.Background(), 1, 42)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -376,12 +328,15 @@ func TestDelete_Success(t *testing.T) {
 }
 
 func TestDelete_GetByIDError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return nil, errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(nil, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.Delete(context.Background(), 1, 42)
 	if err == nil {
 		t.Error("expected error")
@@ -389,15 +344,17 @@ func TestDelete_GetByIDError(t *testing.T) {
 }
 
 func TestDelete_RepoError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-		deleteFn: func(ctx context.Context, id int64) error {
-			return errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 1}, nil)
+	notebookRepo.EXPECT().Delete(gomock.Any(), int64(42)).
+		Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.Delete(context.Background(), 1, 42)
 	if err == nil {
 		t.Error("expected error")
@@ -405,12 +362,15 @@ func TestDelete_RepoError(t *testing.T) {
 }
 
 func TestAddBlock_NotebookNotFound(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return nil, domain.ErrNotFound
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.AddBlock(context.Background(), 1, 42, &domain.Block{Type: "code"})
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -418,12 +378,15 @@ func TestAddBlock_NotebookNotFound(t *testing.T) {
 }
 
 func TestAddBlock_Forbidden(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 2}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.AddBlock(context.Background(), 1, 42, &domain.Block{Type: "code"})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -431,17 +394,17 @@ func TestAddBlock_Forbidden(t *testing.T) {
 }
 
 func TestAddBlock_GetBlocksError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByNotebookIDFn: func(ctx context.Context, notebookID int64) ([]domain.Block, error) {
-			return nil, errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return(nil, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err == nil {
 		t.Error("expected error")
@@ -449,17 +412,19 @@ func TestAddBlock_GetBlocksError(t *testing.T) {
 }
 
 func TestAddBlock_CreateError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		createFn: func(ctx context.Context, b *domain.Block) (int64, error) {
-			return 0, errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return([]domain.Block{}, nil)
+	blockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		Return(int64(0), errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err == nil {
 		t.Error("expected error")
@@ -467,11 +432,15 @@ func TestAddBlock_CreateError(t *testing.T) {
 }
 
 func TestUpdate_Success(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1, Title: "Old"}, nil
-		},
-		updateFn: func(ctx context.Context, nb *domain.Notebook) error {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 1, Title: "Old"}, nil)
+	notebookRepo.EXPECT().Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, nb *domain.Notebook) error {
 			if nb.Title != "New Title" {
 				t.Errorf("want title New Title, got %s", nb.Title)
 			}
@@ -479,9 +448,9 @@ func TestUpdate_Success(t *testing.T) {
 				t.Error("want IsPublic=true")
 			}
 			return nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	nb, err := uc.Update(context.Background(), 1, 42, "New Title", true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -492,7 +461,12 @@ func TestUpdate_Success(t *testing.T) {
 }
 
 func TestUpdate_EmptyTitle(t *testing.T) {
-	uc := usecase.New(&mockNotebookRepo{}, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.Update(context.Background(), 1, 42, "", false)
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
@@ -500,8 +474,13 @@ func TestUpdate_EmptyTitle(t *testing.T) {
 }
 
 func TestUpdate_TooLongTitle(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
 	longTitle := string(make([]byte, 256))
-	uc := usecase.New(&mockNotebookRepo{}, &mockBlockRepo{})
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.Update(context.Background(), 1, 42, longTitle, false)
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
@@ -509,12 +488,15 @@ func TestUpdate_TooLongTitle(t *testing.T) {
 }
 
 func TestUpdate_Forbidden(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(&domain.Notebook{ID: 42, OwnerID: 2}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -522,12 +504,15 @@ func TestUpdate_Forbidden(t *testing.T) {
 }
 
 func TestUpdate_NotFound(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return nil, domain.ErrNotFound
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -535,23 +520,24 @@ func TestUpdate_NotFound(t *testing.T) {
 }
 
 func TestUpdateBlock_Success(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return &domain.Block{ID: blockID, NotebookID: 10, Type: "code"}, nil
-		},
-		updateFn: func(ctx context.Context, b *domain.Block) error {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(&domain.Block{ID: 5, NotebookID: 10, Type: "code"}, nil)
+	blockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, b *domain.Block) error {
 			if b.Content != "new content" {
 				t.Errorf("want new content, got %s", b.Content)
 			}
 			return nil
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	block, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "new content", "markdown", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -562,12 +548,15 @@ func TestUpdateBlock_Success(t *testing.T) {
 }
 
 func TestUpdateBlock_NotebookNotFound(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return nil, domain.ErrNotFound
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -575,12 +564,15 @@ func TestUpdateBlock_NotebookNotFound(t *testing.T) {
 }
 
 func TestUpdateBlock_Forbidden(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 2}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -588,17 +580,17 @@ func TestUpdateBlock_Forbidden(t *testing.T) {
 }
 
 func TestUpdateBlock_BlockNotFound(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return nil, domain.ErrNotFound
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -606,17 +598,17 @@ func TestUpdateBlock_BlockNotFound(t *testing.T) {
 }
 
 func TestUpdateBlock_WrongNotebook(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return &domain.Block{ID: blockID, NotebookID: 999}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(&domain.Block{ID: 5, NotebookID: 999}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -624,20 +616,19 @@ func TestUpdateBlock_WrongNotebook(t *testing.T) {
 }
 
 func TestUpdateBlock_RepoError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return &domain.Block{ID: blockID, NotebookID: 10}, nil
-		},
-		updateFn: func(ctx context.Context, b *domain.Block) error {
-			return errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(&domain.Block{ID: 5, NotebookID: 10}, nil)
+	blockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).
+		Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if err == nil {
 		t.Error("expected error")
@@ -645,20 +636,19 @@ func TestUpdateBlock_RepoError(t *testing.T) {
 }
 
 func TestDeleteBlock_Success(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return &domain.Block{ID: blockID, NotebookID: 10}, nil
-		},
-		deleteFn: func(ctx context.Context, blockID int64) error {
-			return nil
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(&domain.Block{ID: 5, NotebookID: 10}, nil)
+	blockRepo.EXPECT().Delete(gomock.Any(), int64(5)).
+		Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -666,12 +656,15 @@ func TestDeleteBlock_Success(t *testing.T) {
 }
 
 func TestDeleteBlock_NotebookNotFound(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return nil, domain.ErrNotFound
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -679,12 +672,15 @@ func TestDeleteBlock_NotebookNotFound(t *testing.T) {
 }
 
 func TestDeleteBlock_Forbidden(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 2}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, &mockBlockRepo{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 2}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -692,17 +688,17 @@ func TestDeleteBlock_Forbidden(t *testing.T) {
 }
 
 func TestDeleteBlock_BlockNotFound(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return nil, domain.ErrNotFound
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -710,17 +706,17 @@ func TestDeleteBlock_BlockNotFound(t *testing.T) {
 }
 
 func TestDeleteBlock_WrongNotebook(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return &domain.Block{ID: blockID, NotebookID: 999}, nil
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(&domain.Block{ID: 5, NotebookID: 999}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -728,20 +724,19 @@ func TestDeleteBlock_WrongNotebook(t *testing.T) {
 }
 
 func TestDeleteBlock_RepoError(t *testing.T) {
-	nbRepo := &mockNotebookRepo{
-		getByIDFn: func(ctx context.Context, id int64) (*domain.Notebook, error) {
-			return &domain.Notebook{ID: id, OwnerID: 1}, nil
-		},
-	}
-	blockRepo := &mockBlockRepo{
-		getByIDFn: func(ctx context.Context, blockID int64) (*domain.Block, error) {
-			return &domain.Block{ID: blockID, NotebookID: 10}, nil
-		},
-		deleteFn: func(ctx context.Context, blockID int64) error {
-			return errors.New("db error")
-		},
-	}
-	uc := usecase.New(nbRepo, blockRepo)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
+		Return(&domain.Notebook{ID: 10, OwnerID: 1}, nil)
+	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
+		Return(&domain.Block{ID: 5, NotebookID: 10}, nil)
+	blockRepo.EXPECT().Delete(gomock.Any(), int64(5)).
+		Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo)
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if err == nil {
 		t.Error("expected error")

@@ -1,3 +1,4 @@
+//go:generate mockgen -source=handler.go -destination=../mocks/health_mock.go -package=mocks
 package health
 
 import (
@@ -8,16 +9,20 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
-type pinger interface {
+type Pinger interface {
 	PingContext(ctx context.Context) error
 }
 
 type Handler struct {
-	db pinger
+	db Pinger
 }
 
 func New(db *sql.DB) *Handler {
 	return &Handler{db: db}
+}
+
+func NewWithPinger(p Pinger) *Handler {
+	return &Handler{db: p}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {

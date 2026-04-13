@@ -9,23 +9,20 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
+	"go.uber.org/mock/gomock"
 )
 
-type mockValidator struct {
-	validateFn func(ctx context.Context, sessionID string) (*domain.User, error)
-}
-
-func (m *mockValidator) ValidateSession(ctx context.Context, sessionID string) (*domain.User, error) {
-	return m.validateFn(ctx, sessionID)
-}
-
 func TestAuthMiddleware_ValidSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	user := &domain.User{ID: 1, Username: "test"}
-	validator := &mockValidator{
-		validateFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
-			return user, nil
-		},
-	}
+	validator := mocks.NewMockSessionValidator(ctrl)
+	validator.EXPECT().
+		ValidateSession(gomock.Any(), "test-session").
+		Return(user, nil)
+
 	handler := middleware.Auth(validator)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := middleware.UserFromContext(r.Context())
 		if u == nil || u.ID != 1 {
@@ -43,7 +40,11 @@ func TestAuthMiddleware_ValidSession(t *testing.T) {
 }
 
 func TestAuthMiddleware_NoCookie(t *testing.T) {
-	validator := &mockValidator{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	validator := mocks.NewMockSessionValidator(ctrl)
+
 	handler := middleware.Auth(validator)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("should not reach handler")
 	}))
@@ -56,11 +57,14 @@ func TestAuthMiddleware_NoCookie(t *testing.T) {
 }
 
 func TestAuthMiddleware_InvalidSession(t *testing.T) {
-	validator := &mockValidator{
-		validateFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
-			return nil, domain.ErrUnauthorized
-		},
-	}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	validator := mocks.NewMockSessionValidator(ctrl)
+	validator.EXPECT().
+		ValidateSession(gomock.Any(), "bad-session").
+		Return(nil, domain.ErrUnauthorized)
+
 	handler := middleware.Auth(validator)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("should not reach handler")
 	}))

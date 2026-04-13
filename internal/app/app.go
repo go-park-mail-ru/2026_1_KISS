@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -37,10 +37,6 @@ type App struct {
 
 	runnerManager container.Manager
 	cancelReaper  context.CancelFunc
-}
-
-func NoOpMiddleware(next http.Handler) http.Handler {
-	return next
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -90,17 +86,25 @@ func New(cfg *config.Config) (*App, error) {
 
 	authHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
-	runnerHandler.RegisterRoutes(mux, NoOpMiddleware)
+	runnerHandler.RegisterRoutes(mux, authMw)
 	profileHandler.RegisterRoutes(mux, authMw)
 	healthHandler.RegisterRoutes(mux)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
+
+	csrfSkip := map[string]bool{
+		"/api/v1/auth/login":    true,
+		"/api/v1/auth/register": true,
+	}
 
 	handler := middleware.Chain(mux,
 		middleware.RequestID(),
 		middleware.Logging(),
 		middleware.Recovery(),
 		middleware.CORS(cfg.CORS.AllowedOrigins),
+		middleware.SecurityHeaders(),
+		middleware.CSRF(csrfSkip),
+		middleware.RateLimit(100, time.Minute),
 	)
 
 	srv := &http.Server{
@@ -120,26 +124,26 @@ func New(cfg *config.Config) (*App, error) {
 }
 
 func (a *App) Run() error {
-	log.Printf("server started on %s", a.srv.Addr)
+	slog.Info("server started", "addr", a.srv.Addr)
 	return a.srv.ListenAndServe()
 }
 
 func (a *App) Shutdown(ctx context.Context) {
 	a.cancelReaper()
 	if err := a.srv.Shutdown(ctx); err != nil {
-		log.Printf("server shutdown error: %v", err)
+		slog.Error("server shutdown error", "error", err)
 	}
 	if err := a.db.Close(); err != nil {
-		log.Printf("db close error: %v", err)
+		slog.Error("db close error", "error", err)
 	}
 	if a.rdb != nil {
 		if err := a.rdb.Close(); err != nil {
-			log.Printf("redis close error: %v", err)
+			slog.Error("redis close error", "error", err)
 		}
 	}
 	if a.runnerManager != nil {
 		if err := a.runnerManager.Close(); err != nil {
-			log.Printf("runner manager close error: %v", err)
+			slog.Error("runner manager close error", "error", err)
 		}
 	}
 }

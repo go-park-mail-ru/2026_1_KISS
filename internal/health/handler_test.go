@@ -1,23 +1,24 @@
-package health
+package health_test
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/health"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
+	"go.uber.org/mock/gomock"
 )
 
-type mockPinger struct {
-	err error
-}
-
-func (m *mockPinger) PingContext(ctx context.Context) error {
-	return m.err
-}
-
 func TestHealth_OK(t *testing.T) {
-	h := &Handler{db: &mockPinger{}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pinger := mocks.NewMockPinger(ctrl)
+	pinger.EXPECT().PingContext(gomock.Any()).Return(nil)
+
+	h := health.NewWithPinger(pinger)
 	req := httptest.NewRequest("GET", "/api/v1/health", nil)
 	rec := httptest.NewRecorder()
 	h.Health(rec, req)
@@ -27,7 +28,13 @@ func TestHealth_OK(t *testing.T) {
 }
 
 func TestHealth_DBDown(t *testing.T) {
-	h := &Handler{db: &mockPinger{err: errors.New("connection refused")}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pinger := mocks.NewMockPinger(ctrl)
+	pinger.EXPECT().PingContext(gomock.Any()).Return(errors.New("connection refused"))
+
+	h := health.NewWithPinger(pinger)
 	req := httptest.NewRequest("GET", "/api/v1/health", nil)
 	rec := httptest.NewRecorder()
 	h.Health(rec, req)

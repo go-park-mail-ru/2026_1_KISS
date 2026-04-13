@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
 
 type statusRecorder struct {
@@ -23,12 +24,11 @@ func Logging() Middleware {
 			sr := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
 			next.ServeHTTP(sr, r)
 			duration := time.Since(start)
-			slog.Info("http request",
+			logger.Info(r.Context(), "http request",
 				"method", r.Method,
 				"path", r.URL.Path,
 				"status", sr.statusCode,
 				"duration", duration.String(),
-				"request_id", RequestIDFromContext(r.Context()),
 			)
 		})
 	}
