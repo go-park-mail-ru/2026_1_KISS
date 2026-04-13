@@ -23,6 +23,7 @@ type BlockExecutionResult struct {
 	Stderr     []string      `json:"stderr,omitempty"`
 	Result     string        `json:"result,omitempty"`
 	Error      error         `json:"-"`
+	ErrorMsg   string        `json:"error,omitempty"`
 	ExecutedAt time.Time     `json:"executed_at"`
 	Duration   time.Duration `json:"duration"`
 }
