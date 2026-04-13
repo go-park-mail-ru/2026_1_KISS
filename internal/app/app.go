@@ -36,6 +36,7 @@ type App struct {
 	rdb *redisv9.Client
 
 	runnerManager container.Manager
+	cancelReaper  context.CancelFunc
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -73,7 +74,11 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("init runner manager: %w", err)
 	}
 	execSessionRepo := session_repository.NewExecutionSessionRepository()
-	runnerServ := runner_service.NewRunnerService(runnerManager, execSessionRepo, notebookRepo, blockRepo)
+	runnerServ := runner_service.NewRunnerService(runnerManager, execSessionRepo, notebookRepo, blockRepo, cfg.Runner.IdleTimeout)
+
+	reaperCtx, cancelReaper := context.WithCancel(context.Background())
+	go runnerServ.StartIdleReaper(reaperCtx)
+
 	runnerHandler := runnerhandler.NewRunnerHandler(runnerServ)
 
 	mux := http.NewServeMux()
@@ -106,7 +111,7 @@ func New(cfg *config.Config) (*App, error) {
 		Addr:         cfg.Server.Host + ":" + cfg.Server.Port,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 180 * time.Second,
 	}
 
 	return &App{
@@ -114,6 +119,7 @@ func New(cfg *config.Config) (*App, error) {
 		db:            db,
 		rdb:           rdb,
 		runnerManager: runnerManager,
+		cancelReaper:  cancelReaper,
 	}, nil
 }
 
@@ -123,6 +129,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(ctx context.Context) {
+	a.cancelReaper()
 	if err := a.srv.Shutdown(ctx); err != nil {
 		slog.Error("server shutdown error", "error", err)
 	}

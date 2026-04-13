@@ -42,6 +42,8 @@ type manager struct {
 	httpClient  *http.Client
 	useHostPort bool // true — хост→Docker (читаем HostPort); false — Docker→Docker (внутренний IP)
 	waitReady   func(ctx context.Context, httpClient *http.Client, baseURL string, timeout, interval time.Duration) error
+
+	storageOptSupported bool
 }
 
 func NewManager(cfg config.RunnerConfig) (Manager, error) {
@@ -66,13 +68,46 @@ func NewManagerWithAPI(
 		useHostPort = true
 	}
 
-	return &manager{
+	m := &manager{
 		docker:      docker,
 		cfg:         cfg,
 		httpClient:  &http.Client{},
 		useHostPort: useHostPort,
 		waitReady:   waitReady,
 	}
+	m.storageOptSupported = m.probeStorageOpt()
+	if m.storageOptSupported {
+		fmt.Println("runner: storage_opt size limit supported, using writable rootfs with quota")
+	} else {
+		fmt.Println("runner: storage_opt size limit UNSUPPORTED, using readonly rootfs + tmpfs (-RAM)")
+	}
+	return m
+}
+
+// probeStorageOpt создаёт одноразовый контейнер с storage_opt size,
+// чтобы проверить поддержку квоты на writable layer.
+func (m *manager) probeStorageOpt() bool {
+	if len(m.cfg.Images) == 0 || m.cfg.TmpfsSize == "" {
+		return false
+	}
+	var image string
+	for _, img := range m.cfg.Images {
+		image = img
+		break
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	probeName := m.cfg.NamePrefix + "storageopt-probe-" + fmt.Sprintf("%d", time.Now().UnixNano())
+	resp, err := m.docker.ContainerCreate(ctx,
+		&container.Config{Image: image, Labels: map[string]string{managedLabelKey: "true"}},
+		&container.HostConfig{StorageOpt: map[string]string{"size": m.cfg.TmpfsSize}},
+		&network.NetworkingConfig{}, nil, probeName)
+	if err != nil {
+		return false
+	}
+	_ = m.docker.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
+	return true
 }
 
 func (m *manager) Close() error {
@@ -197,19 +232,33 @@ func (m *manager) createContainer(ctx context.Context, sessionID, name string, l
 		fmt.Println(fmt.Errorf("WARNING: runsc runtime not found, using runc instead"))
 		runtimeName = "runc"
 	}
+	pidsLimit := m.cfg.PidsLimit
 	hostConfig := &container.HostConfig{
-		AutoRemove: true, // сносим контейнер после окончания сессии
+		AutoRemove: true,
 		Runtime:    runtimeName,
 		Resources: container.Resources{
-			Memory:   m.cfg.MemoryLimitBytes,
-			NanoCPUs: m.cfg.NanoCPUs,
+			Memory:    m.cfg.MemoryLimitBytes,
+			NanoCPUs:  m.cfg.NanoCPUs,
+			PidsLimit: &pidsLimit,
 		},
-		NetworkMode: container.NetworkMode(m.cfg.NetworkName), // "bridge", // container.NetworkMode(m.cfg.NetworkName),
+		NetworkMode: container.NetworkMode(m.cfg.NetworkName),
 		PortBindings: nat.PortMap{
 			port: []nat.PortBinding{
-				{HostIP: "0.0.0.0", HostPort: "0"}, // случайный свободный порт или 8081
+				{HostIP: "0.0.0.0", HostPort: "0"},
 			},
 		},
+	}
+	// Если ФС позволяет ограничивать средствами докера объём volume'а, то поступаем так
+	// Иначе пихаем в оперативку, пока так
+	if m.storageOptSupported {
+		hostConfig.StorageOpt = map[string]string{"size": m.cfg.TmpfsSize}
+		hostConfig.Tmpfs = map[string]string{"/tmp": "size=" + m.cfg.TmpfsSize}
+	} else {
+		hostConfig.ReadonlyRootfs = true
+		hostConfig.Tmpfs = map[string]string{
+			"/home/runner": "size=" + m.cfg.TmpfsSize,
+			"/tmp":         "size=" + m.cfg.TmpfsSize,
+		}
 	}
 
 	return m.docker.ContainerCreate(ctx, containerConfig, hostConfig, &network.NetworkingConfig{}, nil, name)

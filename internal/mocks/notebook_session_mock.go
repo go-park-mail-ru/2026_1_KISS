@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	gomock "go.uber.org/mock/gomock"
@@ -69,6 +70,20 @@ func (m *MockNotebookSession) ExecuteFromPosition(ctx context.Context, notebook 
 func (mr *MockNotebookSessionMockRecorder) ExecuteFromPosition(ctx, notebook, startPosition any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteFromPosition", reflect.TypeOf((*MockNotebookSession)(nil).ExecuteFromPosition), ctx, notebook, startPosition)
+}
+
+// LastActivity mocks base method.
+func (m *MockNotebookSession) LastActivity() time.Time {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LastActivity")
+	ret0, _ := ret[0].(time.Time)
+	return ret0
+}
+
+// LastActivity indicates an expected call of LastActivity.
+func (mr *MockNotebookSessionMockRecorder) LastActivity() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastActivity", reflect.TypeOf((*MockNotebookSession)(nil).LastActivity))
 }
 
 // GetSessionID mocks base method.

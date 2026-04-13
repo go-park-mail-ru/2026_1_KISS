@@ -21,6 +21,12 @@ COPY runner/agent.py /app/agent.py
 COPY runner/runner_app /app/runner_app
 RUN chown -R runner:runner /app
 
+# Редирект пользовательских pip install в tmpfs/quota-layer,
+# PIP_TARGET - куда пипу ставить пакеты
+# PYTHONPATH - где интерпретатору искать пакеты
+ENV PIP_TARGET=/home/runner/.local/site-packages \
+    PYTHONPATH=/home/runner/.local/site-packages
+
 USER runner
 
 EXPOSE 8080

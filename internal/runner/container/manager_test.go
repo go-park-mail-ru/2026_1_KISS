@@ -71,7 +71,7 @@ func TestStartSession_CreatesAndStartsContainer(t *testing.T) {
 	)
 
 	mgr := NewManagerWithAPI(config.RunnerConfig{
-		Images:              map[string]string{"python": "kiss-python-runner", "r": "kiss-r-runner"},
+		Images:              map[string]string{"python": "kiss-python-runner"},
 		NamePrefix:          "runner-",
 		AgentPort:           "8080",
 		MemoryLimitBytes:    128 * 1024 * 1024,
