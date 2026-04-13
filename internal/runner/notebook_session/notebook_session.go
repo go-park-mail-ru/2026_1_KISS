@@ -79,6 +79,9 @@ func (s *notebookSession) ExecuteFromPosition(
 
 	for i := startPosition; i < len(blocks); i++ {
 		block := blocks[i]
+		if block.Type != "code" {
+			continue
+		}
 		state, exists := s.BlockStates[block.ID]
 		currentHash := utils.ComputeHash(block.Content)
 
