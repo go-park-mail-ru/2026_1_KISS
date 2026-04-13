@@ -82,6 +82,9 @@ func (s *notebookSession) ExecuteFromPosition(
 		if block.Type != "code" {
 			continue
 		}
+		if strings.TrimSpace(block.Content) == "" {
+			continue
+		}
 		state, exists := s.BlockStates[block.ID]
 		currentHash := utils.ComputeHash(block.Content)
 
@@ -116,6 +119,7 @@ func (s *notebookSession) ExecuteFromPosition(
 					BlockID:  block.ID,
 					Position: block.Position,
 					Error:    err,
+					ErrorMsg: err.Error(),
 				})
 				return results, fmt.Errorf("block %d execution failed: %w", block.Position, err)
 			}
