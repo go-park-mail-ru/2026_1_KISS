@@ -49,9 +49,10 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true
           timeout: 10m
+          command_timeout: 10m
           script: |
+            set -e
             cd /home/ubuntu/2026_1_KISS
 
             git fetch origin develop
@@ -62,7 +63,7 @@ jobs:
               exit 0
             fi
 
-            git pull origin develop
+            git reset --hard origin/develop
 
             if echo "$CHANGED" | grep -q '^build/'; then
               echo "Python runner image changed, rebuilding..."
