@@ -85,6 +85,18 @@ func (mr *MockRunnerServiceMockRecorder) StartSession(ctx, notebookID any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartSession", reflect.TypeOf((*MockRunnerService)(nil).StartSession), ctx, notebookID)
 }
 
+// StartIdleReaper mocks base method.
+func (m *MockRunnerService) StartIdleReaper(ctx context.Context) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "StartIdleReaper", ctx)
+}
+
+// StartIdleReaper indicates an expected call of StartIdleReaper.
+func (mr *MockRunnerServiceMockRecorder) StartIdleReaper(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartIdleReaper", reflect.TypeOf((*MockRunnerService)(nil).StartIdleReaper), ctx)
+}
+
 // StopSession mocks base method.
 func (m *MockRunnerService) StopSession(ctx context.Context, notebookID int64) error {
 	m.ctrl.T.Helper()

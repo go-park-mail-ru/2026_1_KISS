@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
@@ -23,7 +24,7 @@ func setup(t *testing.T) (
 	sessRepo := mocks.NewMockExecutionSessionRepository(ctrl)
 	nbRepo := mocks.NewMockNotebookRepository(ctrl)
 	blkRepo := mocks.NewMockBlockRepository(ctrl)
-	svc := NewRunnerService(mgr, sessRepo, nbRepo, blkRepo)
+	svc := NewRunnerService(mgr, sessRepo, nbRepo, blkRepo, 10*time.Minute)
 	return ctrl, mgr, sessRepo, nbRepo, blkRepo, svc
 }
 

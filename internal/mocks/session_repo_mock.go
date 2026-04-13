@@ -68,6 +68,20 @@ func (mr *MockExecutionSessionRepositoryMockRecorder) DeleteSession(notebookID a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSession", reflect.TypeOf((*MockExecutionSessionRepository)(nil).DeleteSession), notebookID)
 }
 
+// ListSessions mocks base method.
+func (m *MockExecutionSessionRepository) ListSessions() map[int64]notebook_session.NotebookSession {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSessions")
+	ret0, _ := ret[0].(map[int64]notebook_session.NotebookSession)
+	return ret0
+}
+
+// ListSessions indicates an expected call of ListSessions.
+func (mr *MockExecutionSessionRepositoryMockRecorder) ListSessions() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSessions", reflect.TypeOf((*MockExecutionSessionRepository)(nil).ListSessions))
+}
+
 // GetSession mocks base method.
 func (m *MockExecutionSessionRepository) GetSession(notebookID int64) (notebook_session.NotebookSession, bool) {
 	m.ctrl.T.Helper()
