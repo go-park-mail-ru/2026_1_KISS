@@ -44,6 +44,65 @@ func TestRateLimit_BlocksOverLimit(t *testing.T) {
 	}
 }
 
+func TestRateLimit_RecoverAfterWindow(t *testing.T) {
+	window := 200 * time.Millisecond
+	handler := middleware.RateLimit(1, window)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.RemoteAddr = "10.0.0.5:1000"
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("first request: want 200, got %d", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("second request: want 429, got %d", rec.Code)
+	}
+
+	time.Sleep(window + 50*time.Millisecond)
+
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("request after window: want 200, got %d", rec.Code)
+	}
+}
+
+func TestRateLimit_RejectedRequestDoesNotResetWindow(t *testing.T) {
+	window := 300 * time.Millisecond
+	handler := middleware.RateLimit(1, window)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.RemoteAddr = "10.0.0.6:1000"
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("first request: want 200, got %d", rec.Code)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("second request at 200ms: want 429, got %d", rec.Code)
+	}
+
+	time.Sleep(150 * time.Millisecond)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("request at 350ms (>300ms window from first): want 200, got %d (rejected request incorrectly reset the window)", rec.Code)
+	}
+}
+
 func TestRateLimit_DifferentIPs(t *testing.T) {
 	handler := middleware.RateLimit(1, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

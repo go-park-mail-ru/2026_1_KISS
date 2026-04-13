@@ -50,7 +50,6 @@ func RateLimit(maxRequests int, window time.Duration) Middleware {
 			if elapsed >= window {
 				v.tokens = maxRequests
 			}
-			v.lastSeen = now
 
 			if v.tokens <= 0 {
 				mu.Unlock()
@@ -58,6 +57,7 @@ func RateLimit(maxRequests int, window time.Duration) Middleware {
 				return
 			}
 			v.tokens--
+			v.lastSeen = now
 			mu.Unlock()
 
 			next.ServeHTTP(w, r)

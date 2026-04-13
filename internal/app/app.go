@@ -104,7 +104,7 @@ func New(cfg *config.Config) (*App, error) {
 		middleware.CORS(cfg.CORS.AllowedOrigins),
 		middleware.SecurityHeaders(),
 		middleware.CSRF(csrfSkip),
-		middleware.RateLimit(100, time.Minute),
+		middleware.RateLimit(300, time.Minute),
 	)
 
 	srv := &http.Server{
