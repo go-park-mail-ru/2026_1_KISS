@@ -220,7 +220,7 @@ func (s *notebookSession) hasDependencyChanges(currentPos int, lastCheckedPos in
 	for i := 0; i <= lastCheckedPos; i++ {
 		block := blocks[i]
 		if state, exists := s.BlockStates[block.ID]; exists {
-			if state.UpdatedAt.After(state.Result.ExecutedAt) {
+			if state.Result != nil && state.UpdatedAt.After(state.Result.ExecutedAt) {
 				return true
 			}
 		}
