@@ -3,6 +3,10 @@ package usecase_test
 import (
 	"bytes"
 	"errors"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"image/png"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -24,11 +28,33 @@ func testUser() *domain.User {
 	}
 }
 
-var jpegHeader = []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46}
-var bmpHeader = []byte{0x42, 0x4D, 0x36, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00}
-var pngHeader = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52}
+func makeTestImage(width, height int) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := range height {
+		for x := range width {
+			img.Set(x, y, color.RGBA{R: 100, G: 150, B: 128, A: 255})
+		}
+	}
+	return img
+}
+
+func encodeJPEG(img image.Image) []byte {
+	var buf bytes.Buffer
+	_ = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90})
+	return buf.Bytes()
+}
+
+func encodePNG(img image.Image) []byte {
+	var buf bytes.Buffer
+	_ = png.Encode(&buf, img)
+	return buf.Bytes()
+}
 
 func TestUploadAvatar(t *testing.T) {
+	jpegData := encodeJPEG(makeTestImage(4, 2))
+	pngData := encodePNG(makeTestImage(4, 2))
+	pngSquareData := encodePNG(makeTestImage(4, 4))
+
 	tests := []struct {
 		name      string
 		fileData  []byte
@@ -37,23 +63,23 @@ func TestUploadAvatar(t *testing.T) {
 		errTarget error
 	}{
 		{
-			name:     "success jpeg",
-			fileData: append(jpegHeader, make([]byte, 100)...),
-			fileSize: int64(len(jpegHeader) + 100),
+			name:     "success jpeg non-square",
+			fileData: jpegData,
+			fileSize: int64(len(jpegData)),
 		},
 		{
-			name:     "success bmp",
-			fileData: append(bmpHeader, make([]byte, 100)...),
-			fileSize: int64(len(bmpHeader) + 100),
+			name:     "success png non-square",
+			fileData: pngData,
+			fileSize: int64(len(pngData)),
 		},
 		{
-			name:     "success png",
-			fileData: append(pngHeader, make([]byte, 100)...),
-			fileSize: int64(len(pngHeader) + 100),
+			name:     "success png square passthrough",
+			fileData: pngSquareData,
+			fileSize: int64(len(pngSquareData)),
 		},
 		{
 			name:      "file too large",
-			fileData:  jpegHeader,
+			fileData:  jpegData,
 			fileSize:  3 << 20,
 			wantErr:   true,
 			errTarget: domain.ErrInvalidInput,
@@ -115,7 +141,7 @@ func TestUploadAvatar_StorageError(t *testing.T) {
 
 	uc := usecase.New(repo, fs, 2<<20)
 
-	data := append(jpegHeader, make([]byte, 100)...)
+	data := encodePNG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -140,7 +166,7 @@ func TestUploadAvatar_DeletesOldAvatar(t *testing.T) {
 
 	uc := usecase.New(repo, fs, 2<<20)
 
-	data := append(jpegHeader, make([]byte, 100)...)
+	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -162,7 +188,7 @@ func TestUploadAvatar_UpdateAvatarURLError(t *testing.T) {
 
 	uc := usecase.New(repo, fs, 2<<20)
 
-	data := append(jpegHeader, make([]byte, 100)...)
+	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -180,7 +206,7 @@ func TestUploadAvatar_GetByIDError(t *testing.T) {
 
 	uc := usecase.New(repo, fs, 2<<20)
 
-	data := append(jpegHeader, make([]byte, 100)...)
+	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
@@ -204,7 +230,7 @@ func TestUploadAvatar_NoOldAvatar(t *testing.T) {
 
 	uc := usecase.New(repo, fs, 2<<20)
 
-	data := append(jpegHeader, make([]byte, 100)...)
+	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

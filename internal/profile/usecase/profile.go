@@ -3,14 +3,22 @@ package usecase
 //go:generate mockgen -source=profile.go -destination=../../mocks/profile_repo_mock.go -package=mocks
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image"
+	"image/draw"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/muesli/smartcrop"
+	"github.com/muesli/smartcrop/nfnt"
 	"golang.org/x/crypto/bcrypt"
+	_ "golang.org/x/image/bmp"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
@@ -82,6 +90,49 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 		return nil, fmt.Errorf("seek file: %w", err)
 	}
 
+	var saveReader io.Reader = file
+
+	img, _, decErr := image.Decode(file)
+	if decErr != nil {
+		logger.Error(ctx, "usecase.profile.UploadAvatar", "error", decErr)
+		return nil, fmt.Errorf("decode image: %w", decErr)
+	}
+
+	bounds := img.Bounds()
+	dx, dy := bounds.Dx(), bounds.Dy()
+
+	if dx != dy {
+		side := dx
+		if dy < side {
+			side = dy
+		}
+
+		analyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
+		bestCrop, cropErr := analyzer.FindBestCrop(img, side, side)
+		if cropErr != nil {
+			logger.Error(ctx, "usecase.profile.UploadAvatar", "error", cropErr)
+			return nil, fmt.Errorf("smartcrop: %w", cropErr)
+		}
+
+		cropped := image.NewRGBA(image.Rect(0, 0, side, side))
+		draw.Draw(cropped, cropped.Bounds(), img, image.Pt(bestCrop.Min.X, bestCrop.Min.Y), draw.Src)
+
+		var buf bytes.Buffer
+		if mime == "image/png" {
+			if err := png.Encode(&buf, cropped); err != nil {
+				return nil, fmt.Errorf("encode png: %w", err)
+			}
+		} else {
+			if err := jpeg.Encode(&buf, cropped, &jpeg.Options{Quality: 90}); err != nil {
+				return nil, fmt.Errorf("encode jpeg: %w", err)
+			}
+			ext = ".jpg"
+		}
+
+		saveReader = bytes.NewReader(buf.Bytes())
+		logger.Info(ctx, "usecase.profile.UploadAvatar", "cropped", true, "side", side)
+	}
+
 	filename := uuid.New().String() + ext
 
 	user, err := uc.userRepo.GetByID(ctx, userID)
@@ -91,7 +142,7 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 	}
 	oldAvatar := user.AvatarURL
 
-	url, err := uc.fileStorage.Save(filename, file)
+	url, err := uc.fileStorage.Save(filename, saveReader)
 	if err != nil {
 		logger.Error(ctx, "usecase.profile.UploadAvatar", "error", err)
 		return nil, fmt.Errorf("save avatar: %w", err)
