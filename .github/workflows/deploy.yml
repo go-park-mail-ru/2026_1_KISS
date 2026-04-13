@@ -52,7 +52,7 @@ jobs:
           script_stop: true
           timeout: 10m
           script: |
-            cd /home/ubuntu/go/2026_1_KISS
+            cd /home/ubuntu/2026_1_KISS
 
             git fetch origin develop
             CHANGED=$(git diff --name-only HEAD origin/develop)
