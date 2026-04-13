@@ -49,7 +49,7 @@ func (c *runnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	execResult, err := c.runnerServ.ExecuteFromPosition(ctx, notebookID, int(blockPosition))
-	if err != nil {
+	if err != nil && len(execResult) == 0 {
 		httputil.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
