@@ -105,7 +105,7 @@ func (s *runnerService) ExecuteFromPosition(ctx context.Context, notebookID int6
 	execResults, err := nSession.ExecuteFromPosition(ctx, notebook, startPosition)
 	if err != nil {
 		logger.Error(ctx, "usecase.runner.ExecuteFromPosition", "error", err)
-		return nil, err
+		return execResults, err
 	}
 	logger.Info(ctx, "usecase.runner.ExecuteFromPosition", "notebook_id", notebookID, "results_count", len(execResults))
 	return execResults, nil
