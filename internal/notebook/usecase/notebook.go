@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"unicode/utf8"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository"
@@ -123,7 +124,7 @@ func (s *notebookService) Update(ctx context.Context, userID, notebookID int64, 
 		logger.Error(ctx, "usecase.notebook.Update", "error", domain.ErrInvalidInput)
 		return nil, domain.ErrInvalidInput
 	}
-	if len(title) > 255 {
+	if utf8.RuneCountInString(title) > 255 {
 		logger.Error(ctx, "usecase.notebook.Update", "error", domain.ErrInvalidInput)
 		return nil, domain.ErrInvalidInput
 	}

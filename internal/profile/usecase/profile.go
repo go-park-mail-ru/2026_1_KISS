@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/muesli/smartcrop"
@@ -169,11 +170,11 @@ func (uc *ProfileUsecase) UpdateProfile(ctx context.Context, userID int64, usern
 		logger.Error(ctx, "usecase.profile.UpdateProfile", "error", err)
 		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
 	}
-	if len(status) > 100 {
+	if utf8.RuneCountInString(status) > 100 {
 		logger.Error(ctx, "usecase.profile.UpdateProfile", "error", "status too long")
 		return nil, fmt.Errorf("%w: status must not exceed 100 characters", domain.ErrInvalidInput)
 	}
-	if len(description) > 500 {
+	if utf8.RuneCountInString(description) > 500 {
 		logger.Error(ctx, "usecase.profile.UpdateProfile", "error", "description too long")
 		return nil, fmt.Errorf("%w: description must not exceed 500 characters", domain.ErrInvalidInput)
 	}
