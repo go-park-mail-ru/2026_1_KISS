@@ -18,11 +18,12 @@ type authUsecase interface {
 }
 
 type AuthHandler struct {
-	usecase authUsecase
+	usecase      authUsecase
+	cookieSecure bool
 }
 
-func New(uc authUsecase) *AuthHandler {
-	return &AuthHandler{usecase: uc}
+func New(uc authUsecase, cookieSecure bool) *AuthHandler {
+	return &AuthHandler{usecase: uc, cookieSecure: cookieSecure}
 }
 
 func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
@@ -67,11 +68,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  session.ExpiresAt,
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	middleware.SetCSRFCookie(w, nil)
+	middleware.SetCSRFCookie(w, nil, h.cookieSecure)
 
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
 }

@@ -16,7 +16,7 @@ func generateCSRFToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func SetCSRFCookie(w http.ResponseWriter, expiresAt interface{ Unix() int64 }) string {
+func SetCSRFCookie(w http.ResponseWriter, expiresAt interface{ Unix() int64 }, cookieSecure bool) string {
 	token, err := generateCSRFToken()
 	if err != nil {
 		return ""
@@ -26,7 +26,7 @@ func SetCSRFCookie(w http.ResponseWriter, expiresAt interface{ Unix() int64 }) s
 		Value:    token,
 		Path:     "/",
 		HttpOnly: false,
-		Secure:   false,
+		Secure:   cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
 	return token

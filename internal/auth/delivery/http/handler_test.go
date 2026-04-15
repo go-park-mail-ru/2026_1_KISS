@@ -80,7 +80,7 @@ func TestRegister(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := authhttp.New(&mockAuthUsecase{registerFn: tc.mockFn})
+			h := authhttp.New(&mockAuthUsecase{registerFn: tc.mockFn}, false)
 			req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
@@ -127,7 +127,7 @@ func TestLogin(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := authhttp.New(&mockAuthUsecase{loginFn: tc.mockFn})
+			h := authhttp.New(&mockAuthUsecase{loginFn: tc.mockFn}, false)
 			req := httptest.NewRequest("POST", "/api/v1/auth/login", strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
@@ -154,7 +154,7 @@ func TestLogout(t *testing.T) {
 	t.Run("with cookie", func(t *testing.T) {
 		h := authhttp.New(&mockAuthUsecase{
 			logoutFn: func(ctx context.Context, sessionID string) error { return nil },
-		})
+		}, false)
 		req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
 		req.AddCookie(&http.Cookie{Name: "session_id", Value: "sess-1"})
 		rec := httptest.NewRecorder()
@@ -165,7 +165,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("without cookie", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{})
+		h := authhttp.New(&mockAuthUsecase{}, false)
 		req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
 		rec := httptest.NewRecorder()
 		h.Logout(rec, req)
@@ -181,7 +181,7 @@ func TestMe(t *testing.T) {
 			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
 				return &domain.User{ID: 1, Username: "test", CreatedAt: time.Now()}, nil
 			},
-		})
+		}, false)
 		req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 		req.AddCookie(&http.Cookie{Name: "session_id", Value: "sess-1"})
 		rec := httptest.NewRecorder()
@@ -192,7 +192,7 @@ func TestMe(t *testing.T) {
 	})
 
 	t.Run("no cookie", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{})
+		h := authhttp.New(&mockAuthUsecase{}, false)
 		req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 		rec := httptest.NewRecorder()
 		h.Me(rec, req)
@@ -206,7 +206,7 @@ func TestMe(t *testing.T) {
 			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
 				return nil, domain.ErrUnauthorized
 			},
-		})
+		}, false)
 		req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 		req.AddCookie(&http.Cookie{Name: "session_id", Value: "bad"})
 		rec := httptest.NewRecorder()
@@ -221,7 +221,7 @@ func TestMe(t *testing.T) {
 			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
 				return nil, domain.ErrSessionExpired
 			},
-		})
+		}, false)
 		req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 		req.AddCookie(&http.Cookie{Name: "session_id", Value: "expired"})
 		rec := httptest.NewRecorder()
@@ -236,7 +236,7 @@ func TestMe(t *testing.T) {
 }
 
 func TestRegisterRoutes_Auth(t *testing.T) {
-	h := authhttp.New(&mockAuthUsecase{})
+	h := authhttp.New(&mockAuthUsecase{}, false)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 }
@@ -246,7 +246,7 @@ func TestRegister_NotFound(t *testing.T) {
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, domain.ErrNotFound
 		},
-	})
+	}, false)
 	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -261,7 +261,7 @@ func TestRegister_InvalidInput(t *testing.T) {
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, domain.ErrInvalidInput
 		},
-	})
+	}, false)
 	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -276,7 +276,7 @@ func TestRegister_Forbidden(t *testing.T) {
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, domain.ErrForbidden
 		},
-	})
+	}, false)
 	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -291,7 +291,7 @@ func TestRegister_InternalError(t *testing.T) {
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, errors.New("unexpected")
 		},
-	})
+	}, false)
 	req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"username":"u","email":"e@e.com","password":"pass1234"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

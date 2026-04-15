@@ -88,7 +88,7 @@ func TestCSRF_EmptyHeader(t *testing.T) {
 
 func TestSetCSRFCookie(t *testing.T) {
 	rec := httptest.NewRecorder()
-	token := middleware.SetCSRFCookie(rec, nil)
+	token := middleware.SetCSRFCookie(rec, nil, false)
 	if token == "" {
 		t.Error("expected non-empty token")
 	}

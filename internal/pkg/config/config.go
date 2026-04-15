@@ -54,7 +54,8 @@ func (d DatabaseConfig) DSN() string {
 }
 
 type AuthConfig struct {
-	SessionTTL time.Duration
+	SessionTTL   time.Duration
+	CookieSecure bool
 }
 
 type CORSConfig struct {
@@ -96,7 +97,8 @@ func Load() *Config {
 			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 		Auth: AuthConfig{
-			SessionTTL: getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
+			SessionTTL:   getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
+			CookieSecure: getEnvBool("COOKIE_SECURE", false),
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
@@ -142,6 +144,15 @@ func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
 func getEnvInt64(key string, defaultVal int64) int64 {
 	if val := os.Getenv(key); val != "" {
 		if parsed, err := strconv.ParseInt(val, 10, 64); err == nil {
+			return parsed
+		}
+	}
+	return defaultVal
+}
+
+func getEnvBool(key string, defaultVal bool) bool {
+	if val := os.Getenv(key); val != "" {
+		if parsed, err := strconv.ParseBool(val); err == nil {
 			return parsed
 		}
 	}
