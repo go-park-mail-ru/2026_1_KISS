@@ -7,7 +7,11 @@ run:
 	go run ./cmd/server
 
 test:
-	go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
+	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|internal/app$$)')
+	@go tool cover -func=coverage.out
+	@TOTAL=$$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $$3}' | tr -d '%'); \
+	echo "Total coverage: $${TOTAL}%"; \
+	awk "BEGIN { if ($${TOTAL}+0 < 70.0) { print \"FAIL: coverage $${TOTAL}% is below 70% threshold\"; exit 1 } }"
 
 lint:
 	golangci-lint run ./...
