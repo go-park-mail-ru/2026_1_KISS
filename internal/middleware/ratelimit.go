@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"sync"
@@ -14,20 +15,26 @@ type visitor struct {
 	lastSeen time.Time
 }
 
-func RateLimit(maxRequests int, window time.Duration) Middleware {
+func RateLimit(ctx context.Context, maxRequests int, window time.Duration) Middleware {
 	var mu sync.Mutex
 	visitors := make(map[string]*visitor)
 
+	ticker := time.NewTicker(window)
 	go func() {
+		defer ticker.Stop()
 		for {
-			time.Sleep(window)
-			mu.Lock()
-			for ip, v := range visitors {
-				if time.Since(v.lastSeen) > window*2 {
-					delete(visitors, ip)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				mu.Lock()
+				for ip, v := range visitors {
+					if time.Since(v.lastSeen) > window*2 {
+						delete(visitors, ip)
+					}
 				}
+				mu.Unlock()
 			}
-			mu.Unlock()
 		}
 	}()
 
