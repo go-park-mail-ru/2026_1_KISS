@@ -11,9 +11,12 @@ linters:
     - ineffassign
     - staticcheck
     - unused
+    - gosec
+
+formatters:
+  enable:
     - gofmt
     - goimports
-    - gosec
 
 issues:
   max-issues-per-linter: 50
