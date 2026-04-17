@@ -2,6 +2,7 @@ package grpcutil
 
 import (
 	"errors"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,6 +44,9 @@ func GRPCToDomainError(err error) error {
 	case codes.NotFound:
 		return domain.ErrNotFound
 	case codes.Unauthenticated:
+		if strings.Contains(st.Message(), "session expired") {
+			return domain.ErrSessionExpired
+		}
 		return domain.ErrUnauthorized
 	case codes.AlreadyExists:
 		return domain.ErrConflict
