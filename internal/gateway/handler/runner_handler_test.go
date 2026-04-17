@@ -18,7 +18,7 @@ func TestRunnerHandler_StopSession_Success(t *testing.T) {
 	client.EXPECT().StopSession(gomock.Any(), gomock.Any()).Return(&pb.StopSessionResponse{}, nil)
 
 	h := NewRunnerHandler(client)
-	req := httptest.NewRequest("GET", "/api/v1/runner/1/stop", nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/1/stop", nil)
 	req.SetPathValue("notebook_id", "1")
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestRunnerHandler_ExecuteBlock_Success(t *testing.T) {
 	}, nil)
 
 	h := NewRunnerHandler(client)
-	req := httptest.NewRequest("GET", "/api/v1/runner/1/block?block_position=0", nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/1/block?block_position=0", nil)
 	req.SetPathValue("notebook_id", "1")
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -67,7 +67,7 @@ func TestRunnerHandler_ExecuteFromPosition_Success(t *testing.T) {
 	}, nil)
 
 	h := NewRunnerHandler(client)
-	req := httptest.NewRequest("GET", "/api/v1/runner/1?block_position=0", nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/1?block_position=0", nil)
 	req.SetPathValue("notebook_id", "1")
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -81,7 +81,7 @@ func TestRunnerHandler_ExecuteFromPosition_Success(t *testing.T) {
 
 func TestRunnerHandler_Unauthorized(t *testing.T) {
 	h := NewRunnerHandler(nil)
-	req := httptest.NewRequest("GET", "/api/v1/runner/1/stop", nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/1/stop", nil)
 	req.SetPathValue("notebook_id", "1")
 	rec := httptest.NewRecorder()
 

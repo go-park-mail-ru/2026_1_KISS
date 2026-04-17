@@ -13,14 +13,16 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
+	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
 )
 
-func setupServer(t *testing.T) (pb.RunnerServiceClient, *mocks.MockRunnerService) {
+func setupServer(t *testing.T) (pb.RunnerServiceClient, *mocks.MockRunnerService, *mocks.MockNotebookServiceClient) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	runnerSvc := mocks.NewMockRunnerService(ctrl)
-	srv := NewServer(runnerSvc)
+	nbClient := mocks.NewMockNotebookServiceClient(ctrl)
+	srv := NewServer(runnerSvc, nbClient)
 
 	lis := bufconn.Listen(1024 * 1024)
 	grpcServer := grpc.NewServer()
@@ -47,23 +49,29 @@ func setupServer(t *testing.T) (pb.RunnerServiceClient, *mocks.MockRunnerService
 	}
 	t.Cleanup(func() { conn.Close() })
 
-	return pb.NewRunnerServiceClient(conn), runnerSvc
+	return pb.NewRunnerServiceClient(conn), runnerSvc, nbClient
 }
 
 func TestStopSession_Success(t *testing.T) {
-	client, svc := setupServer(t)
+	client, svc, nbClient := setupServer(t)
 
+	nbClient.EXPECT().GetByID(gomock.Any(), &pbnotebook.GetNotebookRequest{
+		UserId: 42, NotebookId: 1,
+	}).Return(&pbnotebook.NotebookResponse{Notebook: &pbnotebook.NotebookInfo{Id: 1, OwnerId: 42}}, nil)
 	svc.EXPECT().StopSession(gomock.Any(), int64(1)).Return(nil)
 
-	_, err := client.StopSession(context.Background(), &pb.StopSessionRequest{NotebookId: 1})
+	_, err := client.StopSession(context.Background(), &pb.StopSessionRequest{NotebookId: 1, UserId: 42})
 	if err != nil {
 		t.Fatalf("stop session: %v", err)
 	}
 }
 
 func TestExecuteBlock_Success(t *testing.T) {
-	client, svc := setupServer(t)
+	client, svc, nbClient := setupServer(t)
 
+	nbClient.EXPECT().GetByID(gomock.Any(), &pbnotebook.GetNotebookRequest{
+		UserId: 42, NotebookId: 1,
+	}).Return(&pbnotebook.NotebookResponse{Notebook: &pbnotebook.NotebookInfo{Id: 1, OwnerId: 42}}, nil)
 	svc.EXPECT().StartSession(gomock.Any(), int64(1)).Return(nil)
 	svc.EXPECT().ExecuteBlock(gomock.Any(), int64(1), 0).Return(&domain.BlockExecutionResult{
 		BlockID:    10,
@@ -76,6 +84,7 @@ func TestExecuteBlock_Success(t *testing.T) {
 	resp, err := client.ExecuteBlock(context.Background(), &pb.ExecuteBlockRequest{
 		NotebookId:    1,
 		BlockPosition: 0,
+		UserId:        42,
 	})
 	if err != nil {
 		t.Fatalf("execute block: %v", err)
@@ -89,8 +98,11 @@ func TestExecuteBlock_Success(t *testing.T) {
 }
 
 func TestExecuteFromPosition_Success(t *testing.T) {
-	client, svc := setupServer(t)
+	client, svc, nbClient := setupServer(t)
 
+	nbClient.EXPECT().GetByID(gomock.Any(), &pbnotebook.GetNotebookRequest{
+		UserId: 42, NotebookId: 1,
+	}).Return(&pbnotebook.NotebookResponse{Notebook: &pbnotebook.NotebookInfo{Id: 1, OwnerId: 42}}, nil)
 	svc.EXPECT().StartSession(gomock.Any(), int64(1)).Return(nil)
 	svc.EXPECT().ExecuteFromPosition(gomock.Any(), int64(1), 0).Return([]*domain.BlockExecutionResult{
 		{BlockID: 10, Position: 0, ExecutedAt: time.Now(), Duration: 50 * time.Millisecond},
@@ -100,6 +112,7 @@ func TestExecuteFromPosition_Success(t *testing.T) {
 	resp, err := client.ExecuteFromPosition(context.Background(), &pb.ExecuteFromPositionRequest{
 		NotebookId:    1,
 		BlockPosition: 0,
+		UserId:        42,
 	})
 	if err != nil {
 		t.Fatalf("execute from position: %v", err)
