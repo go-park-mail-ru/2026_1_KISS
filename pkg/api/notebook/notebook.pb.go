@@ -114,17 +114,18 @@ func (x *NotebookInfo) GetUpdatedAt() int64 {
 }
 
 type BlockInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	NotebookId    int64                  `protobuf:"varint,2,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Language      string                 `protobuf:"bytes,4,opt,name=language,proto3" json:"language,omitempty"`
-	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
-	Position      int32                  `protobuf:"varint,6,opt,name=position,proto3" json:"position,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	NotebookId     int64                  `protobuf:"varint,2,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
+	Type           string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Language       string                 `protobuf:"bytes,4,opt,name=language,proto3" json:"language,omitempty"`
+	Content        string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	Position       int32                  `protobuf:"varint,6,opt,name=position,proto3" json:"position,omitempty"`
+	CreatedAt      int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt      int64                  `protobuf:"varint,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ExecutionCount *int32                 `protobuf:"varint,9,opt,name=execution_count,json=executionCount,proto3,oneof" json:"execution_count,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *BlockInfo) Reset() {
@@ -209,6 +210,13 @@ func (x *BlockInfo) GetCreatedAt() int64 {
 func (x *BlockInfo) GetUpdatedAt() int64 {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *BlockInfo) GetExecutionCount() int32 {
+	if x != nil && x.ExecutionCount != nil {
+		return *x.ExecutionCount
 	}
 	return 0
 }
@@ -728,6 +736,7 @@ func (x *DeleteBlockRequest) GetBlockId() int64 {
 type GetBlocksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NotebookId    int64                  `protobuf:"varint,1,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
+	UserId        int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -765,6 +774,13 @@ func (*GetBlocksRequest) Descriptor() ([]byte, []int) {
 func (x *GetBlocksRequest) GetNotebookId() int64 {
 	if x != nil {
 		return x.NotebookId
+	}
+	return 0
+}
+
+func (x *GetBlocksRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
 	}
 	return 0
 }
@@ -1055,7 +1071,7 @@ const file_api_proto_notebook_notebook_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\x03R\tupdatedAt\"\xe0\x01\n" +
+	"updated_at\x18\a \x01(\x03R\tupdatedAt\"\xa2\x02\n" +
 	"\tBlockInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1f\n" +
 	"\vnotebook_id\x18\x02 \x01(\x03R\n" +
@@ -1067,7 +1083,9 @@ const file_api_proto_notebook_notebook_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\x03R\tupdatedAt\"F\n" +
+	"updated_at\x18\b \x01(\x03R\tupdatedAt\x12,\n" +
+	"\x0fexecution_count\x18\t \x01(\x05H\x00R\x0eexecutionCount\x88\x01\x01B\x12\n" +
+	"\x10_execution_count\"F\n" +
 	"\x15CreateNotebookRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\"N\n" +
@@ -1109,10 +1127,11 @@ const file_api_proto_notebook_notebook_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1f\n" +
 	"\vnotebook_id\x18\x02 \x01(\x03R\n" +
 	"notebookId\x12\x19\n" +
-	"\bblock_id\x18\x03 \x01(\x03R\ablockId\"3\n" +
+	"\bblock_id\x18\x03 \x01(\x03R\ablockId\"L\n" +
 	"\x10GetBlocksRequest\x12\x1f\n" +
 	"\vnotebook_id\x18\x01 \x01(\x03R\n" +
-	"notebookId\"F\n" +
+	"notebookId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"F\n" +
 	"\x10NotebookResponse\x122\n" +
 	"\bnotebook\x18\x01 \x01(\v2\x16.notebook.NotebookInfoR\bnotebook\"\x91\x01\n" +
 	"\x15ListNotebooksResponse\x124\n" +
@@ -1206,6 +1225,7 @@ func file_api_proto_notebook_notebook_proto_init() {
 	if File_api_proto_notebook_notebook_proto != nil {
 		return
 	}
+	file_api_proto_notebook_notebook_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
