@@ -64,7 +64,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
-	pbrunner.RegisterRunnerServiceServer(srv, runnergrpc.NewServer(runnerSvc))
+	pbrunner.RegisterRunnerServiceServer(srv, runnergrpc.NewServer(runnerSvc, nbClient))
 
 	return &App{
 		grpcServer:    srv,

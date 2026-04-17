@@ -20,9 +20,9 @@ func NewRunnerHandler(client pb.RunnerServiceClient) *RunnerHandler {
 }
 
 func (h *RunnerHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Middleware) {
-	mux.Handle("GET /api/v1/runner/{notebook_id}", authMw(http.HandlerFunc(h.ExecuteFromPosition)))
-	mux.Handle("GET /api/v1/runner/{notebook_id}/block", authMw(http.HandlerFunc(h.ExecuteBlock)))
-	mux.Handle("GET /api/v1/runner/{notebook_id}/stop", authMw(http.HandlerFunc(h.StopSession)))
+	mux.Handle("POST /api/v1/runner/{notebook_id}", authMw(http.HandlerFunc(h.ExecuteFromPosition)))
+	mux.Handle("POST /api/v1/runner/{notebook_id}/block", authMw(http.HandlerFunc(h.ExecuteBlock)))
+	mux.Handle("POST /api/v1/runner/{notebook_id}/stop", authMw(http.HandlerFunc(h.StopSession)))
 }
 
 type executionResultResponse struct {
@@ -54,6 +54,7 @@ func (h *RunnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Reque
 	resp, err := h.client.ExecuteFromPosition(r.Context(), &pb.ExecuteFromPositionRequest{
 		NotebookId:    notebookID,
 		BlockPosition: int32(blockPos), //nolint:gosec // block position fits int32
+		UserId:        user.ID,
 	})
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
@@ -85,6 +86,7 @@ func (h *RunnerHandler) ExecuteBlock(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.ExecuteBlock(r.Context(), &pb.ExecuteBlockRequest{
 		NotebookId:    notebookID,
 		BlockPosition: int32(blockPos), //nolint:gosec // block position fits int32
+		UserId:        user.ID,
 	})
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
@@ -109,6 +111,7 @@ func (h *RunnerHandler) StopSession(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.client.StopSession(r.Context(), &pb.StopSessionRequest{
 		NotebookId: notebookID,
+		UserId:     user.ID,
 	})
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
