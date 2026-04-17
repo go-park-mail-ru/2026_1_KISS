@@ -72,7 +72,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	middleware.SetCSRFCookie(w, nil, h.cookieSecure)
+	middleware.SetCSRFCookie(w, session.ExpiresAt, h.cookieSecure)
 
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
 }
