@@ -80,6 +80,7 @@ type RunnerConfig struct {
 	TmpfsSize           string
 	PidsLimit           int64
 	IdleTimeout         time.Duration
+	ExecutionTimeout    time.Duration
 }
 
 func Load() *Config {
@@ -123,6 +124,7 @@ func Load() *Config {
 			TmpfsSize:           getEnv("RUNNER_TMPFS_SIZE", "100m"),
 			PidsLimit:           getEnvInt64("RUNNER_PIDS_LIMIT", 64),
 			IdleTimeout:         getEnvDuration("RUNNER_IDLE_TIMEOUT", 15*time.Minute),
+			ExecutionTimeout:    getEnvDuration("RUNNER_EXECUTION_TIMEOUT", 120*time.Second),
 		},
 		Upload: UploadConfig{
 			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),
