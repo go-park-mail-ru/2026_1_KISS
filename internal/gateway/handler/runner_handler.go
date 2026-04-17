@@ -62,8 +62,8 @@ func (h *RunnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Reque
 	}
 
 	results := make([]executionResultResponse, len(resp.GetResults()))
-	for i, r := range resp.GetResults() {
-		results[i] = protoResultToResponse(r)
+	for i, res := range resp.GetResults() {
+		results[i] = protoResultToResponse(res)
 	}
 	httputil.JSON(w, http.StatusOK, results)
 }

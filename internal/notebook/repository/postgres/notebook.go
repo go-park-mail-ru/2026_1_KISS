@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
+
+var likeEscaper = strings.NewReplacer("%", "\\%", "_", "\\_")
 
 type NotebookRepo struct {
 	db *sql.DB
@@ -54,6 +57,7 @@ func (r *NotebookRepo) GetByID(ctx context.Context, id int64) (*domain.Notebook,
 
 func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
 	start := time.Now()
+	search = likeEscaper.Replace(search)
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, owner_id, title, is_public, created_at, updated_at
 		 FROM notebooks
@@ -126,6 +130,7 @@ func (r *NotebookRepo) Update(ctx context.Context, notebook *domain.Notebook) er
 
 func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error) {
 	start := time.Now()
+	search = likeEscaper.Replace(search)
 	var count int
 	err := r.db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM notebooks
