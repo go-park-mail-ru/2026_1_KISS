@@ -1,0 +1,120 @@
+package grpc
+
+import (
+	"context"
+	"time"
+
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+)
+
+type NotebookAdapter struct {
+	client pb.NotebookServiceClient
+}
+
+func NewNotebookAdapter(client pb.NotebookServiceClient) *NotebookAdapter {
+	return &NotebookAdapter{client: client}
+}
+
+func (a *NotebookAdapter) Create(_ context.Context, _ *domain.Notebook) (int64, error) {
+	panic("NotebookAdapter: Create not supported, use Notebook service directly")
+}
+
+func (a *NotebookAdapter) GetByID(ctx context.Context, id int64) (*domain.Notebook, error) {
+	resp, err := a.client.GetByID(ctx, &pb.GetNotebookRequest{NotebookId: id})
+	if err != nil {
+		return nil, err
+	}
+	return protoToNotebook(resp.GetNotebook()), nil
+}
+
+func (a *NotebookAdapter) GetByOwnerID(_ context.Context, _ int64, _, _ int, _ string) ([]domain.Notebook, error) {
+	panic("NotebookAdapter: GetByOwnerID not supported, use Notebook service directly")
+}
+
+func (a *NotebookAdapter) Update(_ context.Context, _ *domain.Notebook) error {
+	panic("NotebookAdapter: Update not supported, use Notebook service directly")
+}
+
+func (a *NotebookAdapter) Delete(_ context.Context, _ int64) error {
+	panic("NotebookAdapter: Delete not supported, use Notebook service directly")
+}
+
+func (a *NotebookAdapter) CountByOwnerID(_ context.Context, _ int64, _ string) (int, error) {
+	panic("NotebookAdapter: CountByOwnerID not supported, use Notebook service directly")
+}
+
+type BlockAdapter struct {
+	client pb.NotebookServiceClient
+}
+
+func NewBlockAdapter(client pb.NotebookServiceClient) *BlockAdapter {
+	return &BlockAdapter{client: client}
+}
+
+func (a *BlockAdapter) Create(_ context.Context, _ *domain.Block) (int64, error) {
+	panic("BlockAdapter: Create not supported, use Notebook service directly")
+}
+
+func (a *BlockAdapter) GetByID(_ context.Context, _ int64) (*domain.Block, error) {
+	panic("BlockAdapter: GetByID not supported, use Notebook service directly")
+}
+
+func (a *BlockAdapter) GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error) {
+	resp, err := a.client.GetBlocksByNotebookID(ctx, &pb.GetBlocksRequest{NotebookId: notebookID})
+	if err != nil {
+		return nil, err
+	}
+	blocks := make([]domain.Block, len(resp.GetBlocks()))
+	for i, b := range resp.GetBlocks() {
+		blocks[i] = domain.Block{
+			ID:         b.GetId(),
+			NotebookID: b.GetNotebookId(),
+			Type:       b.GetType(),
+			Language:   b.GetLanguage(),
+			Content:    b.GetContent(),
+			Position:   int(b.GetPosition()),
+			CreatedAt:  time.Unix(b.GetCreatedAt(), 0),
+			UpdatedAt:  time.Unix(b.GetUpdatedAt(), 0),
+		}
+	}
+	return blocks, nil
+}
+
+func (a *BlockAdapter) Update(_ context.Context, _ *domain.Block) error {
+	panic("BlockAdapter: Update not supported, use Notebook service directly")
+}
+
+func (a *BlockAdapter) Delete(_ context.Context, _ int64) error {
+	panic("BlockAdapter: Delete not supported, use Notebook service directly")
+}
+
+func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
+	if info == nil {
+		return nil
+	}
+	nb := &domain.Notebook{
+		ID:        info.GetId(),
+		OwnerID:   info.GetOwnerId(),
+		Title:     info.GetTitle(),
+		IsPublic:  info.GetIsPublic(),
+		CreatedAt: time.Unix(info.GetCreatedAt(), 0),
+		UpdatedAt: time.Unix(info.GetUpdatedAt(), 0),
+	}
+	if len(info.GetBlocks()) > 0 {
+		nb.Blocks = make([]domain.Block, len(info.GetBlocks()))
+		for i, b := range info.GetBlocks() {
+			nb.Blocks[i] = domain.Block{
+				ID:         b.GetId(),
+				NotebookID: b.GetNotebookId(),
+				Type:       b.GetType(),
+				Language:   b.GetLanguage(),
+				Content:    b.GetContent(),
+				Position:   int(b.GetPosition()),
+				CreatedAt:  time.Unix(b.GetCreatedAt(), 0),
+				UpdatedAt:  time.Unix(b.GetUpdatedAt(), 0),
+			}
+		}
+	}
+	return nb
+}
