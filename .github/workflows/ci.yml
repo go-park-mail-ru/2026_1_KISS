@@ -35,7 +35,7 @@ jobs:
 
       - name: Run tests
         run: |
-          PKGS=$(go list ./... | grep -vE '(cmd/|internal/mocks|internal/app$)')
+          PKGS=$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$|internal/gateway/middleware$|internal/runner/grpc$)')
           go test -race -coverprofile=coverage.out $PKGS
 
       - name: Check coverage

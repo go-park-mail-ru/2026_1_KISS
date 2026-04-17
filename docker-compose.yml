@@ -1,8 +1,58 @@
 services:
-  app:
-    build: .
+  gateway:
+    build:
+      context: .
+      dockerfile: deploy/gateway/Dockerfile
     ports:
       - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
+    depends_on:
+      auth:
+        condition: service_started
+      notebook:
+        condition: service_started
+      runner:
+        condition: service_started
+    environment:
+      SERVER_PORT: "${SERVER_PORT:-8080}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
+      AUTH_GRPC_ADDR: "auth:9001"
+      NOTEBOOK_GRPC_ADDR: "notebook:9002"
+      RUNNER_GRPC_ADDR: "runner:9003"
+      AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
+      UPLOAD_DIR: /app/uploads
+      RATE_LIMIT_MAX_REQUESTS: "${RATE_LIMIT_MAX_REQUESTS:-300}"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - app-network
+
+  auth:
+    build:
+      context: .
+      dockerfile: deploy/auth/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      GRPC_PORT: "9001"
+      AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - app-network
+
+  notebook:
+    build:
+      context: .
+      dockerfile: deploy/notebook/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -10,23 +60,27 @@ services:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
-      SERVER_PORT: "${SERVER_PORT:-8080}"
-      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
-      AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
+      GRPC_PORT: "9002"
+    networks:
+      - app-network
+
+  runner:
+    build:
+      context: .
+      dockerfile: deploy/runner/Dockerfile
+    depends_on:
+      notebook:
+        condition: service_started
+    environment:
+      GRPC_PORT: "9003"
+      NOTEBOOK_GRPC_ADDR: "notebook:9002"
+      RUNNER_IMAGE_PYTHON: kiss-python-runner
+      NETWORK_NAME: "2026_1_kiss_app-network"
       RUNNER_STARTUP_TIMEOUT: "${RUNNER_STARTUP_TIMEOUT:-30s}"
       RUNNER_HEALTHCHECK_INTERVAL: "${RUNNER_HEALTHCHECK_INTERVAL:-300ms}"
       RUNNER_IDLE_TIMEOUT: "${RUNNER_IDLE_TIMEOUT:-15m}"
-      REDIS_HOST: "${REDIS_HOST:-redis}"
-      REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
-      NETWORK_NAME: "2026_1_kiss_app-network"
-      UPLOAD_DIR: /app/uploads
-    env_file:
-      - .env
     volumes:
-      # Docker-in-Docker: даём сервису доступ к daemon хоста,
-      # чтобы он мог создавать runner-контейнеры
       - /var/run/docker.sock:/var/run/docker.sock
-      - uploads_data:/app/uploads
     networks:
       - app-network
 
