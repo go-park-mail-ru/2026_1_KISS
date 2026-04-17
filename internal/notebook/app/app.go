@@ -1,0 +1,67 @@
+package app
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log/slog"
+	"net"
+
+	"google.golang.org/grpc"
+
+	nbgrpc "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/grpc"
+	nbpg "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository/postgres"
+	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+)
+
+type App struct {
+	grpcServer *grpc.Server
+	listener   net.Listener
+	db         *sql.DB
+}
+
+func New(cfg *config.Config, grpcPort string) (*App, error) {
+	db, err := database.Connect(cfg.Database.DSN())
+	if err != nil {
+		return nil, fmt.Errorf("connect db: %w", err)
+	}
+
+	notebookRepo := nbpg.NewNotebookRepository(db)
+	blockRepo := nbpg.NewBlockRepository(db)
+	notebookUC := nbusecase.New(notebookRepo, blockRepo)
+
+	lis, err := net.Listen("tcp", ":"+grpcPort)
+	if err != nil {
+		return nil, fmt.Errorf("listen: %w", err)
+	}
+
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcutil.RecoveryUnaryInterceptor(),
+			grpcutil.LoggingUnaryInterceptor(),
+		),
+	)
+	pb.RegisterNotebookServiceServer(srv, nbgrpc.NewServer(notebookUC, blockRepo))
+
+	return &App{
+		grpcServer: srv,
+		listener:   lis,
+		db:         db,
+	}, nil
+}
+
+func (a *App) Run() error {
+	slog.Info("notebook service started", "addr", a.listener.Addr().String())
+	return a.grpcServer.Serve(a.listener)
+}
+
+func (a *App) Shutdown(_ context.Context) {
+	a.grpcServer.GracefulStop()
+	if err := a.db.Close(); err != nil {
+		slog.Error("db close error", "error", err)
+	}
+}
