@@ -1,10 +1,12 @@
 .PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto run-gateway run-auth run-notebook run-runner
 
 build:
-	go build -o server ./cmd/server
+	go build -o gateway ./cmd/gateway
+	go build -o auth ./cmd/auth
+	go build -o notebook ./cmd/notebook
+	go build -o runner ./cmd/runner
 
-run:
-	go run ./cmd/server
+run: run-gateway
 
 test:
 	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$$|/grpc$$|internal/runner/container)')

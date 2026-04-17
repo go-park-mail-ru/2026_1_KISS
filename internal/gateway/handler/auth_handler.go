@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -96,7 +97,9 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = h.client.Logout(r.Context(), &pb.LogoutRequest{SessionId: cookie.Value})
+	if _, err := h.client.Logout(r.Context(), &pb.LogoutRequest{SessionId: cookie.Value}); err != nil {
+		slog.Error("logout failed", "error", grpcutil.GRPCToDomainError(err))
+	}
 	clearSessionCookie(w)
 	middleware.ClearCSRFCookie(w)
 	httputil.JSON(w, http.StatusOK, nil)
