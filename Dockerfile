@@ -13,13 +13,16 @@ RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server && \
 # Runtime stage
 FROM alpine:3.19
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates && \
+    adduser -D -h /app appuser
 
 WORKDIR /app
 COPY --from=builder /app/server .
 COPY --from=builder /app/migrator .
 COPY migrations/ ./migrations/
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads && chown appuser:appuser /app/uploads
+
+USER appuser
 
 EXPOSE 8080
 
