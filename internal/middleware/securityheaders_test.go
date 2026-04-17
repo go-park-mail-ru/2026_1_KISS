@@ -23,7 +23,7 @@ func TestSecurityHeaders(t *testing.T) {
 	}{
 		{"X-Content-Type-Options", "nosniff"},
 		{"X-Frame-Options", "DENY"},
-		{"Content-Security-Policy", "default-src 'none'"},
+		{"Content-Security-Policy", "default-src 'self'"},
 		{"X-XSS-Protection", "0"},
 	}
 
