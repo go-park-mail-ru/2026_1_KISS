@@ -19,9 +19,9 @@ type ExecutionSessionRepository interface {
 }
 
 type executionSessionRepository struct {
-	sessions        map[int64]notebook_session.NotebookSession
-	sessionsMu      sync.RWMutex
-	execTimeout     time.Duration
+	sessions    map[int64]notebook_session.NotebookSession
+	sessionsMu  sync.RWMutex
+	execTimeout time.Duration
 }
 
 func NewExecutionSessionRepository(execTimeout time.Duration) ExecutionSessionRepository {
