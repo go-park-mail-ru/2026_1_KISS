@@ -10,10 +10,16 @@ type ExecuteRequest struct {
 	Timeout float64 `json:"timeout,omitempty"`
 }
 
+type OutputItem struct {
+	MimeType string `json:"mime_type"`
+	Data     string `json:"data"`
+}
+
 type ExecuteResponse struct {
-	Stdout string `json:"stdout"`
-	Stderr string `json:"stderr"`
-	Result string `json:"result"`
+	Stdout  string       `json:"stdout"`
+	Stderr  string       `json:"stderr"`
+	Result  string       `json:"result"`
+	Outputs []OutputItem `json:"outputs"`
 }
 
 type BlockExecutionResult struct {
@@ -22,6 +28,7 @@ type BlockExecutionResult struct {
 	Stdout     []string      `json:"stdout,omitempty"`
 	Stderr     []string      `json:"stderr,omitempty"`
 	Result     string        `json:"result,omitempty"`
+	Outputs    []OutputItem  `json:"outputs,omitempty"`
 	Error      error         `json:"-"`
 	ErrorMsg   string        `json:"error,omitempty"`
 	ExecutedAt time.Time     `json:"executed_at"`
