@@ -21,11 +21,11 @@ import (
 )
 
 type App struct {
-	srv        *http.Server
-	authConn   *grpc.ClientConn
-	nbConn     *grpc.ClientConn
-	runConn    *grpc.ClientConn
-	cancelMw   context.CancelFunc
+	srv      *http.Server
+	authConn *grpc.ClientConn
+	nbConn   *grpc.ClientConn
+	runConn  *grpc.ClientConn
+	cancelMw context.CancelFunc
 }
 
 func New(cfg *config.Config) (*App, error) {

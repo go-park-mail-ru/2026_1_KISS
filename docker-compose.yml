@@ -7,11 +7,11 @@ services:
       - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
     depends_on:
       auth:
-        condition: service_started
+        condition: service_healthy
       notebook:
-        condition: service_started
+        condition: service_healthy
       runner:
-        condition: service_started
+        condition: service_healthy
     environment:
       SERVER_PORT: "${SERVER_PORT:-8080}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
@@ -37,6 +37,11 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9001 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
       REDIS_HOST: redis
@@ -58,6 +63,11 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9002 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
       GRPC_PORT: "9002"
@@ -70,7 +80,12 @@ services:
       dockerfile: deploy/runner/Dockerfile
     depends_on:
       notebook:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9003 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     environment:
       GRPC_PORT: "9003"
       NOTEBOOK_GRPC_ADDR: "notebook:9002"
@@ -122,7 +137,7 @@ services:
     networks:
       - app-network
     ports:
-      - "${REDIS_PORT:-6380}:${REDIS_INTERNAL_PORT:-6379}"
+      - "${REDIS_EXTERNAL_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
