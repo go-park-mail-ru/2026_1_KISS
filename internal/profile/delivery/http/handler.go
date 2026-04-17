@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/dto"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
@@ -64,7 +65,7 @@ func (h *ProfileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(updated))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(updated))
 }
 
 // UpdateProfile handles profile field updates.
@@ -87,7 +88,7 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(updated))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(updated))
 }
 
 // ChangePassword handles password changes.
@@ -132,7 +133,7 @@ func (h *ProfileHandler) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(updated))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(updated))
 }
 
 func mapDomainError(w http.ResponseWriter, err error) {
