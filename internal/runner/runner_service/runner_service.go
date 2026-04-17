@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	ErrSessionNotStarted = errors.New("session not started")
+	ErrSessionNotStarted    = errors.New("session not started")
+	ErrBlockPositionInvalid = errors.New("block position out of range")
 )
 
 type RunnerService interface {
@@ -128,6 +129,10 @@ func (s *runnerService) ExecuteBlock(ctx context.Context, notebookID int64, bloc
 	if err != nil {
 		logger.Error(ctx, "usecase.runner.ExecuteBlock", "error", err)
 		return nil, err
+	}
+	if blockPosition < 0 || blockPosition >= len(notebook.Blocks) {
+		logger.Error(ctx, "usecase.runner.ExecuteBlock", "error", ErrBlockPositionInvalid, "block_position", blockPosition, "blocks_count", len(notebook.Blocks))
+		return nil, ErrBlockPositionInvalid
 	}
 	execResult, err := notebookSession.ExecuteBlock(ctx, notebook.Blocks[blockPosition])
 	if err != nil {
