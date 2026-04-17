@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -150,9 +151,9 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// if port is not specified - use 8080 as default (when network in docker is bridge ew should use default)
 	var fullURL string
-	if strings.Count(s.BaseURL, ":") > 1 {
+	parsed, err := url.Parse(s.BaseURL)
+	if err != nil || parsed.Port() != "" {
 		fullURL = s.BaseURL + "/execute"
 	} else {
 		fullURL = s.BaseURL + ":8080/execute"
