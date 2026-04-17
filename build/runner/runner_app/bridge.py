@@ -7,7 +7,7 @@ from queue import Empty
 from jupyter_client import KernelManager
 
 from .config import KERNEL_NAME
-from .models import ExecuteResponse
+from .models import ExecuteResponse, OutputItem
 
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,7 @@ class KernelBridge:
             stdout_chunks = []
             stderr_chunks = []
             result_text = ""
+            rich_outputs: list[OutputItem] = []
 
             deadline = time.monotonic() + timeout
             while True:
@@ -109,10 +110,13 @@ class KernelBridge:
                         stdout_chunks.append(text)
                 elif msg_type in {"execute_result", "display_data"}:
                     data = content.get("data", {})
+                    # Collect all MIME types as rich outputs
+                    for mime in ("image/png", "image/jpeg", "text/html", "text/plain"):
+                        if mime in data:
+                            rich_outputs.append(OutputItem(mime_type=mime, data=data[mime]))
+                    # Keep result as text/plain for backward compat
                     if "text/plain" in data:
                         result_text = data["text/plain"]
-                    else:
-                        result_text = str(data)
                 elif msg_type == "error":
                     tb = content.get("traceback") or []
                     if tb:
@@ -130,4 +134,5 @@ class KernelBridge:
                 stdout="".join(stdout_chunks),
                 stderr="".join(stderr_chunks),
                 result=result_text,
+                outputs=rich_outputs,
             )
