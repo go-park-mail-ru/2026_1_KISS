@@ -2,11 +2,14 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 )
+
+var errNotSupported = errors.New("operation not supported by adapter")
 
 type NotebookAdapter struct {
 	client pb.NotebookServiceClient
@@ -17,7 +20,7 @@ func NewNotebookAdapter(client pb.NotebookServiceClient) *NotebookAdapter {
 }
 
 func (a *NotebookAdapter) Create(_ context.Context, _ *domain.Notebook) (int64, error) {
-	panic("NotebookAdapter: Create not supported, use Notebook service directly")
+	return 0, errNotSupported
 }
 
 func (a *NotebookAdapter) GetByID(ctx context.Context, id int64) (*domain.Notebook, error) {
@@ -29,19 +32,19 @@ func (a *NotebookAdapter) GetByID(ctx context.Context, id int64) (*domain.Notebo
 }
 
 func (a *NotebookAdapter) GetByOwnerID(_ context.Context, _ int64, _, _ int, _ string) ([]domain.Notebook, error) {
-	panic("NotebookAdapter: GetByOwnerID not supported, use Notebook service directly")
+	return nil, errNotSupported
 }
 
 func (a *NotebookAdapter) Update(_ context.Context, _ *domain.Notebook) error {
-	panic("NotebookAdapter: Update not supported, use Notebook service directly")
+	return errNotSupported
 }
 
 func (a *NotebookAdapter) Delete(_ context.Context, _ int64) error {
-	panic("NotebookAdapter: Delete not supported, use Notebook service directly")
+	return errNotSupported
 }
 
 func (a *NotebookAdapter) CountByOwnerID(_ context.Context, _ int64, _ string) (int, error) {
-	panic("NotebookAdapter: CountByOwnerID not supported, use Notebook service directly")
+	return 0, errNotSupported
 }
 
 type BlockAdapter struct {
@@ -53,11 +56,11 @@ func NewBlockAdapter(client pb.NotebookServiceClient) *BlockAdapter {
 }
 
 func (a *BlockAdapter) Create(_ context.Context, _ *domain.Block) (int64, error) {
-	panic("BlockAdapter: Create not supported, use Notebook service directly")
+	return 0, errNotSupported
 }
 
 func (a *BlockAdapter) GetByID(_ context.Context, _ int64) (*domain.Block, error) {
-	panic("BlockAdapter: GetByID not supported, use Notebook service directly")
+	return nil, errNotSupported
 }
 
 func (a *BlockAdapter) GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error) {
@@ -87,11 +90,11 @@ func (a *BlockAdapter) GetByNotebookID(ctx context.Context, notebookID int64) ([
 }
 
 func (a *BlockAdapter) Update(_ context.Context, _ *domain.Block) error {
-	panic("BlockAdapter: Update not supported, use Notebook service directly")
+	return errNotSupported
 }
 
 func (a *BlockAdapter) Delete(_ context.Context, _ int64) error {
-	panic("BlockAdapter: Delete not supported, use Notebook service directly")
+	return errNotSupported
 }
 
 func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
