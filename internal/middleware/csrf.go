@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
@@ -16,19 +17,23 @@ func generateCSRFToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func SetCSRFCookie(w http.ResponseWriter, expiresAt interface{ Unix() int64 }, cookieSecure bool) string {
+func SetCSRFCookie(w http.ResponseWriter, expiresAt time.Time, cookieSecure bool) string {
 	token, err := generateCSRFToken()
 	if err != nil {
 		return ""
 	}
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     "csrf_token",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: false,
 		Secure:   cookieSecure,
 		SameSite: http.SameSiteLaxMode,
-	})
+	}
+	if !expiresAt.IsZero() {
+		cookie.Expires = expiresAt
+	}
+	http.SetCookie(w, cookie)
 	return token
 }
 
