@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto run-gateway run-auth run-notebook run-runner
 
 build:
 	go build -o server ./cmd/server
@@ -32,6 +32,18 @@ docs:
 
 generate:
 	go generate ./...
+
+run-gateway:
+	go run ./cmd/gateway
+
+run-auth:
+	go run ./cmd/auth
+
+run-notebook:
+	go run ./cmd/notebook
+
+run-runner:
+	go run ./cmd/runner
 
 proto:
 	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
