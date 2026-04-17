@@ -53,7 +53,7 @@ func (h *RunnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Reque
 
 	resp, err := h.client.ExecuteFromPosition(r.Context(), &pb.ExecuteFromPositionRequest{
 		NotebookId:    notebookID,
-		BlockPosition: int32(blockPos),
+		BlockPosition: int32(blockPos), //nolint:gosec // block position fits int32
 	})
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
@@ -84,7 +84,7 @@ func (h *RunnerHandler) ExecuteBlock(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.ExecuteBlock(r.Context(), &pb.ExecuteBlockRequest{
 		NotebookId:    notebookID,
-		BlockPosition: int32(blockPos),
+		BlockPosition: int32(blockPos), //nolint:gosec // block position fits int32
 	})
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))

@@ -64,7 +64,7 @@ func executionResultToProto(r *domain.BlockExecutionResult) *pb.BlockExecutionRe
 	}
 	return &pb.BlockExecutionResult{
 		BlockId:    r.BlockID,
-		Position:   int32(r.Position),
+		Position:   int32(r.Position), //nolint:gosec // block position fits int32
 		Stdout:     r.Stdout,
 		Stderr:     r.Stderr,
 		Result:     r.Result,

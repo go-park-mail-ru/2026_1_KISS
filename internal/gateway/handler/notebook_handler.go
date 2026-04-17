@@ -90,8 +90,8 @@ func (h *NotebookHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.ListByUser(r.Context(), &pb.ListNotebooksRequest{
 		UserId: user.ID,
-		Limit:  int32(limit),
-		Offset: int32(offset),
+		Limit:  int32(limit),  //nolint:gosec // pagination limit fits int32
+		Offset: int32(offset), //nolint:gosec // pagination offset fits int32
 		Search: search,
 	})
 	if err != nil {

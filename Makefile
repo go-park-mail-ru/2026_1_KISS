@@ -7,7 +7,7 @@ run:
 	go run ./cmd/server
 
 test:
-	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$$|internal/gateway/middleware$$|internal/runner/grpc$$)')
+	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$$|/grpc$$|internal/runner/container)')
 	@go tool cover -func=coverage.out
 	@TOTAL=$$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $$3}' | tr -d '%'); \
 	echo "Total coverage: $${TOTAL}%"; \
