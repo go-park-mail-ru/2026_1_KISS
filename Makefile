@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto
 
 build:
 	go build -o server ./cmd/server
@@ -7,7 +7,7 @@ run:
 	go run ./cmd/server
 
 test:
-	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|internal/app$$)')
+	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|internal/app$$|pkg/api/)')
 	@go tool cover -func=coverage.out
 	@TOTAL=$$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $$3}' | tr -d '%'); \
 	echo "Total coverage: $${TOTAL}%"; \
@@ -32,6 +32,17 @@ docs:
 
 generate:
 	go generate ./...
+
+proto:
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/auth/auth.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/notebook/notebook.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/runner/runner.proto
 
 fmt:
 	go fmt ./...

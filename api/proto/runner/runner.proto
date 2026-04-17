@@ -1,0 +1,44 @@
+syntax = "proto3";
+package runner;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner";
+
+service RunnerService {
+  rpc ExecuteFromPosition(ExecuteFromPositionRequest) returns (ExecuteFromPositionResponse);
+  rpc ExecuteBlock(ExecuteBlockRequest) returns (ExecuteBlockResponse);
+  rpc StopSession(StopSessionRequest) returns (StopSessionResponse);
+}
+
+message ExecuteFromPositionRequest {
+  int64 notebook_id = 1;
+  int32 block_position = 2;
+}
+
+message ExecuteFromPositionResponse {
+  repeated BlockExecutionResult results = 1;
+}
+
+message ExecuteBlockRequest {
+  int64 notebook_id = 1;
+  int32 block_position = 2;
+}
+
+message ExecuteBlockResponse {
+  BlockExecutionResult result = 1;
+}
+
+message StopSessionRequest {
+  int64 notebook_id = 1;
+}
+
+message StopSessionResponse {}
+
+message BlockExecutionResult {
+  int64 block_id = 1;
+  int32 position = 2;
+  repeated string stdout = 3;
+  repeated string stderr = 4;
+  string result = 5;
+  string error = 6;
+  int64 executed_at = 7;
+  int64 duration_ns = 8;
+}

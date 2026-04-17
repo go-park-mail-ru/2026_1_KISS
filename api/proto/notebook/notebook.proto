@@ -1,0 +1,117 @@
+syntax = "proto3";
+package notebook;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook";
+
+service NotebookService {
+  rpc Create(CreateNotebookRequest) returns (NotebookResponse);
+  rpc GetByID(GetNotebookRequest) returns (NotebookResponse);
+  rpc ListByUser(ListNotebooksRequest) returns (ListNotebooksResponse);
+  rpc Update(UpdateNotebookRequest) returns (NotebookResponse);
+  rpc Delete(DeleteNotebookRequest) returns (DeleteNotebookResponse);
+
+  rpc AddBlock(AddBlockRequest) returns (BlockResponse);
+  rpc UpdateBlock(UpdateBlockRequest) returns (BlockResponse);
+  rpc DeleteBlock(DeleteBlockRequest) returns (DeleteBlockResponse);
+
+  rpc GetBlocksByNotebookID(GetBlocksRequest) returns (GetBlocksResponse);
+}
+
+message NotebookInfo {
+  int64 id = 1;
+  int64 owner_id = 2;
+  string title = 3;
+  bool is_public = 4;
+  repeated BlockInfo blocks = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message BlockInfo {
+  int64 id = 1;
+  int64 notebook_id = 2;
+  string type = 3;
+  string language = 4;
+  string content = 5;
+  int32 position = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+}
+
+message CreateNotebookRequest {
+  int64 user_id = 1;
+  string title = 2;
+}
+
+message GetNotebookRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+}
+
+message ListNotebooksRequest {
+  int64 user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string search = 4;
+}
+
+message UpdateNotebookRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  string title = 3;
+  bool is_public = 4;
+}
+
+message DeleteNotebookRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+}
+
+message AddBlockRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  string type = 3;
+  string language = 4;
+  string content = 5;
+}
+
+message UpdateBlockRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  int64 block_id = 3;
+  string content = 4;
+  string type = 5;
+  string language = 6;
+}
+
+message DeleteBlockRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  int64 block_id = 3;
+}
+
+message GetBlocksRequest {
+  int64 notebook_id = 1;
+}
+
+message NotebookResponse {
+  NotebookInfo notebook = 1;
+}
+
+message ListNotebooksResponse {
+  repeated NotebookInfo notebooks = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message BlockResponse {
+  BlockInfo block = 1;
+}
+
+message GetBlocksResponse {
+  repeated BlockInfo blocks = 1;
+}
+
+message DeleteNotebookResponse {}
+
+message DeleteBlockResponse {}
