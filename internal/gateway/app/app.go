@@ -21,10 +21,11 @@ import (
 )
 
 type App struct {
-	srv      *http.Server
-	authConn *grpc.ClientConn
-	nbConn   *grpc.ClientConn
-	runConn  *grpc.ClientConn
+	srv        *http.Server
+	authConn   *grpc.ClientConn
+	nbConn     *grpc.ClientConn
+	runConn    *grpc.ClientConn
+	cancelMw   context.CancelFunc
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -70,7 +71,7 @@ func New(cfg *config.Config) (*App, error) {
 		"/api/v1/auth/register": true,
 	}
 
-	ctx := context.Background()
+	mwCtx, cancelMw := context.WithCancel(context.Background())
 	mwHandler := middleware.Chain(mux,
 		middleware.RequestID(),
 		middleware.Logging(),
@@ -78,14 +79,14 @@ func New(cfg *config.Config) (*App, error) {
 		middleware.CORS(cfg.CORS.AllowedOrigins),
 		middleware.SecurityHeaders(),
 		middleware.CSRF(csrfSkip),
-		middleware.RateLimit(ctx, cfg.RateLimit.MaxRequests, cfg.RateLimit.Window),
+		middleware.RateLimit(mwCtx, cfg.RateLimit.MaxRequests, cfg.RateLimit.Window),
 	)
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Host + ":" + cfg.Server.Port,
 		Handler:      mwHandler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 180 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 
 	return &App{
@@ -93,6 +94,7 @@ func New(cfg *config.Config) (*App, error) {
 		authConn: authConn,
 		nbConn:   nbConn,
 		runConn:  runConn,
+		cancelMw: cancelMw,
 	}, nil
 }
 
@@ -102,6 +104,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(ctx context.Context) {
+	a.cancelMw()
 	if err := a.srv.Shutdown(ctx); err != nil {
 		slog.Error("server shutdown error", "error", err)
 	}
