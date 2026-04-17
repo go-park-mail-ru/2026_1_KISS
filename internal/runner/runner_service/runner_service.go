@@ -150,11 +150,11 @@ func (s *runnerService) StopSession(ctx context.Context, notebookID int64) error
 		logger.Info(ctx, "usecase.runner.StopSession", "notebook_id", notebookID, "status", "no active session")
 		return nil
 	}
-	s.sessionRepo.DeleteSession(notebookID)
 	if err := s.runnerManager.StopSession(ctx, nSession.GetSessionID()); err != nil {
 		logger.Error(ctx, "usecase.runner.StopSession", "error", err)
 		return err
 	}
+	s.sessionRepo.DeleteSession(notebookID)
 	logger.Info(ctx, "usecase.runner.StopSession", "notebook_id", notebookID, "status", "ok")
 	return nil
 }
