@@ -4,7 +4,6 @@ package runner_service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
@@ -179,15 +178,16 @@ func (s *runnerService) evictIdleSessions(ctx context.Context) {
 	sessions := s.sessionRepo.ListSessions()
 	now := time.Now()
 	for notebookID, session := range sessions {
-		if now.Sub(session.LastActivity()) < s.idleTimeout {
+		idle := now.Sub(session.LastActivity())
+		if idle < s.idleTimeout {
 			continue
 		}
 		s.sessionRepo.DeleteSession(notebookID)
 		err := s.runnerManager.StopSession(ctx, session.GetSessionID())
 		if err != nil {
-			fmt.Printf("idle reaper: ERROR failed to stop session %s (notebook %d): %v\n", session.GetSessionID(), notebookID, err)
+			logger.Error(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "error", err)
 			continue
 		}
-		fmt.Printf("idle reaper: stopped idle session %s (notebook %d)\n", session.GetSessionID(), notebookID)
+		logger.Info(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "idle", idle)
 	}
 }
