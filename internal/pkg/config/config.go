@@ -9,13 +9,19 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Auth     AuthConfig
-	CORS     CORSConfig
-	Runner   RunnerConfig
-	Upload   UploadConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	Auth      AuthConfig
+	CORS      CORSConfig
+	Runner    RunnerConfig
+	Upload    UploadConfig
+	RateLimit RateLimitConfig
+}
+
+type RateLimitConfig struct {
+	MaxRequests int
+	Window      time.Duration
 }
 
 // UploadConfig holds file upload settings.
@@ -121,6 +127,10 @@ func Load() *Config {
 		Upload: UploadConfig{
 			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),
 			MaxSize: getEnvInt64("UPLOAD_MAX_SIZE", 2*1024*1024),
+		},
+		RateLimit: RateLimitConfig{
+			MaxRequests: int(getEnvInt64("RATE_LIMIT_MAX_REQUESTS", 300)),
+			Window:      getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
 		},
 	}
 }
