@@ -19,7 +19,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
-	profileusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/usecase"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 )
 
@@ -51,7 +50,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
 
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
-	profileUC := profileusecase.New(userRepo, fs, cfg.Upload.MaxSize)
+	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {

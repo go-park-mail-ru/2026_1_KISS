@@ -47,7 +47,7 @@ func (s *Server) ListByUser(ctx context.Context, req *pb.ListNotebooksRequest) (
 	}
 	return &pb.ListNotebooksResponse{
 		Notebooks: items,
-		Total:     int32(total),
+		Total:     int32(total), //nolint:gosec // total notebooks count fits int32
 		Limit:     req.GetLimit(),
 		Offset:    req.GetOffset(),
 	}, nil
@@ -139,7 +139,7 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 		Type:       b.Type,
 		Language:   b.Language,
 		Content:    b.Content,
-		Position:   int32(b.Position),
+		Position:   int32(b.Position), //nolint:gosec // block position fits int32
 		CreatedAt:  b.CreatedAt.Unix(),
 		UpdatedAt:  b.UpdatedAt.Unix(),
 	}

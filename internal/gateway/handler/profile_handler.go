@@ -192,4 +192,3 @@ func (h *ProfileHandler) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 
 	httputil.JSON(w, http.StatusOK, protoUserToDTO(resp.GetUser()))
 }
-

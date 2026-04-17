@@ -1,7 +1,5 @@
 package usecase
 
-//go:generate mockgen -source=profile.go -destination=../../mocks/profile_repo_mock.go -package=mocks
-
 import (
 	"bytes"
 	"context"
@@ -21,6 +19,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	_ "golang.org/x/image/bmp"
 
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
@@ -28,24 +27,13 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
-type userRepository interface {
-	GetByID(ctx context.Context, id int64) (*domain.User, error)
-	GetByEmail(ctx context.Context, email string) (*domain.User, error)
-	UpdateAvatarURL(ctx context.Context, userID int64, avatarURL string) error
-	UpdateProfile(ctx context.Context, user *domain.User) error
-	UpdatePassword(ctx context.Context, userID int64, passwordHash string) error
-	UpdateEmail(ctx context.Context, userID int64, email string) error
-}
-
-// ProfileUsecase handles profile-related business logic.
 type ProfileUsecase struct {
-	userRepo    userRepository
+	userRepo    repository.UserRepository
 	fileStorage filestorage.FileStorage
 	maxFileSize int64
 }
 
-// New creates a new ProfileUsecase.
-func New(userRepo userRepository, fs filestorage.FileStorage, maxFileSize int64) *ProfileUsecase {
+func NewProfileUsecase(userRepo repository.UserRepository, fs filestorage.FileStorage, maxFileSize int64) *ProfileUsecase {
 	return &ProfileUsecase{
 		userRepo:    userRepo,
 		fileStorage: fs,

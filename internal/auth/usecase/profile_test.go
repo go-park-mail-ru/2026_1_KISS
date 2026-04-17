@@ -12,9 +12,9 @@ import (
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/profile/usecase"
 )
 
 func testUser() *domain.User {
@@ -99,7 +99,7 @@ func TestUploadAvatar(t *testing.T) {
 			defer ctrl.Finish()
 
 			user := testUser()
-			repo := mocks.NewMockuserRepository(ctrl)
+			repo := mocks.NewMockUserRepository(ctrl)
 			fs := mocks.NewMockFileStorage(ctrl)
 
 			needsRepo := !tc.wantErr || (!errors.Is(tc.errTarget, domain.ErrInvalidInput))
@@ -111,7 +111,7 @@ func TestUploadAvatar(t *testing.T) {
 				repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 			}
 
-			uc := usecase.New(repo, fs, 2<<20)
+			uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 			_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(tc.fileData), tc.fileSize, "")
 			if tc.wantErr {
@@ -133,13 +133,13 @@ func TestUploadAvatar_StorageError(t *testing.T) {
 	defer ctrl.Finish()
 
 	user := testUser()
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 	fs.EXPECT().Save(gomock.Any(), gomock.Any()).Return("", errors.New("disk full"))
 
-	uc := usecase.New(repo, fs, 2<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 	data := encodePNG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
@@ -155,7 +155,7 @@ func TestUploadAvatar_DeletesOldAvatar(t *testing.T) {
 	user := testUser()
 	user.AvatarURL = "/uploads/old-avatar.jpg"
 
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
@@ -164,7 +164,7 @@ func TestUploadAvatar_DeletesOldAvatar(t *testing.T) {
 	fs.EXPECT().Delete("/uploads/old-avatar.jpg").Return(nil)
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 
-	uc := usecase.New(repo, fs, 2<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
@@ -178,7 +178,7 @@ func TestUploadAvatar_UpdateAvatarURLError(t *testing.T) {
 	defer ctrl.Finish()
 
 	user := testUser()
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
@@ -186,7 +186,7 @@ func TestUploadAvatar_UpdateAvatarURLError(t *testing.T) {
 	repo.EXPECT().UpdateAvatarURL(gomock.Any(), int64(1), "/uploads/new.jpg").Return(errors.New("db error"))
 	fs.EXPECT().Delete("/uploads/new.jpg").Return(nil)
 
-	uc := usecase.New(repo, fs, 2<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
@@ -199,12 +199,12 @@ func TestUploadAvatar_GetByIDError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(repo, fs, 2<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
@@ -220,7 +220,7 @@ func TestUploadAvatar_NoOldAvatar(t *testing.T) {
 	user := testUser()
 	user.AvatarURL = ""
 
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
@@ -228,7 +228,7 @@ func TestUploadAvatar_NoOldAvatar(t *testing.T) {
 	repo.EXPECT().UpdateAvatarURL(gomock.Any(), int64(1), "/uploads/new.jpg").Return(nil)
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 
-	uc := usecase.New(repo, fs, 2<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 	data := encodeJPEG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
@@ -280,7 +280,7 @@ func TestUpdateProfile(t *testing.T) {
 			defer ctrl.Finish()
 
 			user := testUser()
-			repo := mocks.NewMockuserRepository(ctrl)
+			repo := mocks.NewMockUserRepository(ctrl)
 			fs := mocks.NewMockFileStorage(ctrl)
 
 			if !tc.wantErr {
@@ -288,7 +288,7 @@ func TestUpdateProfile(t *testing.T) {
 				repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 			}
 
-			uc := usecase.New(repo, fs, 5<<20)
+			uc := usecase.NewProfileUsecase(repo, fs, 5<<20)
 
 			_, err := uc.UpdateProfile(t.Context(), 1, tc.username, tc.status, tc.description)
 			if tc.wantErr {
@@ -309,12 +309,12 @@ func TestUpdateProfile_Conflict(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().UpdateProfile(gomock.Any(), gomock.Any()).Return(domain.ErrConflict)
 
-	uc := usecase.New(repo, fs, 5<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 5<<20)
 
 	_, err := uc.UpdateProfile(t.Context(), 1, "validuser", "", "")
 	if !errors.Is(err, domain.ErrConflict) {
@@ -357,7 +357,7 @@ func TestChangePassword(t *testing.T) {
 			defer ctrl.Finish()
 
 			user := testUser()
-			repo := mocks.NewMockuserRepository(ctrl)
+			repo := mocks.NewMockUserRepository(ctrl)
 			fs := mocks.NewMockFileStorage(ctrl)
 
 			repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
@@ -365,7 +365,7 @@ func TestChangePassword(t *testing.T) {
 				repo.EXPECT().UpdatePassword(gomock.Any(), int64(1), gomock.Any()).Return(nil)
 			}
 
-			uc := usecase.New(repo, fs, 5<<20)
+			uc := usecase.NewProfileUsecase(repo, fs, 5<<20)
 
 			err := uc.ChangePassword(t.Context(), 1, tc.currentPass, tc.newPass)
 			if tc.wantErr {
@@ -417,7 +417,7 @@ func TestChangeEmail(t *testing.T) {
 			defer ctrl.Finish()
 
 			user := testUser()
-			repo := mocks.NewMockuserRepository(ctrl)
+			repo := mocks.NewMockUserRepository(ctrl)
 			fs := mocks.NewMockFileStorage(ctrl)
 
 			repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
@@ -426,7 +426,7 @@ func TestChangeEmail(t *testing.T) {
 				repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 			}
 
-			uc := usecase.New(repo, fs, 5<<20)
+			uc := usecase.NewProfileUsecase(repo, fs, 5<<20)
 
 			_, err := uc.ChangeEmail(t.Context(), 1, tc.newEmail, tc.password)
 			if tc.wantErr {
@@ -448,13 +448,13 @@ func TestChangeEmail_Conflict(t *testing.T) {
 	defer ctrl.Finish()
 
 	user := testUser()
-	repo := mocks.NewMockuserRepository(ctrl)
+	repo := mocks.NewMockUserRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
 	repo.EXPECT().UpdateEmail(gomock.Any(), int64(1), "new@example.com").Return(domain.ErrConflict)
 
-	uc := usecase.New(repo, fs, 5<<20)
+	uc := usecase.NewProfileUsecase(repo, fs, 5<<20)
 
 	_, err := uc.ChangeEmail(t.Context(), 1, "new@example.com", "password123")
 	if !errors.Is(err, domain.ErrConflict) {
