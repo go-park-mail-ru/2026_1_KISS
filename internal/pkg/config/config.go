@@ -17,6 +17,13 @@ type Config struct {
 	Runner    RunnerConfig
 	Upload    UploadConfig
 	RateLimit RateLimitConfig
+	GRPC      GRPCConfig
+}
+
+type GRPCConfig struct {
+	AuthAddr     string
+	NotebookAddr string
+	RunnerAddr   string
 }
 
 type RateLimitConfig struct {
@@ -133,6 +140,11 @@ func Load() *Config {
 		RateLimit: RateLimitConfig{
 			MaxRequests: int(getEnvInt64("RATE_LIMIT_MAX_REQUESTS", 300)),
 			Window:      getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
+		},
+		GRPC: GRPCConfig{
+			AuthAddr:     getEnv("AUTH_GRPC_ADDR", "localhost:9001"),
+			NotebookAddr: getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
+			RunnerAddr:   getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
 		},
 	}
 }
