@@ -2,6 +2,7 @@ package session_repository
 
 import (
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
@@ -19,7 +20,7 @@ func makeNotebook() *domain.Notebook {
 }
 
 func TestCreateSession_StoresAndRetrievable(t *testing.T) {
-	repo := NewExecutionSessionRepository()
+	repo := NewExecutionSessionRepository(120 * time.Second)
 	nb := makeNotebook()
 
 	session, err := repo.CreateSession(nb, "http://localhost:8080", "session-1")
@@ -43,7 +44,7 @@ func TestCreateSession_StoresAndRetrievable(t *testing.T) {
 }
 
 func TestGetSession_ExistingKey(t *testing.T) {
-	repo := NewExecutionSessionRepository()
+	repo := NewExecutionSessionRepository(120 * time.Second)
 	nb := makeNotebook()
 	_, _ = repo.CreateSession(nb, "http://localhost:8080", "session-2")
 
@@ -57,7 +58,7 @@ func TestGetSession_ExistingKey(t *testing.T) {
 }
 
 func TestGetSession_MissingKey(t *testing.T) {
-	repo := NewExecutionSessionRepository()
+	repo := NewExecutionSessionRepository(120 * time.Second)
 
 	session, ok := repo.GetSession(999)
 	if ok {
@@ -69,7 +70,7 @@ func TestGetSession_MissingKey(t *testing.T) {
 }
 
 func TestDeleteSession_RemovesEntry(t *testing.T) {
-	repo := NewExecutionSessionRepository()
+	repo := NewExecutionSessionRepository(120 * time.Second)
 	nb := makeNotebook()
 	_, _ = repo.CreateSession(nb, "http://localhost:8080", "session-3")
 
@@ -82,6 +83,6 @@ func TestDeleteSession_RemovesEntry(t *testing.T) {
 }
 
 func TestDeleteSession_NonExistentKey(t *testing.T) {
-	repo := NewExecutionSessionRepository()
+	repo := NewExecutionSessionRepository(120 * time.Second)
 	repo.DeleteSession(999)
 }

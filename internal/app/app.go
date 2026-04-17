@@ -73,7 +73,7 @@ func New(cfg *config.Config) (*App, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("init runner manager: %w", err)
 	}
-	execSessionRepo := session_repository.NewExecutionSessionRepository()
+	execSessionRepo := session_repository.NewExecutionSessionRepository(cfg.Runner.ExecutionTimeout)
 	runnerServ := runner_service.NewRunnerService(runnerManager, execSessionRepo, notebookRepo, blockRepo, cfg.Runner.IdleTimeout)
 
 	reaperCtx, cancelReaper := context.WithCancel(context.Background())
