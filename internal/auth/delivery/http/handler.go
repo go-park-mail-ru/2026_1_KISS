@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/dto"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
@@ -46,7 +47,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusCreated, NewUserResponse(user))
+	httputil.JSON(w, http.StatusCreated, dto.NewUserResponse(user))
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +75,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	middleware.SetCSRFCookie(w, session.ExpiresAt, h.cookieSecure)
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(user))
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +108,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(user))
 }
 
 func clearSessionCookie(w http.ResponseWriter) {
