@@ -133,7 +133,7 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 	if b == nil {
 		return nil
 	}
-	return &pb.BlockInfo{
+	info := &pb.BlockInfo{
 		Id:         b.ID,
 		NotebookId: b.NotebookID,
 		Type:       b.Type,
@@ -143,4 +143,9 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 		CreatedAt:  b.CreatedAt.Unix(),
 		UpdatedAt:  b.UpdatedAt.Unix(),
 	}
+	if b.ExecutionCount != nil {
+		v := int32(*b.ExecutionCount) //nolint:gosec // execution count fits int32
+		info.ExecutionCount = &v
+	}
+	return info
 }

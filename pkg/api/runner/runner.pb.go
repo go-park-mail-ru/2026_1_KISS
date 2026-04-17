@@ -25,6 +25,7 @@ type ExecuteFromPositionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NotebookId    int64                  `protobuf:"varint,1,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
 	BlockPosition int32                  `protobuf:"varint,2,opt,name=block_position,json=blockPosition,proto3" json:"block_position,omitempty"`
+	UserId        int64                  `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -69,6 +70,13 @@ func (x *ExecuteFromPositionRequest) GetNotebookId() int64 {
 func (x *ExecuteFromPositionRequest) GetBlockPosition() int32 {
 	if x != nil {
 		return x.BlockPosition
+	}
+	return 0
+}
+
+func (x *ExecuteFromPositionRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
 	}
 	return 0
 }
@@ -121,6 +129,7 @@ type ExecuteBlockRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NotebookId    int64                  `protobuf:"varint,1,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
 	BlockPosition int32                  `protobuf:"varint,2,opt,name=block_position,json=blockPosition,proto3" json:"block_position,omitempty"`
+	UserId        int64                  `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -165,6 +174,13 @@ func (x *ExecuteBlockRequest) GetNotebookId() int64 {
 func (x *ExecuteBlockRequest) GetBlockPosition() int32 {
 	if x != nil {
 		return x.BlockPosition
+	}
+	return 0
+}
+
+func (x *ExecuteBlockRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
 	}
 	return 0
 }
@@ -216,6 +232,7 @@ func (x *ExecuteBlockResponse) GetResult() *BlockExecutionResult {
 type StopSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NotebookId    int64                  `protobuf:"varint,1,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
+	UserId        int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,6 +270,13 @@ func (*StopSessionRequest) Descriptor() ([]byte, []int) {
 func (x *StopSessionRequest) GetNotebookId() int64 {
 	if x != nil {
 		return x.NotebookId
+	}
+	return 0
+}
+
+func (x *StopSessionRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
 	}
 	return 0
 }
@@ -397,22 +421,25 @@ var File_api_proto_runner_runner_proto protoreflect.FileDescriptor
 
 const file_api_proto_runner_runner_proto_rawDesc = "" +
 	"\n" +
-	"\x1dapi/proto/runner/runner.proto\x12\x06runner\"d\n" +
+	"\x1dapi/proto/runner/runner.proto\x12\x06runner\"}\n" +
 	"\x1aExecuteFromPositionRequest\x12\x1f\n" +
 	"\vnotebook_id\x18\x01 \x01(\x03R\n" +
 	"notebookId\x12%\n" +
-	"\x0eblock_position\x18\x02 \x01(\x05R\rblockPosition\"U\n" +
+	"\x0eblock_position\x18\x02 \x01(\x05R\rblockPosition\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\x03R\x06userId\"U\n" +
 	"\x1bExecuteFromPositionResponse\x126\n" +
-	"\aresults\x18\x01 \x03(\v2\x1c.runner.BlockExecutionResultR\aresults\"]\n" +
+	"\aresults\x18\x01 \x03(\v2\x1c.runner.BlockExecutionResultR\aresults\"v\n" +
 	"\x13ExecuteBlockRequest\x12\x1f\n" +
 	"\vnotebook_id\x18\x01 \x01(\x03R\n" +
 	"notebookId\x12%\n" +
-	"\x0eblock_position\x18\x02 \x01(\x05R\rblockPosition\"L\n" +
+	"\x0eblock_position\x18\x02 \x01(\x05R\rblockPosition\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\x03R\x06userId\"L\n" +
 	"\x14ExecuteBlockResponse\x124\n" +
-	"\x06result\x18\x01 \x01(\v2\x1c.runner.BlockExecutionResultR\x06result\"5\n" +
+	"\x06result\x18\x01 \x01(\v2\x1c.runner.BlockExecutionResultR\x06result\"N\n" +
 	"\x12StopSessionRequest\x12\x1f\n" +
 	"\vnotebook_id\x18\x01 \x01(\x03R\n" +
-	"notebookId\"\x15\n" +
+	"notebookId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"\x15\n" +
 	"\x13StopSessionResponse\"\xed\x01\n" +
 	"\x14BlockExecutionResult\x12\x19\n" +
 	"\bblock_id\x18\x01 \x01(\x03R\ablockId\x12\x1a\n" +

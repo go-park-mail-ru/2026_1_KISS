@@ -67,7 +67,7 @@ func (a *BlockAdapter) GetByNotebookID(ctx context.Context, notebookID int64) ([
 	}
 	blocks := make([]domain.Block, len(resp.GetBlocks()))
 	for i, b := range resp.GetBlocks() {
-		blocks[i] = domain.Block{
+		blk := domain.Block{
 			ID:         b.GetId(),
 			NotebookID: b.GetNotebookId(),
 			Type:       b.GetType(),
@@ -77,6 +77,11 @@ func (a *BlockAdapter) GetByNotebookID(ctx context.Context, notebookID int64) ([
 			CreatedAt:  time.Unix(b.GetCreatedAt(), 0),
 			UpdatedAt:  time.Unix(b.GetUpdatedAt(), 0),
 		}
+		if b.ExecutionCount != nil {
+			v := int(b.GetExecutionCount())
+			blk.ExecutionCount = &v
+		}
+		blocks[i] = blk
 	}
 	return blocks, nil
 }
@@ -104,7 +109,7 @@ func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 	if len(info.GetBlocks()) > 0 {
 		nb.Blocks = make([]domain.Block, len(info.GetBlocks()))
 		for i, b := range info.GetBlocks() {
-			nb.Blocks[i] = domain.Block{
+			blk := domain.Block{
 				ID:         b.GetId(),
 				NotebookID: b.GetNotebookId(),
 				Type:       b.GetType(),
@@ -114,6 +119,11 @@ func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 				CreatedAt:  time.Unix(b.GetCreatedAt(), 0),
 				UpdatedAt:  time.Unix(b.GetUpdatedAt(), 0),
 			}
+			if b.ExecutionCount != nil {
+				v := int(b.GetExecutionCount())
+				blk.ExecutionCount = &v
+			}
+			nb.Blocks[i] = blk
 		}
 	}
 	return nb
