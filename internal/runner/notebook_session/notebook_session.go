@@ -81,7 +81,8 @@ func (s *notebookSession) ExecuteFromPosition(
 
 	var results []*domain.BlockExecutionResult
 
-	blocks := notebook.Blocks
+	blocks := make([]domain.Block, len(notebook.Blocks))
+	copy(blocks, notebook.Blocks)
 	sort.Slice(blocks, func(i, j int) bool { return blocks[i].Position < blocks[j].Position })
 
 	for i := startPosition; i < len(blocks); i++ {
