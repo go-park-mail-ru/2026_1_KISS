@@ -73,7 +73,10 @@ func setup(t *testing.T) *testEnv {
 	profileUC := &mockProfileUsecase{}
 
 	authUC := usecase.New(userRepo, sessionRepo, 24*time.Hour)
-	srv := NewServer(authUC, profileUC)
+	eventRepo := mocks.NewMockEventRepository(ctrl)
+	eventUC := usecase.NewEventUsecase(eventRepo)
+	adminUC := usecase.NewAdminUsecase(userRepo, eventRepo)
+	srv := NewServer(authUC, profileUC, eventUC, adminUC)
 
 	lis := bufconn.Listen(1024 * 1024)
 	grpcServer := grpc.NewServer()

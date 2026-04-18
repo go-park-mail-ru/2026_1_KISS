@@ -14,10 +14,14 @@ import (
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 )
 
+const defaultAdminPageSize = 20
+
 type Server struct {
 	pb.UnimplementedAuthServiceServer
 	authUC    *usecase.AuthUsecase
 	profileUC ProfileUsecase
+	eventUC   *usecase.EventUsecase
+	adminUC   *usecase.AdminUsecase
 }
 
 type ProfileUsecase interface {
@@ -27,8 +31,8 @@ type ProfileUsecase interface {
 	ChangeEmail(ctx context.Context, userID int64, newEmail, password string) (*domain.User, error)
 }
 
-func NewServer(authUC *usecase.AuthUsecase, profileUC ProfileUsecase) *Server {
-	return &Server{authUC: authUC, profileUC: profileUC}
+func NewServer(authUC *usecase.AuthUsecase, profileUC ProfileUsecase, eventUC *usecase.EventUsecase, adminUC *usecase.AdminUsecase) *Server {
+	return &Server{authUC: authUC, profileUC: profileUC, eventUC: eventUC, adminUC: adminUC}
 }
 
 func (s *Server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
@@ -136,6 +140,54 @@ func (s *Server) OAuthLogin(ctx context.Context, req *pb.OAuthLoginRequest) (*pb
 	return nil, status.Error(codes.Unimplemented, "OAuth not implemented yet")
 }
 
+func (s *Server) TrackEvent(ctx context.Context, req *pb.TrackEventRequest) (*pb.TrackEventResponse, error) {
+	if err := s.eventUC.Track(ctx, req.GetUserId(), req.GetEventType(), req.GetMetadataJson()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.TrackEventResponse{}, nil
+}
+
+func (s *Server) AdminListUsers(ctx context.Context, req *pb.AdminListUsersRequest) (*pb.AdminListUsersResponse, error) {
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = defaultAdminPageSize
+	}
+	users, total, err := s.adminUC.ListUsers(ctx, req.GetAdminUserId(), limit, int(req.GetOffset()), req.GetSearch())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	pbUsers := make([]*pb.UserInfo, len(users))
+	for i := range users {
+		pbUsers[i] = userToProto(&users[i])
+	}
+	totalInt64 := int64(total)
+	if totalInt64 > 2147483647 {
+		totalInt64 = 2147483647
+	}
+	//nolint:gosec
+	return &pb.AdminListUsersResponse{Users: pbUsers, Total: int32(uint32(totalInt64))}, nil
+}
+
+func (s *Server) AdminSetBan(ctx context.Context, req *pb.AdminSetBanRequest) (*pb.AdminSetBanResponse, error) {
+	if err := s.adminUC.SetBan(ctx, req.GetAdminUserId(), req.GetTargetUserId(), req.GetBan()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminSetBanResponse{}, nil
+}
+
+func (s *Server) AdminGetStats(ctx context.Context, req *pb.AdminGetStatsRequest) (*pb.AdminGetStatsResponse, error) {
+	stats, err := s.adminUC.GetStats(ctx, req.GetAdminUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminGetStatsResponse{
+		TotalUsers:    stats.TotalUsers,
+		TotalSessions: stats.TotalSessions,
+		Dau:           stats.DAU,
+		Mau:           stats.MAU,
+	}, nil
+}
+
 func userToProto(u *domain.User) *pb.UserInfo {
 	if u == nil {
 		return nil
@@ -149,5 +201,6 @@ func userToProto(u *domain.User) *pb.UserInfo {
 		Description: u.Description,
 		CreatedAt:   u.CreatedAt.Unix(),
 		UpdatedAt:   u.UpdatedAt.Unix(),
+		IsAdmin:     u.IsAdmin,
 	}
 }

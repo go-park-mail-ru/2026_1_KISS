@@ -49,11 +49,14 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 
 	userRepo := authpg.NewUserRepository(db)
 	sessionRepo := authredis.NewSessionRepository(rdb)
+	eventRepo := authpg.NewEventRepository(db)
 
 	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
 
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
 	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
+	eventUC := authusecase.NewEventUsecase(eventRepo)
+	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -69,7 +72,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
-	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC))
+	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC))
 
 	return &App{
 		grpcServer: srv,
