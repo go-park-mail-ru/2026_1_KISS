@@ -142,6 +142,7 @@ func protoUserToDTO(info *pb.UserInfo) dto.UserResponse {
 		AvatarURL:   info.GetAvatarUrl(),
 		Status:      info.GetStatus(),
 		Description: info.GetDescription(),
+		IsAdmin:     info.GetIsAdmin(),
 		CreatedAt:   time.Unix(info.GetCreatedAt(), 0),
 		UpdatedAt:   time.Unix(info.GetUpdatedAt(), 0),
 	}

@@ -13,6 +13,7 @@ type UserResponse struct {
 	AvatarURL   string    `json:"avatar_url"`
 	Status      string    `json:"status"`
 	Description string    `json:"description"`
+	IsAdmin     bool      `json:"is_admin"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -25,6 +26,7 @@ func NewUserResponse(u *domain.User) UserResponse {
 		AvatarURL:   u.AvatarURL,
 		Status:      u.Status,
 		Description: u.Description,
+		IsAdmin:     u.IsAdmin,
 		CreatedAt:   u.CreatedAt,
 		UpdatedAt:   u.UpdatedAt,
 	}
