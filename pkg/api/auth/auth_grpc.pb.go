@@ -30,6 +30,10 @@ const (
 	AuthService_UploadAvatar_FullMethodName    = "/auth.AuthService/UploadAvatar"
 	AuthService_GetOAuthURL_FullMethodName     = "/auth.AuthService/GetOAuthURL"
 	AuthService_OAuthLogin_FullMethodName      = "/auth.AuthService/OAuthLogin"
+	AuthService_TrackEvent_FullMethodName      = "/auth.AuthService/TrackEvent"
+	AuthService_AdminListUsers_FullMethodName  = "/auth.AuthService/AdminListUsers"
+	AuthService_AdminSetBan_FullMethodName     = "/auth.AuthService/AdminSetBan"
+	AuthService_AdminGetStats_FullMethodName   = "/auth.AuthService/AdminGetStats"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -47,6 +51,10 @@ type AuthServiceClient interface {
 	UploadAvatar(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadAvatarChunk, UserResponse], error)
 	GetOAuthURL(ctx context.Context, in *GetOAuthURLRequest, opts ...grpc.CallOption) (*GetOAuthURLResponse, error)
 	OAuthLogin(ctx context.Context, in *OAuthLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	TrackEvent(ctx context.Context, in *TrackEventRequest, opts ...grpc.CallOption) (*TrackEventResponse, error)
+	AdminListUsers(ctx context.Context, in *AdminListUsersRequest, opts ...grpc.CallOption) (*AdminListUsersResponse, error)
+	AdminSetBan(ctx context.Context, in *AdminSetBanRequest, opts ...grpc.CallOption) (*AdminSetBanResponse, error)
+	AdminGetStats(ctx context.Context, in *AdminGetStatsRequest, opts ...grpc.CallOption) (*AdminGetStatsResponse, error)
 }
 
 type authServiceClient struct {
@@ -170,6 +178,46 @@ func (c *authServiceClient) OAuthLogin(ctx context.Context, in *OAuthLoginReques
 	return out, nil
 }
 
+func (c *authServiceClient) TrackEvent(ctx context.Context, in *TrackEventRequest, opts ...grpc.CallOption) (*TrackEventResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrackEventResponse)
+	err := c.cc.Invoke(ctx, AuthService_TrackEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) AdminListUsers(ctx context.Context, in *AdminListUsersRequest, opts ...grpc.CallOption) (*AdminListUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminListUsersResponse)
+	err := c.cc.Invoke(ctx, AuthService_AdminListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) AdminSetBan(ctx context.Context, in *AdminSetBanRequest, opts ...grpc.CallOption) (*AdminSetBanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminSetBanResponse)
+	err := c.cc.Invoke(ctx, AuthService_AdminSetBan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) AdminGetStats(ctx context.Context, in *AdminGetStatsRequest, opts ...grpc.CallOption) (*AdminGetStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminGetStatsResponse)
+	err := c.cc.Invoke(ctx, AuthService_AdminGetStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -185,6 +233,10 @@ type AuthServiceServer interface {
 	UploadAvatar(grpc.ClientStreamingServer[UploadAvatarChunk, UserResponse]) error
 	GetOAuthURL(context.Context, *GetOAuthURLRequest) (*GetOAuthURLResponse, error)
 	OAuthLogin(context.Context, *OAuthLoginRequest) (*LoginResponse, error)
+	TrackEvent(context.Context, *TrackEventRequest) (*TrackEventResponse, error)
+	AdminListUsers(context.Context, *AdminListUsersRequest) (*AdminListUsersResponse, error)
+	AdminSetBan(context.Context, *AdminSetBanRequest) (*AdminSetBanResponse, error)
+	AdminGetStats(context.Context, *AdminGetStatsRequest) (*AdminGetStatsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -227,6 +279,18 @@ func (UnimplementedAuthServiceServer) GetOAuthURL(context.Context, *GetOAuthURLR
 }
 func (UnimplementedAuthServiceServer) OAuthLogin(context.Context, *OAuthLoginRequest) (*LoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OAuthLogin not implemented")
+}
+func (UnimplementedAuthServiceServer) TrackEvent(context.Context, *TrackEventRequest) (*TrackEventResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TrackEvent not implemented")
+}
+func (UnimplementedAuthServiceServer) AdminListUsers(context.Context, *AdminListUsersRequest) (*AdminListUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminListUsers not implemented")
+}
+func (UnimplementedAuthServiceServer) AdminSetBan(context.Context, *AdminSetBanRequest) (*AdminSetBanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminSetBan not implemented")
+}
+func (UnimplementedAuthServiceServer) AdminGetStats(context.Context, *AdminGetStatsRequest) (*AdminGetStatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminGetStats not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -436,6 +500,78 @@ func _AuthService_OAuthLogin_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_TrackEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TrackEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).TrackEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_TrackEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).TrackEvent(ctx, req.(*TrackEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_AdminListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminListUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AdminListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AdminListUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AdminListUsers(ctx, req.(*AdminListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_AdminSetBan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminSetBanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AdminSetBan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AdminSetBan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AdminSetBan(ctx, req.(*AdminSetBanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_AdminGetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminGetStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AdminGetStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AdminGetStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AdminGetStats(ctx, req.(*AdminGetStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -482,6 +618,22 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OAuthLogin",
 			Handler:    _AuthService_OAuthLogin_Handler,
+		},
+		{
+			MethodName: "TrackEvent",
+			Handler:    _AuthService_TrackEvent_Handler,
+		},
+		{
+			MethodName: "AdminListUsers",
+			Handler:    _AuthService_AdminListUsers_Handler,
+		},
+		{
+			MethodName: "AdminSetBan",
+			Handler:    _AuthService_AdminSetBan_Handler,
+		},
+		{
+			MethodName: "AdminGetStats",
+			Handler:    _AuthService_AdminGetStats_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

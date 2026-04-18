@@ -28,6 +28,8 @@ const (
 	NotebookService_UpdateBlock_FullMethodName           = "/notebook.NotebookService/UpdateBlock"
 	NotebookService_DeleteBlock_FullMethodName           = "/notebook.NotebookService/DeleteBlock"
 	NotebookService_GetBlocksByNotebookID_FullMethodName = "/notebook.NotebookService/GetBlocksByNotebookID"
+	NotebookService_AdminListNotebooks_FullMethodName    = "/notebook.NotebookService/AdminListNotebooks"
+	NotebookService_AdminDeleteNotebook_FullMethodName   = "/notebook.NotebookService/AdminDeleteNotebook"
 )
 
 // NotebookServiceClient is the client API for NotebookService service.
@@ -43,6 +45,8 @@ type NotebookServiceClient interface {
 	UpdateBlock(ctx context.Context, in *UpdateBlockRequest, opts ...grpc.CallOption) (*BlockResponse, error)
 	DeleteBlock(ctx context.Context, in *DeleteBlockRequest, opts ...grpc.CallOption) (*DeleteBlockResponse, error)
 	GetBlocksByNotebookID(ctx context.Context, in *GetBlocksRequest, opts ...grpc.CallOption) (*GetBlocksResponse, error)
+	AdminListNotebooks(ctx context.Context, in *AdminListNotebooksRequest, opts ...grpc.CallOption) (*AdminListNotebooksResponse, error)
+	AdminDeleteNotebook(ctx context.Context, in *AdminDeleteNotebookRequest, opts ...grpc.CallOption) (*DeleteNotebookResponse, error)
 }
 
 type notebookServiceClient struct {
@@ -143,6 +147,26 @@ func (c *notebookServiceClient) GetBlocksByNotebookID(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *notebookServiceClient) AdminListNotebooks(ctx context.Context, in *AdminListNotebooksRequest, opts ...grpc.CallOption) (*AdminListNotebooksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminListNotebooksResponse)
+	err := c.cc.Invoke(ctx, NotebookService_AdminListNotebooks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notebookServiceClient) AdminDeleteNotebook(ctx context.Context, in *AdminDeleteNotebookRequest, opts ...grpc.CallOption) (*DeleteNotebookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteNotebookResponse)
+	err := c.cc.Invoke(ctx, NotebookService_AdminDeleteNotebook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NotebookServiceServer is the server API for NotebookService service.
 // All implementations must embed UnimplementedNotebookServiceServer
 // for forward compatibility.
@@ -156,6 +180,8 @@ type NotebookServiceServer interface {
 	UpdateBlock(context.Context, *UpdateBlockRequest) (*BlockResponse, error)
 	DeleteBlock(context.Context, *DeleteBlockRequest) (*DeleteBlockResponse, error)
 	GetBlocksByNotebookID(context.Context, *GetBlocksRequest) (*GetBlocksResponse, error)
+	AdminListNotebooks(context.Context, *AdminListNotebooksRequest) (*AdminListNotebooksResponse, error)
+	AdminDeleteNotebook(context.Context, *AdminDeleteNotebookRequest) (*DeleteNotebookResponse, error)
 	mustEmbedUnimplementedNotebookServiceServer()
 }
 
@@ -192,6 +218,12 @@ func (UnimplementedNotebookServiceServer) DeleteBlock(context.Context, *DeleteBl
 }
 func (UnimplementedNotebookServiceServer) GetBlocksByNotebookID(context.Context, *GetBlocksRequest) (*GetBlocksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBlocksByNotebookID not implemented")
+}
+func (UnimplementedNotebookServiceServer) AdminListNotebooks(context.Context, *AdminListNotebooksRequest) (*AdminListNotebooksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminListNotebooks not implemented")
+}
+func (UnimplementedNotebookServiceServer) AdminDeleteNotebook(context.Context, *AdminDeleteNotebookRequest) (*DeleteNotebookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminDeleteNotebook not implemented")
 }
 func (UnimplementedNotebookServiceServer) mustEmbedUnimplementedNotebookServiceServer() {}
 func (UnimplementedNotebookServiceServer) testEmbeddedByValue()                         {}
@@ -376,6 +408,42 @@ func _NotebookService_GetBlocksByNotebookID_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NotebookService_AdminListNotebooks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminListNotebooksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotebookServiceServer).AdminListNotebooks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotebookService_AdminListNotebooks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotebookServiceServer).AdminListNotebooks(ctx, req.(*AdminListNotebooksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotebookService_AdminDeleteNotebook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminDeleteNotebookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotebookServiceServer).AdminDeleteNotebook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotebookService_AdminDeleteNotebook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotebookServiceServer).AdminDeleteNotebook(ctx, req.(*AdminDeleteNotebookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NotebookService_ServiceDesc is the grpc.ServiceDesc for NotebookService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +486,14 @@ var NotebookService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBlocksByNotebookID",
 			Handler:    _NotebookService_GetBlocksByNotebookID_Handler,
+		},
+		{
+			MethodName: "AdminListNotebooks",
+			Handler:    _NotebookService_AdminListNotebooks_Handler,
+		},
+		{
+			MethodName: "AdminDeleteNotebook",
+			Handler:    _NotebookService_AdminDeleteNotebook_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

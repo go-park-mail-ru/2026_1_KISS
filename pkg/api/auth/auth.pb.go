@@ -31,6 +31,7 @@ type UserInfo struct {
 	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     int64                  `protobuf:"varint,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	IsAdmin       bool                   `protobuf:"varint,9,opt,name=is_admin,json=isAdmin,proto3" json:"is_admin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,6 +120,13 @@ func (x *UserInfo) GetUpdatedAt() int64 {
 		return x.UpdatedAt
 	}
 	return 0
+}
+
+func (x *UserInfo) GetIsAdmin() bool {
+	if x != nil {
+		return x.IsAdmin
+	}
+	return false
 }
 
 type RegisterRequest struct {
@@ -1041,11 +1049,435 @@ func (x *OAuthLoginRequest) GetRedirectUri() string {
 	return ""
 }
 
+type TrackEventRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	MetadataJson  string                 `protobuf:"bytes,3,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrackEventRequest) Reset() {
+	*x = TrackEventRequest{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackEventRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackEventRequest) ProtoMessage() {}
+
+func (x *TrackEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackEventRequest.ProtoReflect.Descriptor instead.
+func (*TrackEventRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TrackEventRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *TrackEventRequest) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *TrackEventRequest) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+type TrackEventResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrackEventResponse) Reset() {
+	*x = TrackEventResponse{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackEventResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackEventResponse) ProtoMessage() {}
+
+func (x *TrackEventResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackEventResponse.ProtoReflect.Descriptor instead.
+func (*TrackEventResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{20}
+}
+
+type AdminListUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AdminUserId   int64                  `protobuf:"varint,1,opt,name=admin_user_id,json=adminUserId,proto3" json:"admin_user_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	Search        string                 `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListUsersRequest) Reset() {
+	*x = AdminListUsersRequest{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListUsersRequest) ProtoMessage() {}
+
+func (x *AdminListUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListUsersRequest.ProtoReflect.Descriptor instead.
+func (*AdminListUsersRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *AdminListUsersRequest) GetAdminUserId() int64 {
+	if x != nil {
+		return x.AdminUserId
+	}
+	return 0
+}
+
+func (x *AdminListUsersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *AdminListUsersRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *AdminListUsersRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+type AdminListUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*UserInfo            `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListUsersResponse) Reset() {
+	*x = AdminListUsersResponse{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListUsersResponse) ProtoMessage() {}
+
+func (x *AdminListUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListUsersResponse.ProtoReflect.Descriptor instead.
+func (*AdminListUsersResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *AdminListUsersResponse) GetUsers() []*UserInfo {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *AdminListUsersResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type AdminSetBanRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AdminUserId   int64                  `protobuf:"varint,1,opt,name=admin_user_id,json=adminUserId,proto3" json:"admin_user_id,omitempty"`
+	TargetUserId  int64                  `protobuf:"varint,2,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
+	Ban           bool                   `protobuf:"varint,3,opt,name=ban,proto3" json:"ban,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminSetBanRequest) Reset() {
+	*x = AdminSetBanRequest{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminSetBanRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminSetBanRequest) ProtoMessage() {}
+
+func (x *AdminSetBanRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminSetBanRequest.ProtoReflect.Descriptor instead.
+func (*AdminSetBanRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *AdminSetBanRequest) GetAdminUserId() int64 {
+	if x != nil {
+		return x.AdminUserId
+	}
+	return 0
+}
+
+func (x *AdminSetBanRequest) GetTargetUserId() int64 {
+	if x != nil {
+		return x.TargetUserId
+	}
+	return 0
+}
+
+func (x *AdminSetBanRequest) GetBan() bool {
+	if x != nil {
+		return x.Ban
+	}
+	return false
+}
+
+type AdminSetBanResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminSetBanResponse) Reset() {
+	*x = AdminSetBanResponse{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminSetBanResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminSetBanResponse) ProtoMessage() {}
+
+func (x *AdminSetBanResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminSetBanResponse.ProtoReflect.Descriptor instead.
+func (*AdminSetBanResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{24}
+}
+
+type AdminGetStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AdminUserId   int64                  `protobuf:"varint,1,opt,name=admin_user_id,json=adminUserId,proto3" json:"admin_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminGetStatsRequest) Reset() {
+	*x = AdminGetStatsRequest{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminGetStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminGetStatsRequest) ProtoMessage() {}
+
+func (x *AdminGetStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminGetStatsRequest.ProtoReflect.Descriptor instead.
+func (*AdminGetStatsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *AdminGetStatsRequest) GetAdminUserId() int64 {
+	if x != nil {
+		return x.AdminUserId
+	}
+	return 0
+}
+
+type AdminGetStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TotalUsers    int64                  `protobuf:"varint,1,opt,name=total_users,json=totalUsers,proto3" json:"total_users,omitempty"`
+	TotalSessions int64                  `protobuf:"varint,2,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
+	Dau           int64                  `protobuf:"varint,3,opt,name=dau,proto3" json:"dau,omitempty"`
+	Mau           int64                  `protobuf:"varint,4,opt,name=mau,proto3" json:"mau,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminGetStatsResponse) Reset() {
+	*x = AdminGetStatsResponse{}
+	mi := &file_api_proto_auth_auth_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminGetStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminGetStatsResponse) ProtoMessage() {}
+
+func (x *AdminGetStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_auth_auth_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminGetStatsResponse.ProtoReflect.Descriptor instead.
+func (*AdminGetStatsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_auth_auth_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *AdminGetStatsResponse) GetTotalUsers() int64 {
+	if x != nil {
+		return x.TotalUsers
+	}
+	return 0
+}
+
+func (x *AdminGetStatsResponse) GetTotalSessions() int64 {
+	if x != nil {
+		return x.TotalSessions
+	}
+	return 0
+}
+
+func (x *AdminGetStatsResponse) GetDau() int64 {
+	if x != nil {
+		return x.Dau
+	}
+	return 0
+}
+
+func (x *AdminGetStatsResponse) GetMau() int64 {
+	if x != nil {
+		return x.Mau
+	}
+	return 0
+}
+
 var File_api_proto_auth_auth_proto protoreflect.FileDescriptor
 
 const file_api_proto_auth_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x19api/proto/auth/auth.proto\x12\x04auth\"\xe3\x01\n" +
+	"\x19api/proto/auth/auth.proto\x12\x04auth\"\xfe\x01\n" +
 	"\bUserInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
@@ -1057,7 +1489,8 @@ const file_api_proto_auth_auth_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\x03R\tupdatedAt\"_\n" +
+	"updated_at\x18\b \x01(\x03R\tupdatedAt\x12\x19\n" +
+	"\bis_admin\x18\t \x01(\bR\aisAdmin\"_\n" +
 	"\x0fRegisterRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -1113,7 +1546,34 @@ const file_api_proto_auth_auth_proto_rawDesc = "" +
 	"\x11OAuthLoginRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12!\n" +
-	"\fredirect_uri\x18\x03 \x01(\tR\vredirectUri2\xc6\x05\n" +
+	"\fredirect_uri\x18\x03 \x01(\tR\vredirectUri\"p\n" +
+	"\x11TrackEventRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12#\n" +
+	"\rmetadata_json\x18\x03 \x01(\tR\fmetadataJson\"\x14\n" +
+	"\x12TrackEventResponse\"\x81\x01\n" +
+	"\x15AdminListUsersRequest\x12\"\n" +
+	"\radmin_user_id\x18\x01 \x01(\x03R\vadminUserId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\"T\n" +
+	"\x16AdminListUsersResponse\x12$\n" +
+	"\x05users\x18\x01 \x03(\v2\x0e.auth.UserInfoR\x05users\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"p\n" +
+	"\x12AdminSetBanRequest\x12\"\n" +
+	"\radmin_user_id\x18\x01 \x01(\x03R\vadminUserId\x12$\n" +
+	"\x0etarget_user_id\x18\x02 \x01(\x03R\ftargetUserId\x12\x10\n" +
+	"\x03ban\x18\x03 \x01(\bR\x03ban\"\x15\n" +
+	"\x13AdminSetBanResponse\":\n" +
+	"\x14AdminGetStatsRequest\x12\"\n" +
+	"\radmin_user_id\x18\x01 \x01(\x03R\vadminUserId\"\x83\x01\n" +
+	"\x15AdminGetStatsResponse\x12\x1f\n" +
+	"\vtotal_users\x18\x01 \x01(\x03R\n" +
+	"totalUsers\x12%\n" +
+	"\x0etotal_sessions\x18\x02 \x01(\x03R\rtotalSessions\x12\x10\n" +
+	"\x03dau\x18\x03 \x01(\x03R\x03dau\x12\x10\n" +
+	"\x03mau\x18\x04 \x01(\x03R\x03mau2\xe2\a\n" +
 	"\vAuthService\x129\n" +
 	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x120\n" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x13.auth.LoginResponse\x123\n" +
@@ -1126,7 +1586,12 @@ const file_api_proto_auth_auth_proto_rawDesc = "" +
 	"\fUploadAvatar\x12\x17.auth.UploadAvatarChunk\x1a\x12.auth.UserResponse(\x01\x12B\n" +
 	"\vGetOAuthURL\x12\x18.auth.GetOAuthURLRequest\x1a\x19.auth.GetOAuthURLResponse\x12:\n" +
 	"\n" +
-	"OAuthLogin\x12\x17.auth.OAuthLoginRequest\x1a\x13.auth.LoginResponseB5Z3github.com/go-park-mail-ru/2026_1_KISS/pkg/api/authb\x06proto3"
+	"OAuthLogin\x12\x17.auth.OAuthLoginRequest\x1a\x13.auth.LoginResponse\x12?\n" +
+	"\n" +
+	"TrackEvent\x12\x17.auth.TrackEventRequest\x1a\x18.auth.TrackEventResponse\x12K\n" +
+	"\x0eAdminListUsers\x12\x1b.auth.AdminListUsersRequest\x1a\x1c.auth.AdminListUsersResponse\x12B\n" +
+	"\vAdminSetBan\x12\x18.auth.AdminSetBanRequest\x1a\x19.auth.AdminSetBanResponse\x12H\n" +
+	"\rAdminGetStats\x12\x1a.auth.AdminGetStatsRequest\x1a\x1b.auth.AdminGetStatsResponseB5Z3github.com/go-park-mail-ru/2026_1_KISS/pkg/api/authb\x06proto3"
 
 var (
 	file_api_proto_auth_auth_proto_rawDescOnce sync.Once
@@ -1140,7 +1605,7 @@ func file_api_proto_auth_auth_proto_rawDescGZIP() []byte {
 	return file_api_proto_auth_auth_proto_rawDescData
 }
 
-var file_api_proto_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_api_proto_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_api_proto_auth_auth_proto_goTypes = []any{
 	(*UserInfo)(nil),                // 0: auth.UserInfo
 	(*RegisterRequest)(nil),         // 1: auth.RegisterRequest
@@ -1161,39 +1626,56 @@ var file_api_proto_auth_auth_proto_goTypes = []any{
 	(*GetOAuthURLRequest)(nil),      // 16: auth.GetOAuthURLRequest
 	(*GetOAuthURLResponse)(nil),     // 17: auth.GetOAuthURLResponse
 	(*OAuthLoginRequest)(nil),       // 18: auth.OAuthLoginRequest
+	(*TrackEventRequest)(nil),       // 19: auth.TrackEventRequest
+	(*TrackEventResponse)(nil),      // 20: auth.TrackEventResponse
+	(*AdminListUsersRequest)(nil),   // 21: auth.AdminListUsersRequest
+	(*AdminListUsersResponse)(nil),  // 22: auth.AdminListUsersResponse
+	(*AdminSetBanRequest)(nil),      // 23: auth.AdminSetBanRequest
+	(*AdminSetBanResponse)(nil),     // 24: auth.AdminSetBanResponse
+	(*AdminGetStatsRequest)(nil),    // 25: auth.AdminGetStatsRequest
+	(*AdminGetStatsResponse)(nil),   // 26: auth.AdminGetStatsResponse
 }
 var file_api_proto_auth_auth_proto_depIdxs = []int32{
 	0,  // 0: auth.RegisterResponse.user:type_name -> auth.UserInfo
 	0,  // 1: auth.LoginResponse.user:type_name -> auth.UserInfo
 	0,  // 2: auth.ValidateSessionResponse.user:type_name -> auth.UserInfo
 	0,  // 3: auth.UserResponse.user:type_name -> auth.UserInfo
-	1,  // 4: auth.AuthService.Register:input_type -> auth.RegisterRequest
-	3,  // 5: auth.AuthService.Login:input_type -> auth.LoginRequest
-	5,  // 6: auth.AuthService.Logout:input_type -> auth.LogoutRequest
-	7,  // 7: auth.AuthService.ValidateSession:input_type -> auth.ValidateSessionRequest
-	9,  // 8: auth.AuthService.GetUserByID:input_type -> auth.GetUserByIDRequest
-	11, // 9: auth.AuthService.UpdateProfile:input_type -> auth.UpdateProfileRequest
-	12, // 10: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
-	14, // 11: auth.AuthService.ChangeEmail:input_type -> auth.ChangeEmailRequest
-	15, // 12: auth.AuthService.UploadAvatar:input_type -> auth.UploadAvatarChunk
-	16, // 13: auth.AuthService.GetOAuthURL:input_type -> auth.GetOAuthURLRequest
-	18, // 14: auth.AuthService.OAuthLogin:input_type -> auth.OAuthLoginRequest
-	2,  // 15: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	4,  // 16: auth.AuthService.Login:output_type -> auth.LoginResponse
-	6,  // 17: auth.AuthService.Logout:output_type -> auth.LogoutResponse
-	8,  // 18: auth.AuthService.ValidateSession:output_type -> auth.ValidateSessionResponse
-	10, // 19: auth.AuthService.GetUserByID:output_type -> auth.UserResponse
-	10, // 20: auth.AuthService.UpdateProfile:output_type -> auth.UserResponse
-	13, // 21: auth.AuthService.ChangePassword:output_type -> auth.ChangePasswordResponse
-	10, // 22: auth.AuthService.ChangeEmail:output_type -> auth.UserResponse
-	10, // 23: auth.AuthService.UploadAvatar:output_type -> auth.UserResponse
-	17, // 24: auth.AuthService.GetOAuthURL:output_type -> auth.GetOAuthURLResponse
-	4,  // 25: auth.AuthService.OAuthLogin:output_type -> auth.LoginResponse
-	15, // [15:26] is the sub-list for method output_type
-	4,  // [4:15] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	0,  // 4: auth.AdminListUsersResponse.users:type_name -> auth.UserInfo
+	1,  // 5: auth.AuthService.Register:input_type -> auth.RegisterRequest
+	3,  // 6: auth.AuthService.Login:input_type -> auth.LoginRequest
+	5,  // 7: auth.AuthService.Logout:input_type -> auth.LogoutRequest
+	7,  // 8: auth.AuthService.ValidateSession:input_type -> auth.ValidateSessionRequest
+	9,  // 9: auth.AuthService.GetUserByID:input_type -> auth.GetUserByIDRequest
+	11, // 10: auth.AuthService.UpdateProfile:input_type -> auth.UpdateProfileRequest
+	12, // 11: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
+	14, // 12: auth.AuthService.ChangeEmail:input_type -> auth.ChangeEmailRequest
+	15, // 13: auth.AuthService.UploadAvatar:input_type -> auth.UploadAvatarChunk
+	16, // 14: auth.AuthService.GetOAuthURL:input_type -> auth.GetOAuthURLRequest
+	18, // 15: auth.AuthService.OAuthLogin:input_type -> auth.OAuthLoginRequest
+	19, // 16: auth.AuthService.TrackEvent:input_type -> auth.TrackEventRequest
+	21, // 17: auth.AuthService.AdminListUsers:input_type -> auth.AdminListUsersRequest
+	23, // 18: auth.AuthService.AdminSetBan:input_type -> auth.AdminSetBanRequest
+	25, // 19: auth.AuthService.AdminGetStats:input_type -> auth.AdminGetStatsRequest
+	2,  // 20: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	4,  // 21: auth.AuthService.Login:output_type -> auth.LoginResponse
+	6,  // 22: auth.AuthService.Logout:output_type -> auth.LogoutResponse
+	8,  // 23: auth.AuthService.ValidateSession:output_type -> auth.ValidateSessionResponse
+	10, // 24: auth.AuthService.GetUserByID:output_type -> auth.UserResponse
+	10, // 25: auth.AuthService.UpdateProfile:output_type -> auth.UserResponse
+	13, // 26: auth.AuthService.ChangePassword:output_type -> auth.ChangePasswordResponse
+	10, // 27: auth.AuthService.ChangeEmail:output_type -> auth.UserResponse
+	10, // 28: auth.AuthService.UploadAvatar:output_type -> auth.UserResponse
+	17, // 29: auth.AuthService.GetOAuthURL:output_type -> auth.GetOAuthURLResponse
+	4,  // 30: auth.AuthService.OAuthLogin:output_type -> auth.LoginResponse
+	20, // 31: auth.AuthService.TrackEvent:output_type -> auth.TrackEventResponse
+	22, // 32: auth.AuthService.AdminListUsers:output_type -> auth.AdminListUsersResponse
+	24, // 33: auth.AuthService.AdminSetBan:output_type -> auth.AdminSetBanResponse
+	26, // 34: auth.AuthService.AdminGetStats:output_type -> auth.AdminGetStatsResponse
+	20, // [20:35] is the sub-list for method output_type
+	5,  // [5:20] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_auth_auth_proto_init() }
@@ -1207,7 +1689,7 @@ func file_api_proto_auth_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_auth_auth_proto_rawDesc), len(file_api_proto_auth_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
