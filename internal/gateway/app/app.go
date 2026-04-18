@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/gateway/handler"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
+	_ "github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pbrunner "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
@@ -65,6 +67,7 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler.RegisterRoutes(mux)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
+	mux.Handle("GET /metrics", promhttp.Handler())
 
 	csrfSkip := map[string]bool{
 		"/api/v1/auth/login":    true,
@@ -73,6 +76,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	mwCtx, cancelMw := context.WithCancel(context.Background())
 	mwHandler := middleware.Chain(mux,
+		middleware.Metrics(),
 		middleware.RequestID(),
 		middleware.Logging(),
 		middleware.Recovery(),

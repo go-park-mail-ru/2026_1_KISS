@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container"
 	runnergrpc "github.com/go-park-mail-ru/2026_1_KISS/internal/runner/grpc"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
@@ -25,6 +27,7 @@ type App struct {
 	runnerManager container.Manager
 	cancelReaper  context.CancelFunc
 	nbConn        *grpc.ClientConn
+	metricsSrv    *http.Server
 }
 
 func New(cfg *config.Config, grpcPort string) (*App, error) {
@@ -58,9 +61,12 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		return nil, fmt.Errorf("listen: %w", err)
 	}
 
+	metricsSrv := metrics.StartMetricsServer(":" + cfg.Metrics.Port)
+
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpcutil.RecoveryUnaryInterceptor(),
+			grpcutil.MetricsUnaryInterceptor("runner"),
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
@@ -72,6 +78,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		runnerManager: runnerManager,
 		cancelReaper:  cancelReaper,
 		nbConn:        nbConn,
+		metricsSrv:    metricsSrv,
 	}, nil
 }
 
@@ -81,6 +88,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
+	metrics.ShutdownMetricsServer(a.metricsSrv)
 	a.cancelReaper()
 	a.grpcServer.GracefulStop()
 	if a.runnerManager != nil {
