@@ -95,11 +95,11 @@ jobs:
 
             if echo "$CHANGED" | grep -qE '(docker-compose\.yml|Dockerfile)'; then
               echo "Infrastructure changed, full rebuild..."
-              docker compose down
+              docker compose down --remove-orphans
               docker compose up -d --build
             elif echo "$CHANGED" | grep -qE '\.(go|mod|sum|sql)$'; then
               echo "Source or migrations changed, rebuilding app..."
-              docker compose up -d --build
+              docker compose up -d --build --remove-orphans
             else
               echo "No application changes, skipping rebuild"
             fi
