@@ -10,6 +10,7 @@ type User struct {
 	AvatarURL    string
 	Status       string
 	Description  string
+	IsAdmin      bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
