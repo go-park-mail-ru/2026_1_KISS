@@ -18,6 +18,11 @@ type Config struct {
 	Upload    UploadConfig
 	RateLimit RateLimitConfig
 	GRPC      GRPCConfig
+	Metrics   MetricsConfig
+}
+
+type MetricsConfig struct {
+	Port string
 }
 
 type GRPCConfig struct {
@@ -145,6 +150,9 @@ func Load() *Config {
 			AuthAddr:     getEnv("AUTH_GRPC_ADDR", "localhost:9001"),
 			NotebookAddr: getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
 			RunnerAddr:   getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
+		},
+		Metrics: MetricsConfig{
+			Port: getEnv("METRICS_PORT", "9090"),
 		},
 	}
 }
