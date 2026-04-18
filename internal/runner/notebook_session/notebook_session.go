@@ -198,6 +198,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		Stdout:     stdoutLines,
 		Stderr:     stderrLines,
 		Result:     execResp.Result,
+		Outputs:    execResp.Outputs,
 		ExecutedAt: time.Now(),
 		Duration:   time.Since(startTime),
 	}

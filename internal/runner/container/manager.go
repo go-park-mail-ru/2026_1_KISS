@@ -252,12 +252,12 @@ func (m *manager) createContainer(ctx context.Context, sessionID, name string, l
 	// Иначе пихаем в оперативку, пока так
 	if m.storageOptSupported {
 		hostConfig.StorageOpt = map[string]string{"size": m.cfg.TmpfsSize}
-		hostConfig.Tmpfs = map[string]string{"/tmp": "size=" + m.cfg.TmpfsSize}
+		hostConfig.Tmpfs = map[string]string{"/tmp": "size=" + m.cfg.TmpfsSize + ",exec"}
 	} else {
 		hostConfig.ReadonlyRootfs = true
 		hostConfig.Tmpfs = map[string]string{
-			"/home/runner": "size=" + m.cfg.TmpfsSize,
-			"/tmp":         "size=" + m.cfg.TmpfsSize,
+			"/home/runner": "size=" + m.cfg.TmpfsSize + ",exec",
+			"/tmp":         "size=" + m.cfg.TmpfsSize + ",exec",
 		}
 	}
 
