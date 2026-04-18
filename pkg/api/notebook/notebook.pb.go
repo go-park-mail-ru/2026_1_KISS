@@ -1057,6 +1057,162 @@ func (*DeleteBlockResponse) Descriptor() ([]byte, []int) {
 	return file_api_proto_notebook_notebook_proto_rawDescGZIP(), []int{16}
 }
 
+type AdminListNotebooksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	Search        string                 `protobuf:"bytes,3,opt,name=search,proto3" json:"search,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListNotebooksRequest) Reset() {
+	*x = AdminListNotebooksRequest{}
+	mi := &file_api_proto_notebook_notebook_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListNotebooksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListNotebooksRequest) ProtoMessage() {}
+
+func (x *AdminListNotebooksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_notebook_notebook_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListNotebooksRequest.ProtoReflect.Descriptor instead.
+func (*AdminListNotebooksRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_notebook_notebook_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AdminListNotebooksRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *AdminListNotebooksRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *AdminListNotebooksRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+type AdminListNotebooksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Notebooks     []*NotebookInfo        `protobuf:"bytes,1,rep,name=notebooks,proto3" json:"notebooks,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListNotebooksResponse) Reset() {
+	*x = AdminListNotebooksResponse{}
+	mi := &file_api_proto_notebook_notebook_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListNotebooksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListNotebooksResponse) ProtoMessage() {}
+
+func (x *AdminListNotebooksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_notebook_notebook_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListNotebooksResponse.ProtoReflect.Descriptor instead.
+func (*AdminListNotebooksResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_notebook_notebook_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AdminListNotebooksResponse) GetNotebooks() []*NotebookInfo {
+	if x != nil {
+		return x.Notebooks
+	}
+	return nil
+}
+
+func (x *AdminListNotebooksResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type AdminDeleteNotebookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NotebookId    int64                  `protobuf:"varint,1,opt,name=notebook_id,json=notebookId,proto3" json:"notebook_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminDeleteNotebookRequest) Reset() {
+	*x = AdminDeleteNotebookRequest{}
+	mi := &file_api_proto_notebook_notebook_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminDeleteNotebookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminDeleteNotebookRequest) ProtoMessage() {}
+
+func (x *AdminDeleteNotebookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_notebook_notebook_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminDeleteNotebookRequest.ProtoReflect.Descriptor instead.
+func (*AdminDeleteNotebookRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_notebook_notebook_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AdminDeleteNotebookRequest) GetNotebookId() int64 {
+	if x != nil {
+		return x.NotebookId
+	}
+	return 0
+}
+
 var File_api_proto_notebook_notebook_proto protoreflect.FileDescriptor
 
 const file_api_proto_notebook_notebook_proto_rawDesc = "" +
@@ -1144,7 +1300,17 @@ const file_api_proto_notebook_notebook_proto_rawDesc = "" +
 	"\x11GetBlocksResponse\x12+\n" +
 	"\x06blocks\x18\x01 \x03(\v2\x13.notebook.BlockInfoR\x06blocks\"\x18\n" +
 	"\x16DeleteNotebookResponse\"\x15\n" +
-	"\x13DeleteBlockResponse2\xa4\x05\n" +
+	"\x13DeleteBlockResponse\"a\n" +
+	"\x19AdminListNotebooksRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06search\x18\x03 \x01(\tR\x06search\"h\n" +
+	"\x1aAdminListNotebooksResponse\x124\n" +
+	"\tnotebooks\x18\x01 \x03(\v2\x16.notebook.NotebookInfoR\tnotebooks\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"=\n" +
+	"\x1aAdminDeleteNotebookRequest\x12\x1f\n" +
+	"\vnotebook_id\x18\x01 \x01(\x03R\n" +
+	"notebookId2\xe4\x06\n" +
 	"\x0fNotebookService\x12E\n" +
 	"\x06Create\x12\x1f.notebook.CreateNotebookRequest\x1a\x1a.notebook.NotebookResponse\x12C\n" +
 	"\aGetByID\x12\x1c.notebook.GetNotebookRequest\x1a\x1a.notebook.NotebookResponse\x12M\n" +
@@ -1155,7 +1321,9 @@ const file_api_proto_notebook_notebook_proto_rawDesc = "" +
 	"\bAddBlock\x12\x19.notebook.AddBlockRequest\x1a\x17.notebook.BlockResponse\x12D\n" +
 	"\vUpdateBlock\x12\x1c.notebook.UpdateBlockRequest\x1a\x17.notebook.BlockResponse\x12J\n" +
 	"\vDeleteBlock\x12\x1c.notebook.DeleteBlockRequest\x1a\x1d.notebook.DeleteBlockResponse\x12P\n" +
-	"\x15GetBlocksByNotebookID\x12\x1a.notebook.GetBlocksRequest\x1a\x1b.notebook.GetBlocksResponseB9Z7github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebookb\x06proto3"
+	"\x15GetBlocksByNotebookID\x12\x1a.notebook.GetBlocksRequest\x1a\x1b.notebook.GetBlocksResponse\x12_\n" +
+	"\x12AdminListNotebooks\x12#.notebook.AdminListNotebooksRequest\x1a$.notebook.AdminListNotebooksResponse\x12]\n" +
+	"\x13AdminDeleteNotebook\x12$.notebook.AdminDeleteNotebookRequest\x1a .notebook.DeleteNotebookResponseB9Z7github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebookb\x06proto3"
 
 var (
 	file_api_proto_notebook_notebook_proto_rawDescOnce sync.Once
@@ -1169,25 +1337,28 @@ func file_api_proto_notebook_notebook_proto_rawDescGZIP() []byte {
 	return file_api_proto_notebook_notebook_proto_rawDescData
 }
 
-var file_api_proto_notebook_notebook_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_api_proto_notebook_notebook_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_api_proto_notebook_notebook_proto_goTypes = []any{
-	(*NotebookInfo)(nil),           // 0: notebook.NotebookInfo
-	(*BlockInfo)(nil),              // 1: notebook.BlockInfo
-	(*CreateNotebookRequest)(nil),  // 2: notebook.CreateNotebookRequest
-	(*GetNotebookRequest)(nil),     // 3: notebook.GetNotebookRequest
-	(*ListNotebooksRequest)(nil),   // 4: notebook.ListNotebooksRequest
-	(*UpdateNotebookRequest)(nil),  // 5: notebook.UpdateNotebookRequest
-	(*DeleteNotebookRequest)(nil),  // 6: notebook.DeleteNotebookRequest
-	(*AddBlockRequest)(nil),        // 7: notebook.AddBlockRequest
-	(*UpdateBlockRequest)(nil),     // 8: notebook.UpdateBlockRequest
-	(*DeleteBlockRequest)(nil),     // 9: notebook.DeleteBlockRequest
-	(*GetBlocksRequest)(nil),       // 10: notebook.GetBlocksRequest
-	(*NotebookResponse)(nil),       // 11: notebook.NotebookResponse
-	(*ListNotebooksResponse)(nil),  // 12: notebook.ListNotebooksResponse
-	(*BlockResponse)(nil),          // 13: notebook.BlockResponse
-	(*GetBlocksResponse)(nil),      // 14: notebook.GetBlocksResponse
-	(*DeleteNotebookResponse)(nil), // 15: notebook.DeleteNotebookResponse
-	(*DeleteBlockResponse)(nil),    // 16: notebook.DeleteBlockResponse
+	(*NotebookInfo)(nil),               // 0: notebook.NotebookInfo
+	(*BlockInfo)(nil),                  // 1: notebook.BlockInfo
+	(*CreateNotebookRequest)(nil),      // 2: notebook.CreateNotebookRequest
+	(*GetNotebookRequest)(nil),         // 3: notebook.GetNotebookRequest
+	(*ListNotebooksRequest)(nil),       // 4: notebook.ListNotebooksRequest
+	(*UpdateNotebookRequest)(nil),      // 5: notebook.UpdateNotebookRequest
+	(*DeleteNotebookRequest)(nil),      // 6: notebook.DeleteNotebookRequest
+	(*AddBlockRequest)(nil),            // 7: notebook.AddBlockRequest
+	(*UpdateBlockRequest)(nil),         // 8: notebook.UpdateBlockRequest
+	(*DeleteBlockRequest)(nil),         // 9: notebook.DeleteBlockRequest
+	(*GetBlocksRequest)(nil),           // 10: notebook.GetBlocksRequest
+	(*NotebookResponse)(nil),           // 11: notebook.NotebookResponse
+	(*ListNotebooksResponse)(nil),      // 12: notebook.ListNotebooksResponse
+	(*BlockResponse)(nil),              // 13: notebook.BlockResponse
+	(*GetBlocksResponse)(nil),          // 14: notebook.GetBlocksResponse
+	(*DeleteNotebookResponse)(nil),     // 15: notebook.DeleteNotebookResponse
+	(*DeleteBlockResponse)(nil),        // 16: notebook.DeleteBlockResponse
+	(*AdminListNotebooksRequest)(nil),  // 17: notebook.AdminListNotebooksRequest
+	(*AdminListNotebooksResponse)(nil), // 18: notebook.AdminListNotebooksResponse
+	(*AdminDeleteNotebookRequest)(nil), // 19: notebook.AdminDeleteNotebookRequest
 }
 var file_api_proto_notebook_notebook_proto_depIdxs = []int32{
 	1,  // 0: notebook.NotebookInfo.blocks:type_name -> notebook.BlockInfo
@@ -1195,29 +1366,34 @@ var file_api_proto_notebook_notebook_proto_depIdxs = []int32{
 	0,  // 2: notebook.ListNotebooksResponse.notebooks:type_name -> notebook.NotebookInfo
 	1,  // 3: notebook.BlockResponse.block:type_name -> notebook.BlockInfo
 	1,  // 4: notebook.GetBlocksResponse.blocks:type_name -> notebook.BlockInfo
-	2,  // 5: notebook.NotebookService.Create:input_type -> notebook.CreateNotebookRequest
-	3,  // 6: notebook.NotebookService.GetByID:input_type -> notebook.GetNotebookRequest
-	4,  // 7: notebook.NotebookService.ListByUser:input_type -> notebook.ListNotebooksRequest
-	5,  // 8: notebook.NotebookService.Update:input_type -> notebook.UpdateNotebookRequest
-	6,  // 9: notebook.NotebookService.Delete:input_type -> notebook.DeleteNotebookRequest
-	7,  // 10: notebook.NotebookService.AddBlock:input_type -> notebook.AddBlockRequest
-	8,  // 11: notebook.NotebookService.UpdateBlock:input_type -> notebook.UpdateBlockRequest
-	9,  // 12: notebook.NotebookService.DeleteBlock:input_type -> notebook.DeleteBlockRequest
-	10, // 13: notebook.NotebookService.GetBlocksByNotebookID:input_type -> notebook.GetBlocksRequest
-	11, // 14: notebook.NotebookService.Create:output_type -> notebook.NotebookResponse
-	11, // 15: notebook.NotebookService.GetByID:output_type -> notebook.NotebookResponse
-	12, // 16: notebook.NotebookService.ListByUser:output_type -> notebook.ListNotebooksResponse
-	11, // 17: notebook.NotebookService.Update:output_type -> notebook.NotebookResponse
-	15, // 18: notebook.NotebookService.Delete:output_type -> notebook.DeleteNotebookResponse
-	13, // 19: notebook.NotebookService.AddBlock:output_type -> notebook.BlockResponse
-	13, // 20: notebook.NotebookService.UpdateBlock:output_type -> notebook.BlockResponse
-	16, // 21: notebook.NotebookService.DeleteBlock:output_type -> notebook.DeleteBlockResponse
-	14, // 22: notebook.NotebookService.GetBlocksByNotebookID:output_type -> notebook.GetBlocksResponse
-	14, // [14:23] is the sub-list for method output_type
-	5,  // [5:14] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	0,  // 5: notebook.AdminListNotebooksResponse.notebooks:type_name -> notebook.NotebookInfo
+	2,  // 6: notebook.NotebookService.Create:input_type -> notebook.CreateNotebookRequest
+	3,  // 7: notebook.NotebookService.GetByID:input_type -> notebook.GetNotebookRequest
+	4,  // 8: notebook.NotebookService.ListByUser:input_type -> notebook.ListNotebooksRequest
+	5,  // 9: notebook.NotebookService.Update:input_type -> notebook.UpdateNotebookRequest
+	6,  // 10: notebook.NotebookService.Delete:input_type -> notebook.DeleteNotebookRequest
+	7,  // 11: notebook.NotebookService.AddBlock:input_type -> notebook.AddBlockRequest
+	8,  // 12: notebook.NotebookService.UpdateBlock:input_type -> notebook.UpdateBlockRequest
+	9,  // 13: notebook.NotebookService.DeleteBlock:input_type -> notebook.DeleteBlockRequest
+	10, // 14: notebook.NotebookService.GetBlocksByNotebookID:input_type -> notebook.GetBlocksRequest
+	17, // 15: notebook.NotebookService.AdminListNotebooks:input_type -> notebook.AdminListNotebooksRequest
+	19, // 16: notebook.NotebookService.AdminDeleteNotebook:input_type -> notebook.AdminDeleteNotebookRequest
+	11, // 17: notebook.NotebookService.Create:output_type -> notebook.NotebookResponse
+	11, // 18: notebook.NotebookService.GetByID:output_type -> notebook.NotebookResponse
+	12, // 19: notebook.NotebookService.ListByUser:output_type -> notebook.ListNotebooksResponse
+	11, // 20: notebook.NotebookService.Update:output_type -> notebook.NotebookResponse
+	15, // 21: notebook.NotebookService.Delete:output_type -> notebook.DeleteNotebookResponse
+	13, // 22: notebook.NotebookService.AddBlock:output_type -> notebook.BlockResponse
+	13, // 23: notebook.NotebookService.UpdateBlock:output_type -> notebook.BlockResponse
+	16, // 24: notebook.NotebookService.DeleteBlock:output_type -> notebook.DeleteBlockResponse
+	14, // 25: notebook.NotebookService.GetBlocksByNotebookID:output_type -> notebook.GetBlocksResponse
+	18, // 26: notebook.NotebookService.AdminListNotebooks:output_type -> notebook.AdminListNotebooksResponse
+	15, // 27: notebook.NotebookService.AdminDeleteNotebook:output_type -> notebook.DeleteNotebookResponse
+	17, // [17:28] is the sub-list for method output_type
+	6,  // [6:17] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_notebook_notebook_proto_init() }
@@ -1232,7 +1408,7 @@ func file_api_proto_notebook_notebook_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_notebook_notebook_proto_rawDesc), len(file_api_proto_notebook_notebook_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

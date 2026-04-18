@@ -14,6 +14,9 @@ service NotebookService {
   rpc DeleteBlock(DeleteBlockRequest) returns (DeleteBlockResponse);
 
   rpc GetBlocksByNotebookID(GetBlocksRequest) returns (GetBlocksResponse);
+
+  rpc AdminListNotebooks(AdminListNotebooksRequest) returns (AdminListNotebooksResponse);
+  rpc AdminDeleteNotebook(AdminDeleteNotebookRequest) returns (DeleteNotebookResponse);
 }
 
 message NotebookInfo {
@@ -117,3 +120,18 @@ message GetBlocksResponse {
 message DeleteNotebookResponse {}
 
 message DeleteBlockResponse {}
+
+message AdminListNotebooksRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string search = 3;
+}
+
+message AdminListNotebooksResponse {
+  repeated NotebookInfo notebooks = 1;
+  int32 total = 2;
+}
+
+message AdminDeleteNotebookRequest {
+  int64 notebook_id = 1;
+}
