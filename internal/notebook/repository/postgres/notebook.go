@@ -11,7 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
 
-var likeEscaper = strings.NewReplacer("%", "\\%", "_", "\\_")
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
 type NotebookRepo struct {
 	db *sql.DB
