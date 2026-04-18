@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"time"
 
 	redisv9 "github.com/redis/go-redis/v9"
@@ -19,6 +20,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 )
 
@@ -27,6 +29,7 @@ type App struct {
 	listener   net.Listener
 	db         *sql.DB
 	rdb        *redisv9.Client
+	metricsSrv *http.Server
 }
 
 func New(cfg *config.Config, grpcPort string) (*App, error) {
@@ -57,9 +60,12 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		return nil, fmt.Errorf("listen: %w", err)
 	}
 
+	metricsSrv := metrics.StartMetricsServer(":" + cfg.Metrics.Port)
+
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpcutil.RecoveryUnaryInterceptor(),
+			grpcutil.MetricsUnaryInterceptor("auth"),
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
@@ -70,6 +76,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		listener:   lis,
 		db:         db,
 		rdb:        rdb,
+		metricsSrv: metricsSrv,
 	}, nil
 }
 
@@ -79,6 +86,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
+	metrics.ShutdownMetricsServer(a.metricsSrv)
 	a.grpcServer.GracefulStop()
 	if err := a.db.Close(); err != nil {
 		slog.Error("db close error", "error", err)

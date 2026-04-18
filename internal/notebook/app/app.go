@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 
 	"google.golang.org/grpc"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 )
 
@@ -22,6 +24,7 @@ type App struct {
 	grpcServer *grpc.Server
 	listener   net.Listener
 	db         *sql.DB
+	metricsSrv *http.Server
 }
 
 func New(cfg *config.Config, grpcPort string) (*App, error) {
@@ -39,9 +42,12 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		return nil, fmt.Errorf("listen: %w", err)
 	}
 
+	metricsSrv := metrics.StartMetricsServer(":" + cfg.Metrics.Port)
+
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpcutil.RecoveryUnaryInterceptor(),
+			grpcutil.MetricsUnaryInterceptor("notebook"),
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
@@ -51,6 +57,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		grpcServer: srv,
 		listener:   lis,
 		db:         db,
+		metricsSrv: metricsSrv,
 	}, nil
 }
 
@@ -60,6 +67,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
+	metrics.ShutdownMetricsServer(a.metricsSrv)
 	a.grpcServer.GracefulStop()
 	if err := a.db.Close(); err != nil {
 		slog.Error("db close error", "error", err)
