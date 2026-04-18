@@ -49,7 +49,14 @@ func (h *RunnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	blockPos, _ := strconv.Atoi(r.URL.Query().Get("block_position"))
+	var blockPos int
+	if blockPosStr := r.URL.Query().Get("block_position"); blockPosStr != "" {
+		blockPos, err = strconv.Atoi(blockPosStr)
+		if err != nil {
+			httputil.Error(w, http.StatusBadRequest, "invalid block_position")
+			return
+		}
+	}
 
 	resp, err := h.client.ExecuteFromPosition(r.Context(), &pb.ExecuteFromPositionRequest{
 		NotebookId:    notebookID,
@@ -81,7 +88,14 @@ func (h *RunnerHandler) ExecuteBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blockPos, _ := strconv.Atoi(r.URL.Query().Get("block_position"))
+	var blockPos int
+	if blockPosStr := r.URL.Query().Get("block_position"); blockPosStr != "" {
+		blockPos, err = strconv.Atoi(blockPosStr)
+		if err != nil {
+			httputil.Error(w, http.StatusBadRequest, "invalid block_position")
+			return
+		}
+	}
 
 	resp, err := h.client.ExecuteBlock(r.Context(), &pb.ExecuteBlockRequest{
 		NotebookId:    notebookID,
