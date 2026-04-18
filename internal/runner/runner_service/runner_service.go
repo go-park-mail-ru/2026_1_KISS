@@ -174,8 +174,6 @@ func (s *runnerService) evictIdleSessions(ctx context.Context) {
 	sessions := s.sessionRepo.ListSessions()
 	now := time.Now()
 	for notebookID, session := range sessions {
-		fmt.Println("SUB IS: ", now.Sub(session.LastActivity()))
-		fmt.Println("TIMEOUT: ", s.idleTimeout)
 		if now.Sub(session.LastActivity()) < s.idleTimeout {
 			continue
 		}

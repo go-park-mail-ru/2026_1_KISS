@@ -20,6 +20,8 @@ services:
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
       NETWORK_NAME: "2026_1_kiss_app-network"
       UPLOAD_DIR: /app/uploads
+    env_file:
+      - .env
     volumes:
       # Docker-in-Docker: даём сервису доступ к daemon хоста,
       # чтобы он мог создавать runner-контейнеры
