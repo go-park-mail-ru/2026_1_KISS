@@ -47,6 +47,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       GRPC_PORT: "9001"
+      METRICS_PORT: "9090"
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       UPLOAD_DIR: /app/uploads
     volumes:
@@ -71,6 +72,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
       GRPC_PORT: "9002"
+      METRICS_PORT: "9090"
     networks:
       - app-network
 
@@ -88,6 +90,7 @@ services:
       retries: 5
     environment:
       GRPC_PORT: "9003"
+      METRICS_PORT: "9090"
       NOTEBOOK_GRPC_ADDR: "notebook:9002"
       RUNNER_IMAGE_PYTHON: kiss-python-runner
       NETWORK_NAME: "2026_1_kiss_app-network"
@@ -144,6 +147,52 @@ services:
       timeout: 3s
       retries: 5
 
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9091:9090"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    networks:
+      - app-network
+    restart: unless-stopped
+
 networks:
   app-network:
     driver: bridge
@@ -152,3 +201,5 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  prometheus_data:
+  grafana_data:
