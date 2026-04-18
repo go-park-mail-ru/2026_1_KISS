@@ -171,6 +171,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SERVER_ROOT_URL: https://colkiss.ru/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     depends_on:
       - prometheus
     networks:
