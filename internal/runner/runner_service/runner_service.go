@@ -182,12 +182,12 @@ func (s *runnerService) evictIdleSessions(ctx context.Context) {
 		if idle < s.idleTimeout {
 			continue
 		}
-		s.sessionRepo.DeleteSession(notebookID)
 		err := s.runnerManager.StopSession(ctx, session.GetSessionID())
 		if err != nil {
 			logger.Error(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "error", err)
 			continue
 		}
+		s.sessionRepo.DeleteSession(notebookID)
 		logger.Info(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "idle", idle)
 	}
 }
