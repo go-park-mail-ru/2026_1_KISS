@@ -42,6 +42,66 @@ func (m *MockAuthServiceClient) EXPECT() *MockAuthServiceClientMockRecorder {
 	return m.recorder
 }
 
+// AdminGetStats mocks base method.
+func (m *MockAuthServiceClient) AdminGetStats(ctx context.Context, in *auth.AdminGetStatsRequest, opts ...grpc.CallOption) (*auth.AdminGetStatsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminGetStats", varargs...)
+	ret0, _ := ret[0].(*auth.AdminGetStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminGetStats indicates an expected call of AdminGetStats.
+func (mr *MockAuthServiceClientMockRecorder) AdminGetStats(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminGetStats", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminGetStats), varargs...)
+}
+
+// AdminListUsers mocks base method.
+func (m *MockAuthServiceClient) AdminListUsers(ctx context.Context, in *auth.AdminListUsersRequest, opts ...grpc.CallOption) (*auth.AdminListUsersResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminListUsers", varargs...)
+	ret0, _ := ret[0].(*auth.AdminListUsersResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminListUsers indicates an expected call of AdminListUsers.
+func (mr *MockAuthServiceClientMockRecorder) AdminListUsers(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminListUsers", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminListUsers), varargs...)
+}
+
+// AdminSetBan mocks base method.
+func (m *MockAuthServiceClient) AdminSetBan(ctx context.Context, in *auth.AdminSetBanRequest, opts ...grpc.CallOption) (*auth.AdminSetBanResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminSetBan", varargs...)
+	ret0, _ := ret[0].(*auth.AdminSetBanResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminSetBan indicates an expected call of AdminSetBan.
+func (mr *MockAuthServiceClientMockRecorder) AdminSetBan(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminSetBan", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminSetBan), varargs...)
+}
+
 // ChangeEmail mocks base method.
 func (m *MockAuthServiceClient) ChangeEmail(ctx context.Context, in *auth.ChangeEmailRequest, opts ...grpc.CallOption) (*auth.UserResponse, error) {
 	m.ctrl.T.Helper()
@@ -200,6 +260,26 @@ func (mr *MockAuthServiceClientMockRecorder) Register(ctx, in any, opts ...any) 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockAuthServiceClient)(nil).Register), varargs...)
+}
+
+// TrackEvent mocks base method.
+func (m *MockAuthServiceClient) TrackEvent(ctx context.Context, in *auth.TrackEventRequest, opts ...grpc.CallOption) (*auth.TrackEventResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TrackEvent", varargs...)
+	ret0, _ := ret[0].(*auth.TrackEventResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TrackEvent indicates an expected call of TrackEvent.
+func (mr *MockAuthServiceClientMockRecorder) TrackEvent(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrackEvent", reflect.TypeOf((*MockAuthServiceClient)(nil).TrackEvent), varargs...)
 }
 
 // UpdateProfile mocks base method.
