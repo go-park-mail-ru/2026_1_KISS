@@ -173,8 +173,12 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_SERVER_ROOT_URL: https://colkiss.ru/grafana/
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-colab}
     depends_on:
       - prometheus
+      - postgres
     networks:
       - app-network
     restart: unless-stopped
