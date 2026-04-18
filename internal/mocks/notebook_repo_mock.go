@@ -41,6 +41,21 @@ func (m *MockNotebookRepository) EXPECT() *MockNotebookRepositoryMockRecorder {
 	return m.recorder
 }
 
+// CountAll mocks base method.
+func (m *MockNotebookRepository) CountAll(ctx context.Context, search string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountAll", ctx, search)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountAll indicates an expected call of CountAll.
+func (mr *MockNotebookRepositoryMockRecorder) CountAll(ctx, search any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountAll", reflect.TypeOf((*MockNotebookRepository)(nil).CountAll), ctx, search)
+}
+
 // CountByOwnerID mocks base method.
 func (m *MockNotebookRepository) CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error) {
 	m.ctrl.T.Helper()
@@ -113,6 +128,21 @@ func (m *MockNotebookRepository) GetByOwnerID(ctx context.Context, ownerID int64
 func (mr *MockNotebookRepositoryMockRecorder) GetByOwnerID(ctx, ownerID, limit, offset, search any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByOwnerID", reflect.TypeOf((*MockNotebookRepository)(nil).GetByOwnerID), ctx, ownerID, limit, offset, search)
+}
+
+// ListAll mocks base method.
+func (m *MockNotebookRepository) ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAll", ctx, limit, offset, search)
+	ret0, _ := ret[0].([]domain.Notebook)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAll indicates an expected call of ListAll.
+func (mr *MockNotebookRepositoryMockRecorder) ListAll(ctx, limit, offset, search any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockNotebookRepository)(nil).ListAll), ctx, limit, offset, search)
 }
 
 // Update mocks base method.

@@ -742,3 +742,58 @@ func TestDeleteBlock_RepoError(t *testing.T) {
 		t.Error("expected error")
 	}
 }
+
+func TestListAll_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebooks := []domain.Notebook{{ID: 1, Title: "nb1"}, {ID: 2, Title: "nb2"}}
+	notebookRepo.EXPECT().ListAll(gomock.Any(), 20, 0, "").
+		Return(notebooks, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
+	result, err := uc.ListAll(context.Background(), 0, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 2 {
+		t.Errorf("want 2 notebooks, got %d", len(result))
+	}
+}
+
+func TestCountAll_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().CountAll(gomock.Any(), "").
+		Return(42, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
+	count, err := uc.CountAll(context.Background(), "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 42 {
+		t.Errorf("want 42, got %d", count)
+	}
+}
+
+func TestAdminDelete_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().Delete(gomock.Any(), int64(42)).
+		Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo)
+	err := uc.AdminDelete(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
