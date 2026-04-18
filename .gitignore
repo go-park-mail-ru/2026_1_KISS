@@ -56,3 +56,6 @@ temp/
 docs/node_modules/
 docs/package-lock.json
 docs/package.json
+
+# Generated protobuf code
+pkg/api/**/*.pb.go

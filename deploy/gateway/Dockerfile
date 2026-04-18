@@ -1,8 +1,10 @@
 FROM golang:1.26-alpine AS builder
+RUN apk --no-cache add protobuf make
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+RUN make proto
 RUN CGO_ENABLED=0 go build -o /app/gateway ./cmd/gateway
 
 FROM alpine:3.19
