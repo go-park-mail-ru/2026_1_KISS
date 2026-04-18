@@ -62,6 +62,46 @@ func (mr *MockNotebookServiceClientMockRecorder) AddBlock(ctx, in any, opts ...a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBlock", reflect.TypeOf((*MockNotebookServiceClient)(nil).AddBlock), varargs...)
 }
 
+// AdminDeleteNotebook mocks base method.
+func (m *MockNotebookServiceClient) AdminDeleteNotebook(ctx context.Context, in *notebook.AdminDeleteNotebookRequest, opts ...grpc.CallOption) (*notebook.DeleteNotebookResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminDeleteNotebook", varargs...)
+	ret0, _ := ret[0].(*notebook.DeleteNotebookResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminDeleteNotebook indicates an expected call of AdminDeleteNotebook.
+func (mr *MockNotebookServiceClientMockRecorder) AdminDeleteNotebook(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminDeleteNotebook", reflect.TypeOf((*MockNotebookServiceClient)(nil).AdminDeleteNotebook), varargs...)
+}
+
+// AdminListNotebooks mocks base method.
+func (m *MockNotebookServiceClient) AdminListNotebooks(ctx context.Context, in *notebook.AdminListNotebooksRequest, opts ...grpc.CallOption) (*notebook.AdminListNotebooksResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminListNotebooks", varargs...)
+	ret0, _ := ret[0].(*notebook.AdminListNotebooksResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminListNotebooks indicates an expected call of AdminListNotebooks.
+func (mr *MockNotebookServiceClientMockRecorder) AdminListNotebooks(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminListNotebooks", reflect.TypeOf((*MockNotebookServiceClient)(nil).AdminListNotebooks), varargs...)
+}
+
 // Create mocks base method.
 func (m *MockNotebookServiceClient) Create(ctx context.Context, in *notebook.CreateNotebookRequest, opts ...grpc.CallOption) (*notebook.NotebookResponse, error) {
 	m.ctrl.T.Helper()

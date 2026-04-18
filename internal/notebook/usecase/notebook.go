@@ -19,6 +19,9 @@ type NotebookService interface {
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 	UpdateBlock(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error)
 	DeleteBlock(ctx context.Context, userID, notebookID, blockID int64) error
+	ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error)
+	CountAll(ctx context.Context, search string) (int, error)
+	AdminDelete(ctx context.Context, notebookID int64) error
 }
 
 type notebookService struct {
@@ -242,4 +245,22 @@ func (s *notebookService) DeleteBlock(ctx context.Context, userID, notebookID, b
 	}
 	logger.Info(ctx, "usecase.notebook.DeleteBlock", "block_id", blockID, "status", "ok")
 	return nil
+}
+
+func (s *notebookService) ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return s.notebookRepo.ListAll(ctx, limit, offset, search)
+}
+
+func (s *notebookService) CountAll(ctx context.Context, search string) (int, error) {
+	return s.notebookRepo.CountAll(ctx, search)
+}
+
+func (s *notebookService) AdminDelete(ctx context.Context, notebookID int64) error {
+	return s.notebookRepo.Delete(ctx, notebookID)
 }

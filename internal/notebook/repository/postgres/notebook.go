@@ -145,3 +145,54 @@ func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64, search
 	logger.Info(ctx, "repo.notebooks.CountByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "count", count)
 	return count, nil
 }
+
+func (r *NotebookRepo) ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error) {
+	start := time.Now()
+	search = likeEscaper.Replace(search)
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, owner_id, title, is_public, created_at, updated_at
+		 FROM notebooks
+		 WHERE ($1 = '' OR title ILIKE '%' || $1 || '%')
+		 ORDER BY id DESC
+		 LIMIT $2 OFFSET $3`,
+		search, limit, offset,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.notebooks.ListAll", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	defer rows.Close()
+
+	notebooks := []domain.Notebook{}
+	for rows.Next() {
+		var nb domain.Notebook
+		if err := rows.Scan(&nb.ID, &nb.OwnerID, &nb.Title, &nb.IsPublic, &nb.CreatedAt, &nb.UpdatedAt); err != nil {
+			logger.Error(ctx, "repo.notebooks.ListAll.scan", "error", err, "duration", time.Since(start))
+			return nil, err
+		}
+		notebooks = append(notebooks, nb)
+	}
+	if err := rows.Err(); err != nil {
+		logger.Error(ctx, "repo.notebooks.ListAll.rows", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	logger.Info(ctx, "repo.notebooks.ListAll", "duration", time.Since(start), "count", len(notebooks))
+	return notebooks, nil
+}
+
+func (r *NotebookRepo) CountAll(ctx context.Context, search string) (int, error) {
+	start := time.Now()
+	search = likeEscaper.Replace(search)
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM notebooks
+		 WHERE ($1 = '' OR title ILIKE '%' || $1 || '%')`,
+		search,
+	).Scan(&count)
+	if err != nil {
+		logger.Error(ctx, "repo.notebooks.CountAll", "error", err, "duration", time.Since(start))
+		return 0, err
+	}
+	logger.Info(ctx, "repo.notebooks.CountAll", "duration", time.Since(start), "count", count)
+	return count, nil
+}

@@ -47,6 +47,14 @@ func (a *NotebookAdapter) CountByOwnerID(_ context.Context, _ int64, _ string) (
 	return 0, errNotSupported
 }
 
+func (a *NotebookAdapter) ListAll(_ context.Context, _, _ int, _ string) ([]domain.Notebook, error) {
+	return nil, errNotSupported
+}
+
+func (a *NotebookAdapter) CountAll(_ context.Context, _ string) (int, error) {
+	return 0, errNotSupported
+}
+
 type BlockAdapter struct {
 	client pb.NotebookServiceClient
 }

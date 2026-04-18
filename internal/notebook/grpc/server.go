@@ -114,6 +114,36 @@ func (s *Server) GetBlocksByNotebookID(ctx context.Context, req *pb.GetBlocksReq
 	return &pb.GetBlocksResponse{Blocks: items}, nil
 }
 
+func (s *Server) AdminListNotebooks(ctx context.Context, req *pb.AdminListNotebooksRequest) (*pb.AdminListNotebooksResponse, error) {
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 20
+	}
+	notebooks, err := s.notebookUC.ListAll(ctx, limit, int(req.GetOffset()), req.GetSearch())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	total, err := s.notebookUC.CountAll(ctx, req.GetSearch())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	items := make([]*pb.NotebookInfo, len(notebooks))
+	for i := range notebooks {
+		items[i] = notebookToProto(&notebooks[i])
+	}
+	return &pb.AdminListNotebooksResponse{
+		Notebooks: items,
+		Total:     int32(total), //nolint:gosec // total notebooks count fits int32
+	}, nil
+}
+
+func (s *Server) AdminDeleteNotebook(ctx context.Context, req *pb.AdminDeleteNotebookRequest) (*pb.DeleteNotebookResponse, error) {
+	if err := s.notebookUC.AdminDelete(ctx, req.GetNotebookId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.DeleteNotebookResponse{}, nil
+}
+
 func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 	if nb == nil {
 		return nil

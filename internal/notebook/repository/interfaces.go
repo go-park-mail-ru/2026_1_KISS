@@ -14,6 +14,8 @@ type NotebookRepository interface {
 	Update(ctx context.Context, notebook *domain.Notebook) error
 	Delete(ctx context.Context, id int64) error
 	CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error)
+	ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error)
+	CountAll(ctx context.Context, search string) (int, error)
 }
 
 type BlockRepository interface {
