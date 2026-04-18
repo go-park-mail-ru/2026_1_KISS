@@ -95,9 +95,9 @@ func TestUserRepo_GetByID_Success(t *testing.T) {
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
-		"avatar_url", "status", "description",
+		"avatar_url", "status", "description", "is_admin",
 		"created_at", "updated_at",
-	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "avatar.png", "active", "desc", now, now)
+	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "avatar.png", "active", "desc", false, now, now)
 
 	mock.ExpectQuery("SELECT .+ FROM users WHERE id").
 		WithArgs(int64(1)).
@@ -160,9 +160,9 @@ func TestUserRepo_GetByEmail_Success(t *testing.T) {
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
-		"avatar_url", "status", "description",
+		"avatar_url", "status", "description", "is_admin",
 		"created_at", "updated_at",
-	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", now, now)
+	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", false, now, now)
 
 	mock.ExpectQuery("SELECT .+ FROM users WHERE email").
 		WithArgs("test@example.com").
@@ -451,6 +451,163 @@ func TestUserRepo_UpdateEmail_NotFound(t *testing.T) {
 	err = repo.UpdateEmail(context.Background(), 999, "new@example.com")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_ListAll_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	now := time.Now()
+	countRows := sqlmock.NewRows([]string{"count"}).AddRow(int64(2))
+	dataRows := sqlmock.NewRows([]string{
+		"id", "username", "email", "password_hash",
+		"avatar_url", "status", "description", "is_admin",
+		"created_at", "updated_at",
+	}).
+		AddRow(int64(1), "user1", "user1@example.com", "hash1", "", "", "", false, now, now).
+		AddRow(int64(2), "user2", "user2@example.com", "hash2", "", "", "", false, now, now)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WillReturnRows(countRows)
+	mock.ExpectQuery("SELECT id, username").
+		WithArgs(10, 0).
+		WillReturnRows(dataRows)
+
+	users, total, err := repo.ListAll(context.Background(), 10, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if total != 2 || len(users) != 2 {
+		t.Fatalf("expected 2 users, got %d", len(users))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_SetBanned_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET status").
+		WithArgs("banned", int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.SetBanned(context.Background(), 1, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_ListAll_WithSearch(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	now := time.Now()
+	countRows := sqlmock.NewRows([]string{"count"}).AddRow(int64(1))
+	dataRows := sqlmock.NewRows([]string{
+		"id", "username", "email", "password_hash",
+		"avatar_url", "status", "description", "is_admin",
+		"created_at", "updated_at",
+	}).
+		AddRow(int64(1), "searchuser", "search@example.com", "hash1", "", "", "", false, now, now)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("searchterm").
+		WillReturnRows(countRows)
+	mock.ExpectQuery("SELECT id, username").
+		WithArgs("searchterm", 10, 0).
+		WillReturnRows(dataRows)
+
+	users, total, err := repo.ListAll(context.Background(), 10, 0, "searchterm")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if total != 1 || len(users) != 1 {
+		t.Fatalf("expected 1 user, got %d", len(users))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_SetBanned_Unban(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET status").
+		WithArgs("", int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.SetBanned(context.Background(), 1, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_ListAll_Empty(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	countRows := sqlmock.NewRows([]string{"count"}).AddRow(int64(0))
+	dataRows := sqlmock.NewRows([]string{
+		"id", "username", "email", "password_hash",
+		"avatar_url", "status", "description", "is_admin",
+		"created_at", "updated_at",
+	})
+
+	mock.ExpectQuery("SELECT COUNT").
+		WillReturnRows(countRows)
+	mock.ExpectQuery("SELECT id, username").
+		WithArgs(10, 0).
+		WillReturnRows(dataRows)
+
+	users, total, err := repo.ListAll(context.Background(), 10, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if total != 0 || len(users) != 0 {
+		t.Fatalf("expected 0 users, got %d", len(users))
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
