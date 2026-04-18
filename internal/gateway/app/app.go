@@ -56,15 +56,20 @@ func New(cfg *config.Config) (*App, error) {
 	notebookHandler := handler.NewNotebookHandler(nbClient)
 	runnerHandler := handler.NewRunnerHandler(runClient)
 	healthHandler := handler.NewHealthHandler()
+	eventHandler := handler.NewEventHandler(authClient)
+	adminHandler := handler.NewAdminHandler(authClient, nbClient)
 
 	mux := http.NewServeMux()
 	authMw := gwmw.Auth(authClient)
+	adminMw := gwmw.AdminOnly()
 
 	authHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
 	runnerHandler.RegisterRoutes(mux, authMw)
 	profileHandler.RegisterRoutes(mux, authMw)
 	healthHandler.RegisterRoutes(mux)
+	eventHandler.RegisterRoutes(mux, authMw)
+	adminHandler.RegisterRoutes(mux, authMw, adminMw)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())
