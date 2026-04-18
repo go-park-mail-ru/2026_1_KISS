@@ -290,8 +290,8 @@
       "id": 9,
       "targets": [
         {
-          "expr": "1 - (node_filesystem_avail_bytes{job=\"node-exporter\", mountpoint=\"/\", fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"node-exporter\", mountpoint=\"/\", fstype!=\"tmpfs\"})",
-          "legendFormat": "Disk Usage /"
+          "expr": "1 - (node_filesystem_avail_bytes{job=\"node-exporter\", fstype=~\"ext4|xfs|btrfs\"} / node_filesystem_size_bytes{job=\"node-exporter\", fstype=~\"ext4|xfs|btrfs\"})",
+          "legendFormat": "{{ mountpoint }}"
         }
       ],
       "title": "Disk Usage",
