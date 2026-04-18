@@ -19,6 +19,9 @@ func NewEventUsecase(eventRepo repository.EventRepository) *EventUsecase {
 func (uc *EventUsecase) Track(ctx context.Context, userID int64, eventType string, metadataJSON string) error {
 	var metadata json.RawMessage
 	if metadataJSON != "" {
+		if !json.Valid([]byte(metadataJSON)) {
+			return domain.ErrInvalidInput
+		}
 		metadata = json.RawMessage(metadataJSON)
 	}
 	event := &domain.UserEvent{
