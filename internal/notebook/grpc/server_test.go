@@ -23,6 +23,7 @@ type testEnv struct {
 	client       pb.NotebookServiceClient
 	notebookRepo *mocks.MockNotebookRepository
 	blockRepo    *mocks.MockBlockRepository
+	permRepo     *mocks.MockPermissionRepository
 	conn         *grpc.ClientConn
 }
 
@@ -32,7 +33,8 @@ func setup(t *testing.T) *testEnv {
 
 	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
 	blockRepo := mocks.NewMockBlockRepository(ctrl)
-	notebookUC := usecase.New(notebookRepo, blockRepo)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	notebookUC := usecase.New(notebookRepo, blockRepo, permRepo)
 	srv := NewServer(notebookUC, blockRepo)
 
 	lis := bufconn.Listen(1024 * 1024)
@@ -64,6 +66,7 @@ func setup(t *testing.T) *testEnv {
 		client:       pb.NewNotebookServiceClient(conn),
 		notebookRepo: notebookRepo,
 		blockRepo:    blockRepo,
+		permRepo:     permRepo,
 		conn:         conn,
 	}
 }
@@ -122,6 +125,8 @@ func TestGetByID_Forbidden(t *testing.T) {
 		ID:      1,
 		OwnerID: 99,
 	}, nil)
+	env.permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(1)).
+		Return(nil, domain.ErrNotFound)
 
 	_, err := env.client.GetByID(context.Background(), &pb.GetNotebookRequest{
 		UserId:     1,
@@ -187,13 +192,17 @@ func TestAddBlock_Success(t *testing.T) {
 func TestGetBlocksByNotebookID_Success(t *testing.T) {
 	env := setup(t)
 
+	env.notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(&domain.Notebook{
+		ID: 1, OwnerID: 1,
+	}, nil)
 	env.blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).Return([]domain.Block{
 		{ID: 10, NotebookID: 1, Type: "code", Position: 0},
 		{ID: 11, NotebookID: 1, Type: "text", Position: 1},
-	}, nil)
+	}, nil).Times(2)
 
 	resp, err := env.client.GetBlocksByNotebookID(context.Background(), &pb.GetBlocksRequest{
 		NotebookId: 1,
+		UserId:     1,
 	})
 	if err != nil {
 		t.Fatalf("get blocks: %v", err)

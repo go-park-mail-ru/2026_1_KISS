@@ -202,6 +202,26 @@ func (mr *MockNotebookServiceClientMockRecorder) GetByID(ctx, in any, opts ...an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockNotebookServiceClient)(nil).GetByID), varargs...)
 }
 
+// GrantPermission mocks base method.
+func (m *MockNotebookServiceClient) GrantPermission(ctx context.Context, in *notebook.GrantPermissionRequest, opts ...grpc.CallOption) (*notebook.GrantPermissionResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GrantPermission", varargs...)
+	ret0, _ := ret[0].(*notebook.GrantPermissionResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GrantPermission indicates an expected call of GrantPermission.
+func (mr *MockNotebookServiceClientMockRecorder) GrantPermission(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrantPermission", reflect.TypeOf((*MockNotebookServiceClient)(nil).GrantPermission), varargs...)
+}
+
 // ListByUser mocks base method.
 func (m *MockNotebookServiceClient) ListByUser(ctx context.Context, in *notebook.ListNotebooksRequest, opts ...grpc.CallOption) (*notebook.ListNotebooksResponse, error) {
 	m.ctrl.T.Helper()
@@ -220,6 +240,66 @@ func (mr *MockNotebookServiceClientMockRecorder) ListByUser(ctx, in any, opts ..
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByUser", reflect.TypeOf((*MockNotebookServiceClient)(nil).ListByUser), varargs...)
+}
+
+// ListPermissions mocks base method.
+func (m *MockNotebookServiceClient) ListPermissions(ctx context.Context, in *notebook.ListPermissionsRequest, opts ...grpc.CallOption) (*notebook.ListPermissionsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListPermissions", varargs...)
+	ret0, _ := ret[0].(*notebook.ListPermissionsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPermissions indicates an expected call of ListPermissions.
+func (mr *MockNotebookServiceClientMockRecorder) ListPermissions(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPermissions", reflect.TypeOf((*MockNotebookServiceClient)(nil).ListPermissions), varargs...)
+}
+
+// ListSharedWithUser mocks base method.
+func (m *MockNotebookServiceClient) ListSharedWithUser(ctx context.Context, in *notebook.ListSharedWithUserRequest, opts ...grpc.CallOption) (*notebook.ListNotebooksResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListSharedWithUser", varargs...)
+	ret0, _ := ret[0].(*notebook.ListNotebooksResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSharedWithUser indicates an expected call of ListSharedWithUser.
+func (mr *MockNotebookServiceClientMockRecorder) ListSharedWithUser(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSharedWithUser", reflect.TypeOf((*MockNotebookServiceClient)(nil).ListSharedWithUser), varargs...)
+}
+
+// RevokePermission mocks base method.
+func (m *MockNotebookServiceClient) RevokePermission(ctx context.Context, in *notebook.RevokePermissionRequest, opts ...grpc.CallOption) (*notebook.RevokePermissionResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RevokePermission", varargs...)
+	ret0, _ := ret[0].(*notebook.RevokePermissionResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokePermission indicates an expected call of RevokePermission.
+func (mr *MockNotebookServiceClientMockRecorder) RevokePermission(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokePermission", reflect.TypeOf((*MockNotebookServiceClient)(nil).RevokePermission), varargs...)
 }
 
 // Update mocks base method.

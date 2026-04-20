@@ -56,6 +56,37 @@ func (a *NotebookAdapter) CountAll(_ context.Context, _ string) (int, error) {
 	return 0, errNotSupported
 }
 
+func (a *NotebookAdapter) GetSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
+	resp, err := a.client.ListSharedWithUser(ctx, &pb.ListSharedWithUserRequest{
+		UserId: userID,
+		Limit:  int32(limit),  //nolint:gosec // pagination limit fits int32
+		Offset: int32(offset), //nolint:gosec // pagination offset fits int32
+	})
+	if err != nil {
+		return nil, err
+	}
+	notebooks := make([]domain.Notebook, len(resp.GetNotebooks()))
+	for i, nb := range resp.GetNotebooks() {
+		n := protoToNotebook(nb)
+		if n != nil {
+			notebooks[i] = *n
+		}
+	}
+	return notebooks, nil
+}
+
+func (a *NotebookAdapter) CountSharedWithUser(ctx context.Context, userID int64) (int, error) {
+	resp, err := a.client.ListSharedWithUser(ctx, &pb.ListSharedWithUserRequest{
+		UserId: userID,
+		Limit:  0,
+		Offset: 0,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return int(resp.GetTotal()), nil
+}
+
 type BlockAdapter struct {
 	client pb.NotebookServiceClient
 }

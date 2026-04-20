@@ -35,7 +35,8 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 
 	notebookRepo := nbpg.NewNotebookRepository(db)
 	blockRepo := nbpg.NewBlockRepository(db)
-	notebookUC := nbusecase.New(notebookRepo, blockRepo)
+	permRepo := nbpg.NewPermissionRepository(db)
+	notebookUC := nbusecase.New(notebookRepo, blockRepo, permRepo)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
