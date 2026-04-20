@@ -17,6 +17,11 @@ service NotebookService {
 
   rpc AdminListNotebooks(AdminListNotebooksRequest) returns (AdminListNotebooksResponse);
   rpc AdminDeleteNotebook(AdminDeleteNotebookRequest) returns (DeleteNotebookResponse);
+
+  rpc GrantPermission(GrantPermissionRequest) returns (GrantPermissionResponse);
+  rpc RevokePermission(RevokePermissionRequest) returns (RevokePermissionResponse);
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+  rpc ListSharedWithUser(ListSharedWithUserRequest) returns (ListNotebooksResponse);
 }
 
 message NotebookInfo {
@@ -134,4 +139,42 @@ message AdminListNotebooksResponse {
 
 message AdminDeleteNotebookRequest {
   int64 notebook_id = 1;
+}
+
+message PermissionInfo {
+  int64 notebook_id = 1;
+  int64 user_id = 2;
+  string permission_level = 3;
+}
+
+message GrantPermissionRequest {
+  int64 requester_id = 1;
+  int64 notebook_id = 2;
+  int64 target_user_id = 3;
+  string level = 4;
+}
+
+message GrantPermissionResponse {}
+
+message RevokePermissionRequest {
+  int64 requester_id = 1;
+  int64 notebook_id = 2;
+  int64 target_user_id = 3;
+}
+
+message RevokePermissionResponse {}
+
+message ListPermissionsRequest {
+  int64 requester_id = 1;
+  int64 notebook_id = 2;
+}
+
+message ListPermissionsResponse {
+  repeated PermissionInfo permissions = 1;
+}
+
+message ListSharedWithUserRequest {
+  int64 user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
 }

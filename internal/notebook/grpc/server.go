@@ -142,6 +142,55 @@ func (s *Server) AdminDeleteNotebook(ctx context.Context, req *pb.AdminDeleteNot
 	return &pb.DeleteNotebookResponse{}, nil
 }
 
+func (s *Server) GrantPermission(ctx context.Context, req *pb.GrantPermissionRequest) (*pb.GrantPermissionResponse, error) {
+	err := s.notebookUC.GrantPermission(ctx, req.GetRequesterId(), req.GetNotebookId(), req.GetTargetUserId(), req.GetLevel())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.GrantPermissionResponse{}, nil
+}
+
+func (s *Server) RevokePermission(ctx context.Context, req *pb.RevokePermissionRequest) (*pb.RevokePermissionResponse, error) {
+	err := s.notebookUC.RevokePermission(ctx, req.GetRequesterId(), req.GetNotebookId(), req.GetTargetUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.RevokePermissionResponse{}, nil
+}
+
+func (s *Server) ListPermissions(ctx context.Context, req *pb.ListPermissionsRequest) (*pb.ListPermissionsResponse, error) {
+	perms, err := s.notebookUC.ListPermissions(ctx, req.GetRequesterId(), req.GetNotebookId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	items := make([]*pb.PermissionInfo, len(perms))
+	for i, p := range perms {
+		items[i] = &pb.PermissionInfo{
+			NotebookId:      p.NotebookID,
+			UserId:          p.UserID,
+			PermissionLevel: p.PermissionLevel,
+		}
+	}
+	return &pb.ListPermissionsResponse{Permissions: items}, nil
+}
+
+func (s *Server) ListSharedWithUser(ctx context.Context, req *pb.ListSharedWithUserRequest) (*pb.ListNotebooksResponse, error) {
+	notebooks, total, err := s.notebookUC.ListSharedWithUser(ctx, req.GetUserId(), int(req.GetLimit()), int(req.GetOffset()))
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	items := make([]*pb.NotebookInfo, len(notebooks))
+	for i := range notebooks {
+		items[i] = notebookToProto(&notebooks[i])
+	}
+	return &pb.ListNotebooksResponse{
+		Notebooks: items,
+		Total:     int32(total), //nolint:gosec // total count fits int32
+		Limit:     req.GetLimit(),
+		Offset:    req.GetOffset(),
+	}, nil
+}
+
 func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 	if nb == nil {
 		return nil
