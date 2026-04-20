@@ -72,27 +72,6 @@ func TestGetByID_PublicAccess(t *testing.T) {
 	}
 }
 
-func TestGetByID_InternalAccess(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
-	blockRepo := mocks.NewMockBlockRepository(ctrl)
-
-	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
-		Return(&domain.Notebook{ID: 42, OwnerID: 99, IsPublic: false}, nil)
-	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(42)).
-		Return([]domain.Block{}, nil)
-
-	uc := usecase.New(notebookRepo, blockRepo)
-	nb, err := uc.GetByID(context.Background(), 0, 42)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if nb == nil {
-		t.Fatal("expected notebook, got nil")
-	}
-}
-
 func TestDelete_Forbidden(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

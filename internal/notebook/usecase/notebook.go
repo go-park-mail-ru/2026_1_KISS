@@ -62,7 +62,7 @@ func (s *notebookService) GetByID(ctx context.Context, userID, notebookID int64)
 		logger.Error(ctx, "usecase.notebook.GetByID", "error", err)
 		return nil, err
 	}
-	if userID != 0 && nb.OwnerID != userID && !nb.IsPublic {
+	if nb.OwnerID != userID && !nb.IsPublic {
 		logger.Error(ctx, "usecase.notebook.GetByID", "error", domain.ErrForbidden)
 		return nil, domain.ErrForbidden
 	}
