@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/ctxutil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
@@ -27,6 +28,7 @@ func (s *Server) ExecuteFromPosition(ctx context.Context, req *pb.ExecuteFromPos
 	if err := s.checkNotebookAccess(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
 		return nil, err
 	}
+	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
 	if err := s.runnerSvc.StartSession(ctx, req.GetNotebookId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
@@ -48,6 +50,7 @@ func (s *Server) ExecuteBlock(ctx context.Context, req *pb.ExecuteBlockRequest) 
 	if err := s.checkNotebookAccess(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
 		return nil, err
 	}
+	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
 	if err := s.runnerSvc.StartSession(ctx, req.GetNotebookId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
@@ -64,6 +67,7 @@ func (s *Server) StopSession(ctx context.Context, req *pb.StopSessionRequest) (*
 	if err := s.checkNotebookAccess(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
 		return nil, err
 	}
+	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
 	if err := s.runnerSvc.StopSession(ctx, req.GetNotebookId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
