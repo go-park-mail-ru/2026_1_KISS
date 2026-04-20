@@ -3,13 +3,24 @@
   "info": {
     "title": "KISS Notebook API",
     "version": "1.0.0",
-    "description": "REST API for collaborative Jupyter-like notebook platform"
+    "description": "REST API for collaborative Jupyter-like notebook platform.\n\nAll successful responses are wrapped in `{\"data\": ...}`; errors in `{\"error\": \"message\"}`.\n\n**Auth flow in Swagger UI:**\n1. `POST /api/v1/auth/login` — response sets `session_id` and `csrf_token` cookies.\n2. Copy the `csrf_token` cookie value.\n3. Click **Authorize**: set `cookieAuth` = `session_id` value, set `csrfToken` = `csrf_token` value.\n4. All subsequent mutating requests will include `X-CSRF-Token` header automatically."
   },
   "servers": [
     {
-      "url": "http://localhost:8080",
+      "url": "http://localhost:8083",
       "description": "Local development"
     }
+  ],
+  "tags": [
+    { "name": "auth" },
+    { "name": "profile" },
+    { "name": "notebooks" },
+    { "name": "blocks" },
+    { "name": "permissions" },
+    { "name": "runner" },
+    { "name": "events" },
+    { "name": "admin" },
+    { "name": "health" }
   ],
   "paths": {
     "/api/v1/auth/register": {
@@ -20,9 +31,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
             }
           }
         },
@@ -31,9 +40,7 @@
             "description": "User created",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataUserResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
               }
             }
           },
@@ -50,26 +57,22 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Login successful",
+            "description": "Login successful. Sets `session_id` and `csrf_token` cookies.",
             "headers": {
               "Set-Cookie": {
                 "schema": { "type": "string" },
-                "description": "session_id cookie"
+                "description": "session_id and csrf_token cookies"
               }
             },
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataUserResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
               }
             }
           },
@@ -84,8 +87,14 @@
         "summary": "Logout and destroy session",
         "security": [{ "cookieAuth": [] }],
         "responses": {
-          "204": { "description": "Logged out" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Logged out (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          }
         }
       }
     },
@@ -99,13 +108,132 @@
             "description": "Current user",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataUserResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
               }
             }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "Update profile (username, status, description)",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/users/me/avatar": {
+      "post": {
+        "tags": ["profile"],
+        "summary": "Upload avatar image",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["avatar"],
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Avatar image file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Avatar uploaded; returns updated user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" }
+        }
+      }
+    },
+    "/api/v1/users/me/password": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "Change password",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/users/me/email": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "Change email",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangeEmailRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email changed; returns updated user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         }
       }
     },
@@ -115,25 +243,16 @@
         "summary": "List user notebooks",
         "security": [{ "cookieAuth": [] }],
         "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": { "type": "integer", "default": 20, "maximum": 100 }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "schema": { "type": "integer", "default": 0 }
-          }
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Title substring filter" }
         ],
         "responses": {
           "200": {
             "description": "Paginated notebook list",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataNotebookListResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataNotebookListResponse" }
               }
             }
           },
@@ -148,9 +267,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateNotebookRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateNotebookRequest" }
             }
           }
         },
@@ -159,9 +276,7 @@
             "description": "Notebook created",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataNotebookResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataNotebookResponse" }
               }
             }
           },
@@ -170,22 +285,40 @@
         }
       }
     },
+    "/api/v1/notebooks/shared": {
+      "get": {
+        "tags": ["notebooks"],
+        "summary": "List notebooks shared with the current user",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of shared notebooks",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
     "/api/v1/notebooks/{id}": {
       "get": {
         "tags": ["notebooks"],
-        "summary": "Get notebook by ID",
+        "summary": "Get notebook by ID (with blocks)",
         "security": [{ "cookieAuth": [] }],
-        "parameters": [
-          { "$ref": "#/components/parameters/NotebookID" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
         "responses": {
           "200": {
             "description": "Notebook with blocks",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataNotebookResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataNotebookResponse" }
               }
             }
           },
@@ -199,16 +332,12 @@
         "tags": ["notebooks"],
         "summary": "Update notebook",
         "security": [{ "cookieAuth": [] }],
-        "parameters": [
-          { "$ref": "#/components/parameters/NotebookID" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateNotebookRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateNotebookRequest" }
             }
           }
         },
@@ -217,9 +346,7 @@
             "description": "Notebook updated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataNotebookResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataNotebookResponse" }
               }
             }
           },
@@ -233,11 +360,16 @@
         "tags": ["notebooks"],
         "summary": "Delete notebook",
         "security": [{ "cookieAuth": [] }],
-        "parameters": [
-          { "$ref": "#/components/parameters/NotebookID" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
         "responses": {
-          "204": { "description": "Notebook deleted" },
+          "200": {
+            "description": "Notebook deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -250,16 +382,12 @@
         "tags": ["blocks"],
         "summary": "Add block to notebook",
         "security": [{ "cookieAuth": [] }],
-        "parameters": [
-          { "$ref": "#/components/parameters/NotebookID" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateBlockRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateBlockRequest" }
             }
           }
         },
@@ -268,9 +396,7 @@
             "description": "Block created",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataBlockResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataBlockResponse" }
               }
             }
           },
@@ -294,9 +420,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBlockRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateBlockRequest" }
             }
           }
         },
@@ -305,9 +429,7 @@
             "description": "Block updated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataBlockResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/DataBlockResponse" }
               }
             }
           },
@@ -326,11 +448,331 @@
           { "$ref": "#/components/parameters/BlockID" }
         ],
         "responses": {
-          "204": { "description": "Block deleted" },
+          "200": {
+            "description": "Block deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions": {
+      "get": {
+        "tags": ["permissions"],
+        "summary": "List permissions granted on a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Permission list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionListResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions/{userID}": {
+      "put": {
+        "tags": ["permissions"],
+        "summary": "Grant a permission level to a user on a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/UserID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrantPermissionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permission granted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["permissions"],
+        "summary": "Revoke a user's permission on a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/UserID" }
+        ],
+        "responses": {
+          "204": { "description": "Permission revoked" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/runner/{notebook_id}": {
+      "post": {
+        "tags": ["runner"],
+        "summary": "Execute all blocks from a given position",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/RunnerNotebookID" },
+          {
+            "name": "block_position",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Starting block position (inclusive)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of per-block execution results",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataExecutionResultList" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/runner/{notebook_id}/block": {
+      "post": {
+        "tags": ["runner"],
+        "summary": "Execute a single block",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/RunnerNotebookID" },
+          {
+            "name": "block_position",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Block position to execute"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution result for the block",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataExecutionResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/runner/{notebook_id}/stop": {
+      "post": {
+        "tags": ["runner"],
+        "summary": "Stop the runner session (kill container) for a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/RunnerNotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Session stopped (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/events/track": {
+      "post": {
+        "tags": ["events"],
+        "summary": "Track a user analytics event",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TrackEventRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event recorded (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all users (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of users",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminUserListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/ban": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Ban a user (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserPathID" }],
+        "responses": {
+          "200": {
+            "description": "User banned (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/unban": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Unban a user (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserPathID" }],
+        "responses": {
+          "200": {
+            "description": "User unbanned (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/notebooks": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all notebooks (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of notebooks",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminNotebookListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/notebooks/{id}": {
+      "delete": {
+        "tags": ["admin"],
+        "summary": "Delete any notebook (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Notebook deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Get aggregate platform stats (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Aggregate stats",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminStatsResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -358,12 +800,10 @@
             }
           },
           "503": {
-            "description": "Database unreachable",
+            "description": "Service unhealthy",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
           }
@@ -388,6 +828,24 @@
       },
       "BlockID": {
         "name": "blockID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "UserID": {
+        "name": "userID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "UserPathID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "RunnerNotebookID": {
+        "name": "notebook_id",
         "in": "path",
         "required": true,
         "schema": { "type": "integer", "format": "int64" }
@@ -433,6 +891,14 @@
             "schema": { "$ref": "#/components/schemas/ErrorResponse" }
           }
         }
+      },
+      "PayloadTooLarge": {
+        "description": "Uploaded file exceeds the server limit",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
       }
     },
     "schemas": {
@@ -440,6 +906,12 @@
         "type": "object",
         "properties": {
           "error": { "type": "string" }
+        }
+      },
+      "DataNullResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "null", "nullable": true }
         }
       },
       "RegisterRequest": {
@@ -459,13 +931,42 @@
           "password": { "type": "string" }
         }
       },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "status": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": ["current_password", "new_password"],
+        "properties": {
+          "current_password": { "type": "string" },
+          "new_password": { "type": "string", "minLength": 8 }
+        }
+      },
+      "ChangeEmailRequest": {
+        "type": "object",
+        "required": ["new_email", "password"],
+        "properties": {
+          "new_email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
       "UserResponse": {
         "type": "object",
         "properties": {
           "id": { "type": "integer", "format": "int64" },
           "username": { "type": "string" },
-          "email": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" }
+          "email": { "type": "string", "format": "email" },
+          "avatar_url": { "type": "string" },
+          "status": { "type": "string" },
+          "description": { "type": "string" },
+          "is_admin": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
         }
       },
       "DataUserResponse": {
@@ -530,8 +1031,8 @@
       "CreateBlockRequest": {
         "type": "object",
         "properties": {
-          "type": { "type": "string" },
-          "language": { "type": "string" },
+          "type": { "type": "string", "description": "e.g. `code`, `text`" },
+          "language": { "type": "string", "description": "e.g. `python`, `markdown`" },
           "content": { "type": "string" }
         }
       },
@@ -558,6 +1059,140 @@
         "type": "object",
         "properties": {
           "data": { "$ref": "#/components/schemas/BlockResponse" }
+        }
+      },
+      "GrantPermissionRequest": {
+        "type": "object",
+        "required": ["level"],
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["read", "write"],
+            "description": "Permission level to grant"
+          }
+        }
+      },
+      "PermissionResponse": {
+        "type": "object",
+        "properties": {
+          "notebook_id": { "type": "integer", "format": "int64" },
+          "user_id": { "type": "integer", "format": "int64" },
+          "permission_level": { "type": "string", "enum": ["read", "write"] }
+        }
+      },
+      "DataPermissionResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PermissionResponse" }
+        }
+      },
+      "PermissionListResponse": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PermissionResponse" }
+          }
+        }
+      },
+      "DataPermissionListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PermissionListResponse" }
+        }
+      },
+      "ExecutionResult": {
+        "type": "object",
+        "properties": {
+          "block_id": { "type": "integer", "format": "int64" },
+          "position": { "type": "integer" },
+          "stdout": { "type": "array", "items": { "type": "string" } },
+          "stderr": { "type": "array", "items": { "type": "string" } },
+          "result": { "type": "string" },
+          "error": { "type": "string" },
+          "executed_at": { "type": "string", "format": "date-time" },
+          "duration": { "type": "string", "description": "Go Duration string, e.g. `125ms`" }
+        }
+      },
+      "DataExecutionResult": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/ExecutionResult" }
+        }
+      },
+      "DataExecutionResultList": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ExecutionResult" }
+          }
+        }
+      },
+      "TrackEventRequest": {
+        "type": "object",
+        "required": ["event_type"],
+        "properties": {
+          "event_type": { "type": "string" },
+          "metadata": { "type": "string", "description": "Arbitrary JSON-encoded metadata" }
+        }
+      },
+      "AdminUserListResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserResponse" }
+          },
+          "total": { "type": "integer" }
+        }
+      },
+      "DataAdminUserListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminUserListResponse" }
+        }
+      },
+      "AdminNotebookItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "owner_id": { "type": "integer", "format": "int64" },
+          "title": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AdminNotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "notebooks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminNotebookItem" }
+          },
+          "total": { "type": "integer" }
+        }
+      },
+      "DataAdminNotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminNotebookListResponse" }
+        }
+      },
+      "AdminStatsResponse": {
+        "type": "object",
+        "properties": {
+          "total_users": { "type": "integer" },
+          "total_sessions": { "type": "integer" },
+          "dau": { "type": "integer", "description": "Daily active users" },
+          "mau": { "type": "integer", "description": "Monthly active users" }
+        }
+      },
+      "DataAdminStatsResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminStatsResponse" }
         }
       }
     }
