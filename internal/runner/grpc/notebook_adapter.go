@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/ctxutil"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 )
 
@@ -24,7 +25,7 @@ func (a *NotebookAdapter) Create(_ context.Context, _ *domain.Notebook) (int64, 
 }
 
 func (a *NotebookAdapter) GetByID(ctx context.Context, id int64) (*domain.Notebook, error) {
-	resp, err := a.client.GetByID(ctx, &pb.GetNotebookRequest{NotebookId: id})
+	resp, err := a.client.GetByID(ctx, &pb.GetNotebookRequest{NotebookId: id, UserId: ctxutil.UserIDFromContext(ctx)})
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func (a *BlockAdapter) GetByID(_ context.Context, _ int64) (*domain.Block, error
 }
 
 func (a *BlockAdapter) GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error) {
-	resp, err := a.client.GetBlocksByNotebookID(ctx, &pb.GetBlocksRequest{NotebookId: notebookID})
+	resp, err := a.client.GetBlocksByNotebookID(ctx, &pb.GetBlocksRequest{NotebookId: notebookID, UserId: ctxutil.UserIDFromContext(ctx)})
 	if err != nil {
 		return nil, err
 	}

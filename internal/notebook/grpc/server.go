@@ -97,10 +97,8 @@ func (s *Server) DeleteBlock(ctx context.Context, req *pb.DeleteBlockRequest) (*
 }
 
 func (s *Server) GetBlocksByNotebookID(ctx context.Context, req *pb.GetBlocksRequest) (*pb.GetBlocksResponse, error) {
-	if req.GetUserId() != 0 {
-		if _, err := s.notebookUC.GetByID(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
-			return nil, grpcutil.DomainToGRPCError(err)
-		}
+	if _, err := s.notebookUC.GetByID(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
 	}
 
 	blocks, err := s.blockRepo.GetByNotebookID(ctx, req.GetNotebookId())
