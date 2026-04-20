@@ -87,6 +87,10 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 		return nil, fmt.Errorf("decode image: %w", decErr)
 	}
 
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("seek file after decode: %w", err)
+	}
+
 	bounds := img.Bounds()
 	dx, dy := bounds.Dx(), bounds.Dy()
 

@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -231,6 +232,42 @@ func TestUploadAvatar_NoOldAvatar(t *testing.T) {
 	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
 
 	data := encodeJPEG(makeTestImage(4, 4))
+	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestUploadAvatar_SquareImageDataIntegrity(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	user := testUser()
+	repo := mocks.NewMockUserRepository(ctrl)
+	fs := mocks.NewMockFileStorage(ctrl)
+
+	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
+	fs.EXPECT().Save(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ string, data io.Reader) (string, error) {
+			content, err := io.ReadAll(data)
+			if err != nil {
+				t.Fatalf("failed to read data: %v", err)
+			}
+			if len(content) == 0 {
+				t.Fatal("Save received empty reader for square image")
+			}
+			if _, _, err := image.Decode(bytes.NewReader(content)); err != nil {
+				t.Fatalf("Save received invalid image data: %v", err)
+			}
+			return "/uploads/new.png", nil
+		})
+	repo.EXPECT().UpdateAvatarURL(gomock.Any(), int64(1), "/uploads/new.png").Return(nil)
+	fs.EXPECT().Delete(user.AvatarURL).Return(nil)
+	repo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
+
+	uc := usecase.NewProfileUsecase(repo, fs, 2<<20)
+
+	data := encodePNG(makeTestImage(4, 4))
 	_, err := uc.UploadAvatar(t.Context(), 1, bytes.NewReader(data), int64(len(data)), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
