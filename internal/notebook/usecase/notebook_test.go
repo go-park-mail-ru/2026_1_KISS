@@ -809,3 +809,324 @@ func TestAdminDelete_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestGrantPermission_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	err := uc.GrantPermission(context.Background(), 10, 1, 20, domain.PermissionEditor)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGrantPermission_InvalidLevel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	err := uc.GrantPermission(context.Background(), 10, 1, 20, "invalid")
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestGrantPermission_NotOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	err := uc.GrantPermission(context.Background(), 99, 1, 20, domain.PermissionEditor)
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestGrantPermission_SelfGrant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	err := uc.GrantPermission(context.Background(), 10, 1, 10, domain.PermissionEditor)
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestGrantPermission_NotebookNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	err := uc.GrantPermission(context.Background(), 10, 1, 20, domain.PermissionEditor)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestGrantPermission_UpsertError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	err := uc.GrantPermission(context.Background(), 10, 1, 20, domain.PermissionEditor)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestRevokePermission_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().Delete(gomock.Any(), int64(1), int64(20)).Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	err := uc.RevokePermission(context.Background(), 10, 1, 20)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRevokePermission_NotOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	err := uc.RevokePermission(context.Background(), 99, 1, 20)
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestRevokePermission_NotebookNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	err := uc.RevokePermission(context.Background(), 10, 1, 20)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestListPermissions_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return([]domain.FilePermission{
+			{NotebookID: 1, UserID: 2, PermissionLevel: "editor"},
+		}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	perms, err := uc.ListPermissions(context.Background(), 10, 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(perms) != 1 {
+		t.Errorf("want 1 permission, got %d", len(perms))
+	}
+}
+
+func TestListPermissions_NotOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	_, err := uc.ListPermissions(context.Background(), 99, 1)
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestListPermissions_NotebookNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	_, err := uc.ListPermissions(context.Background(), 10, 1)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestListSharedWithUser_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetSharedWithUser(gomock.Any(), int64(1), 20, 0).
+		Return([]domain.Notebook{{ID: 5, Title: "Shared"}}, nil)
+	notebookRepo.EXPECT().CountSharedWithUser(gomock.Any(), int64(1)).
+		Return(1, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	notebooks, total, err := uc.ListSharedWithUser(context.Background(), 1, 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(notebooks) != 1 {
+		t.Errorf("want 1 notebook, got %d", len(notebooks))
+	}
+	if total != 1 {
+		t.Errorf("want total=1, got %d", total)
+	}
+}
+
+func TestListSharedWithUser_GetError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetSharedWithUser(gomock.Any(), int64(1), 20, 0).
+		Return(nil, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	_, _, err := uc.ListSharedWithUser(context.Background(), 1, 0, 0)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestListSharedWithUser_CountError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().GetSharedWithUser(gomock.Any(), int64(1), 20, 0).
+		Return([]domain.Notebook{}, nil)
+	notebookRepo.EXPECT().CountSharedWithUser(gomock.Any(), int64(1)).
+		Return(0, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	_, _, err := uc.ListSharedWithUser(context.Background(), 1, 0, 0)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestRequireEditorAccess_EditorPermission(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(5)).
+		Return(&domain.FilePermission{PermissionLevel: domain.PermissionEditor}, nil)
+	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return([]domain.Block{}, nil)
+	blockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(int64(1), nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	_, err := uc.AddBlock(context.Background(), 5, 1, &domain.Block{Type: "code"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRequireEditorAccess_ReadonlyPermission(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(5)).
+		Return(&domain.FilePermission{PermissionLevel: domain.PermissionReadOnly}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	_, err := uc.AddBlock(context.Background(), 5, 1, &domain.Block{Type: "code"})
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestRequireEditorAccess_RepoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
+	permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(5)).
+		Return(nil, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	_, err := uc.AddBlock(context.Background(), 5, 1, &domain.Block{Type: "code"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
