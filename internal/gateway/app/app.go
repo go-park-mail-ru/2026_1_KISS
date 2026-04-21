@@ -74,22 +74,28 @@ func New(cfg *config.Config) (*App, error) {
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())
 
-	csrfSkip := map[string]bool{
-		"/api/v1/auth/login":    true,
-		"/api/v1/auth/register": true,
-	}
-
 	mwCtx, cancelMw := context.WithCancel(context.Background())
-	mwHandler := middleware.Chain(mux,
+
+	mws := []middleware.Middleware{
 		middleware.Metrics(),
 		middleware.RequestID(),
 		middleware.Logging(),
 		middleware.Recovery(),
 		middleware.CORS(cfg.CORS.AllowedOrigins),
 		middleware.SecurityHeaders(),
-		middleware.CSRF(csrfSkip),
-		middleware.RateLimit(mwCtx, cfg.RateLimit.MaxRequests, cfg.RateLimit.Window),
-	)
+	}
+	if cfg.DisableCSRF {
+		slog.Warn("CSRF protection is DISABLED (DISABLE_KISS_CSRF=true)")
+	} else {
+		csrfSkip := map[string]bool{
+			"/api/v1/auth/login":    true,
+			"/api/v1/auth/register": true,
+		}
+		mws = append(mws, middleware.CSRF(csrfSkip))
+	}
+	mws = append(mws, middleware.RateLimit(mwCtx, cfg.RateLimit.MaxRequests, cfg.RateLimit.Window))
+
+	mwHandler := middleware.Chain(mux, mws...)
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Host + ":" + cfg.Server.Port,

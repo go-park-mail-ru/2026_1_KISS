@@ -9,16 +9,17 @@ import (
 )
 
 type Config struct {
-	Server    ServerConfig
-	Database  DatabaseConfig
-	Redis     RedisConfig
-	Auth      AuthConfig
-	CORS      CORSConfig
-	Runner    RunnerConfig
-	Upload    UploadConfig
-	RateLimit RateLimitConfig
-	GRPC      GRPCConfig
-	Metrics   MetricsConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	Redis       RedisConfig
+	Auth        AuthConfig
+	CORS        CORSConfig
+	Runner      RunnerConfig
+	Upload      UploadConfig
+	RateLimit   RateLimitConfig
+	GRPC        GRPCConfig
+	Metrics     MetricsConfig
+	DisableCSRF bool
 }
 
 type MetricsConfig struct {
@@ -154,6 +155,7 @@ func Load() *Config {
 		Metrics: MetricsConfig{
 			Port: getEnv("METRICS_PORT", "9090"),
 		},
+		DisableCSRF: getEnvBool("DISABLE_KISS_CSRF", false),
 	}
 }
 
