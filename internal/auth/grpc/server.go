@@ -74,6 +74,17 @@ func (s *Server) GetUserByID(_ context.Context, _ *pb.GetUserByIDRequest) (*pb.U
 	return nil, status.Error(codes.Unimplemented, "use ValidateSession instead")
 }
 
+func (s *Server) GetUserByIdentifier(ctx context.Context, req *pb.GetUserByIdentifierRequest) (*pb.UserResponse, error) {
+	if req.GetIdentifier() == "" {
+		return nil, status.Error(codes.InvalidArgument, "identifier is required")
+	}
+	user, err := s.authUC.GetUserByIdentifier(ctx, req.GetIdentifier())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.UserResponse{User: userToProto(user)}, nil
+}
+
 func (s *Server) UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest) (*pb.UserResponse, error) {
 	user, err := s.profileUC.UpdateProfile(ctx, req.GetUserId(), req.GetUsername(), req.GetStatus(), req.GetDescription())
 	if err != nil {

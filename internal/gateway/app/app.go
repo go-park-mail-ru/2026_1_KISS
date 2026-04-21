@@ -53,7 +53,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
-	notebookHandler := handler.NewNotebookHandler(nbClient)
+	notebookHandler := handler.NewNotebookHandler(nbClient, authClient)
 	runnerHandler := handler.NewRunnerHandler(runClient)
 	healthHandler := handler.NewHealthHandler()
 	eventHandler := handler.NewEventHandler(authClient)

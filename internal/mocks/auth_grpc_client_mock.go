@@ -182,6 +182,26 @@ func (mr *MockAuthServiceClientMockRecorder) GetUserByID(ctx, in any, opts ...an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockAuthServiceClient)(nil).GetUserByID), varargs...)
 }
 
+// GetUserByIdentifier mocks base method.
+func (m *MockAuthServiceClient) GetUserByIdentifier(ctx context.Context, in *auth.GetUserByIdentifierRequest, opts ...grpc.CallOption) (*auth.UserResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserByIdentifier", varargs...)
+	ret0, _ := ret[0].(*auth.UserResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByIdentifier indicates an expected call of GetUserByIdentifier.
+func (mr *MockAuthServiceClientMockRecorder) GetUserByIdentifier(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByIdentifier", reflect.TypeOf((*MockAuthServiceClient)(nil).GetUserByIdentifier), varargs...)
+}
+
 // Login mocks base method.
 func (m *MockAuthServiceClient) Login(ctx context.Context, in *auth.LoginRequest, opts ...grpc.CallOption) (*auth.LoginResponse, error) {
 	m.ctrl.T.Helper()

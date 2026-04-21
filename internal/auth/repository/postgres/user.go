@@ -76,6 +76,25 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 	return u, nil
 }
 
+func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	start := time.Now()
+	u := &domain.User{}
+	err := r.db.QueryRowContext(ctx,
+		`SELECT id, username, email, password_hash, avatar_url, status, description, is_admin, created_at, updated_at FROM users WHERE username = $1`,
+		username,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error(ctx, "repo.users.GetByUsername", "error", domain.ErrNotFound, "duration", time.Since(start), "username", username)
+			return nil, domain.ErrNotFound
+		}
+		logger.Error(ctx, "repo.users.GetByUsername", "error", err, "duration", time.Since(start), "username", username)
+		return nil, err
+	}
+	logger.Info(ctx, "repo.users.GetByUsername", "duration", time.Since(start), "user_id", u.ID)
+	return u, nil
+}
+
 func (r *UserRepo) UpdateAvatarURL(ctx context.Context, userID int64, avatarURL string) error {
 	start := time.Now()
 	res, err := r.db.ExecContext(ctx,
