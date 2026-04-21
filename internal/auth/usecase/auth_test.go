@@ -327,3 +327,63 @@ func TestValidateSession_UserNotFound(t *testing.T) {
 		t.Errorf("want ErrUnauthorized, got %v", err)
 	}
 }
+
+func TestGetUserByIdentifier_Email(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	userRepo := mocks.NewMockUserRepository(ctrl)
+	sessionRepo := mocks.NewMockSessionRepository(ctrl)
+
+	userRepo.EXPECT().
+		GetByEmail(gomock.Any(), "test@example.com").
+		Return(&domain.User{ID: 1, Email: "test@example.com"}, nil)
+
+	uc := usecase.New(userRepo, sessionRepo, 24*time.Hour)
+	user, err := uc.GetUserByIdentifier(context.Background(), "test@example.com")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.ID != 1 {
+		t.Errorf("want ID=1, got %d", user.ID)
+	}
+}
+
+func TestGetUserByIdentifier_Username(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	userRepo := mocks.NewMockUserRepository(ctrl)
+	sessionRepo := mocks.NewMockSessionRepository(ctrl)
+
+	userRepo.EXPECT().
+		GetByUsername(gomock.Any(), "testuser").
+		Return(&domain.User{ID: 2, Username: "testuser"}, nil)
+
+	uc := usecase.New(userRepo, sessionRepo, 24*time.Hour)
+	user, err := uc.GetUserByIdentifier(context.Background(), "testuser")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.ID != 2 {
+		t.Errorf("want ID=2, got %d", user.ID)
+	}
+}
+
+func TestGetUserByIdentifier_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	userRepo := mocks.NewMockUserRepository(ctrl)
+	sessionRepo := mocks.NewMockSessionRepository(ctrl)
+
+	userRepo.EXPECT().
+		GetByEmail(gomock.Any(), "notfound@example.com").
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(userRepo, sessionRepo, 24*time.Hour)
+	_, err := uc.GetUserByIdentifier(context.Background(), "notfound@example.com")
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}

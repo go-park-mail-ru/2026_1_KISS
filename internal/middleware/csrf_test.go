@@ -104,3 +104,18 @@ func TestSetCSRFCookie(t *testing.T) {
 		t.Error("csrf_token cookie not set")
 	}
 }
+
+func TestClearCSRFCookie(t *testing.T) {
+	rec := httptest.NewRecorder()
+	middleware.ClearCSRFCookie(rec)
+	cookies := rec.Result().Cookies()
+	found := false
+	for _, c := range cookies {
+		if c.Name == "csrf_token" && c.MaxAge < 0 {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("csrf_token cookie not cleared")
+	}
+}
