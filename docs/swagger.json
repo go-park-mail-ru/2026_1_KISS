@@ -485,6 +485,36 @@
         }
       }
     },
+    "/api/v1/notebooks/{id}/permissions/invite": {
+      "post": {
+        "tags": ["permissions"],
+        "summary": "Grant permission to a user by email or username",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrantPermissionByIdentifierRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permission granted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
     "/api/v1/notebooks/{id}/permissions/{userID}": {
       "put": {
         "tags": ["permissions"],
@@ -1068,6 +1098,21 @@
           "level": {
             "type": "string",
             "enum": ["read", "write"],
+            "description": "Permission level to grant"
+          }
+        }
+      },
+      "GrantPermissionByIdentifierRequest": {
+        "type": "object",
+        "required": ["identifier", "level"],
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "description": "Email or username of the user to grant access to"
+          },
+          "level": {
+            "type": "string",
+            "enum": ["readonly", "editor"],
             "description": "Permission level to grant"
           }
         }

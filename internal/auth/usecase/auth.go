@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -135,4 +136,12 @@ func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*
 
 	logger.Info(ctx, "usecase.auth.ValidateSession", "user_id", user.ID)
 	return user, nil
+}
+
+func (uc *AuthUsecase) GetUserByIdentifier(ctx context.Context, identifier string) (*domain.User, error) {
+	logger.Info(ctx, "usecase.auth.GetUserByIdentifier", "identifier", identifier)
+	if strings.Contains(identifier, "@") {
+		return uc.userRepo.GetByEmail(ctx, identifier)
+	}
+	return uc.userRepo.GetByUsername(ctx, identifier)
 }

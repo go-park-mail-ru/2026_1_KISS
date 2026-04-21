@@ -9,6 +9,7 @@ service AuthService {
   rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
 
   rpc GetUserByID(GetUserByIDRequest) returns (UserResponse);
+  rpc GetUserByIdentifier(GetUserByIdentifierRequest) returns (UserResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UserResponse);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   rpc ChangeEmail(ChangeEmailRequest) returns (UserResponse);
@@ -72,6 +73,10 @@ message ValidateSessionResponse {
 
 message GetUserByIDRequest {
   int64 user_id = 1;
+}
+
+message GetUserByIdentifierRequest {
+  string identifier = 1;
 }
 
 message UserResponse {

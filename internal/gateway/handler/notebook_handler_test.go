@@ -30,7 +30,7 @@ func TestNotebookHandler_Create_Success(t *testing.T) {
 		Notebook: &pb.NotebookInfo{Id: 1, OwnerId: 1, Title: "Test"},
 	}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	body, _ := json.Marshal(createNotebookRequest{Title: "Test"})
 	req := httptest.NewRequest("POST", "/api/v1/notebooks", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -54,7 +54,7 @@ func TestNotebookHandler_List_Success(t *testing.T) {
 		Limit:     20,
 	}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	req := httptest.NewRequest("GET", "/api/v1/notebooks?limit=20", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -76,7 +76,7 @@ func TestNotebookHandler_GetByID_Success(t *testing.T) {
 		}},
 	}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	req := httptest.NewRequest("GET", "/api/v1/notebooks/1", nil)
 	req.SetPathValue("id", "1")
 	req = withUser(req, 1)
@@ -95,7 +95,7 @@ func TestNotebookHandler_Delete_Success(t *testing.T) {
 
 	client.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(&pb.DeleteNotebookResponse{}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1", nil)
 	req.SetPathValue("id", "1")
 	req = withUser(req, 1)
@@ -116,7 +116,7 @@ func TestNotebookHandler_Update_Success(t *testing.T) {
 		Notebook: &pb.NotebookInfo{Id: 1, Title: "Updated"},
 	}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	body, _ := json.Marshal(updateNotebookRequest{Title: "Updated", IsPublic: true})
 	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -139,7 +139,7 @@ func TestNotebookHandler_AddBlock_Success(t *testing.T) {
 		Block: &pb.BlockInfo{Id: 10, Type: "code", Position: 0},
 	}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	body, _ := json.Marshal(createBlockRequest{Type: "code", Language: "python", Content: "print('hi')"})
 	req := httptest.NewRequest("POST", "/api/v1/notebooks/1/blocks", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -162,7 +162,7 @@ func TestNotebookHandler_UpdateBlock_Success(t *testing.T) {
 		Block: &pb.BlockInfo{Id: 10, Content: "updated"},
 	}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	body, _ := json.Marshal(updateBlockRequest{Content: "updated"})
 	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/blocks/10", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -184,7 +184,7 @@ func TestNotebookHandler_DeleteBlock_Success(t *testing.T) {
 
 	client.EXPECT().DeleteBlock(gomock.Any(), gomock.Any()).Return(&pb.DeleteBlockResponse{}, nil)
 
-	h := NewNotebookHandler(client)
+	h := NewNotebookHandler(client, nil)
 	req := httptest.NewRequest("DELETE", "/api/v1/notebooks/1/blocks/10", nil)
 	req.SetPathValue("id", "1")
 	req.SetPathValue("blockID", "10")
@@ -199,7 +199,7 @@ func TestNotebookHandler_DeleteBlock_Success(t *testing.T) {
 }
 
 func TestNotebookHandler_Unauthorized(t *testing.T) {
-	h := NewNotebookHandler(nil)
+	h := NewNotebookHandler(nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/notebooks", nil)
 	req = req.WithContext(context.Background())
 	rec := httptest.NewRecorder()

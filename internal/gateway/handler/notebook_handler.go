@@ -8,15 +8,17 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
+	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 )
 
 type NotebookHandler struct {
-	client pb.NotebookServiceClient
+	client     pb.NotebookServiceClient
+	authClient pbauth.AuthServiceClient
 }
 
-func NewNotebookHandler(client pb.NotebookServiceClient) *NotebookHandler {
-	return &NotebookHandler{client: client}
+func NewNotebookHandler(client pb.NotebookServiceClient, authClient pbauth.AuthServiceClient) *NotebookHandler {
+	return &NotebookHandler{client: client, authClient: authClient}
 }
 
 func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Middleware) {
@@ -31,6 +33,7 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("PUT /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.UpdateBlock)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.DeleteBlock)))
 	mux.Handle("GET /api/v1/notebooks/{id}/permissions", authMw(http.HandlerFunc(h.ListPermissions)))
+	mux.Handle("POST /api/v1/notebooks/{id}/permissions/invite", authMw(http.HandlerFunc(h.GrantPermissionByIdentifier)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.GrantPermission)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.RevokePermission)))
 }
@@ -336,6 +339,11 @@ type grantPermissionRequest struct {
 	Level string `json:"level"`
 }
 
+type grantPermissionByIdentifierRequest struct {
+	Identifier string `json:"identifier"`
+	Level      string `json:"level"`
+}
+
 type permissionResponse struct {
 	NotebookID      int64  `json:"notebook_id"`
 	UserID          int64  `json:"user_id"`
@@ -411,6 +419,61 @@ func (h *NotebookHandler) ListPermissions(w http.ResponseWriter, r *http.Request
 	}
 
 	httputil.JSON(w, http.StatusOK, permissionListResponse{Permissions: items})
+}
+
+func (h *NotebookHandler) GrantPermissionByIdentifier(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	notebookID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	var req grantPermissionByIdentifierRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Identifier == "" {
+		httputil.Error(w, http.StatusBadRequest, "identifier is required")
+		return
+	}
+	if req.Level == "" {
+		httputil.Error(w, http.StatusBadRequest, "level is required")
+		return
+	}
+
+	authResp, err := h.authClient.GetUserByIdentifier(r.Context(), &pbauth.GetUserByIdentifierRequest{
+		Identifier: req.Identifier,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	targetUserID := authResp.GetUser().GetId()
+
+	_, err = h.client.GrantPermission(r.Context(), &pb.GrantPermissionRequest{
+		RequesterId:  user.ID,
+		NotebookId:   notebookID,
+		TargetUserId: targetUserID,
+		Level:        req.Level,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, permissionResponse{
+		NotebookID:      notebookID,
+		UserID:          targetUserID,
+		PermissionLevel: req.Level,
+	})
 }
 
 func (h *NotebookHandler) GrantPermission(w http.ResponseWriter, r *http.Request) {
