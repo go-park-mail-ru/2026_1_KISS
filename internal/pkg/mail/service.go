@@ -14,6 +14,10 @@ type Service struct {
 	smtpPort string
 }
 
+type Sender interface {
+	SendVerification(email, token string) error
+}
+
 func New(from, appURL, smtpHost, smtpPort string) *Service {
 	return &Service{
 		from:     from,

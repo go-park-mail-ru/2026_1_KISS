@@ -16,18 +16,13 @@ import (
 	authusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/health"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
-	nbhttp "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/delivery/http"
 	nbpg "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository/postgres"
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
-	profilehttp "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/delivery/http"
-	profileusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/profile/usecase"
-
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container"
-	runnerhandler "github.com/go-park-mail-ru/2026_1_KISS/internal/runner/delivery"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/session_repository"
 )
@@ -57,11 +52,10 @@ func New(cfg *config.Config) (*App, error) {
 	sessionRepo := authredis.NewSessionRepository(rdb)
 	notebookRepo := nbpg.NewNotebookRepository(db)
 	blockRepo := nbpg.NewBlockRepository(db)
+	permRepo := nbpg.NewPermissionRepository(db)
 
 	verificationRepo := authpg.NewVerificationRepository(db)
 	mailService := mail.New(
-		// "no-reply@kisscolab.ru",
-		// "https://kisscolab.ru",
 		cfg.Mail.From,
 		cfg.Mail.AppURL,
 		cfg.Mail.SMTPHost,
@@ -75,14 +69,13 @@ func New(cfg *config.Config) (*App, error) {
 		mailService,
 		cfg.Auth.SessionTTL,
 	)
-	notebookUC := nbusecase.New(notebookRepo, blockRepo)
+
+	notebookUC := nbusecase.New(notebookRepo, blockRepo, permRepo)
 
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
-	profileUC := profileusecase.New(userRepo, fs, cfg.Upload.MaxSize)
+	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
 
 	authHandler := authhttp.New(authUC)
-	notebookHandler := nbhttp.New(notebookUC)
-	profileHandler := profilehttp.New(profileUC, cfg.Upload.MaxSize)
 	healthHandler := health.New(db)
 
 	runnerManager, err := container.NewManager(cfg.Runner)
@@ -91,22 +84,21 @@ func New(cfg *config.Config) (*App, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("init runner manager: %w", err)
 	}
-	execSessionRepo := session_repository.NewExecutionSessionRepository()
+
+	execSessionRepo := session_repository.NewExecutionSessionRepository(cfg.Runner.IdleTimeout)
 	runnerServ := runner_service.NewRunnerService(runnerManager, execSessionRepo, notebookRepo, blockRepo, cfg.Runner.IdleTimeout)
 
 	reaperCtx, cancelReaper := context.WithCancel(context.Background())
 	go runnerServ.StartIdleReaper(reaperCtx)
 
-	runnerHandler := runnerhandler.NewRunnerHandler(runnerServ)
-
 	mux := http.NewServeMux()
-	authMw := middleware.Auth(authUC)
 
 	authHandler.RegisterRoutes(mux)
-	notebookHandler.RegisterRoutes(mux, authMw)
-	runnerHandler.RegisterRoutes(mux, authMw)
-	profileHandler.RegisterRoutes(mux, authMw)
+
 	healthHandler.RegisterRoutes(mux)
+
+	_ = notebookUC
+	_ = profileUC
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 
@@ -115,6 +107,7 @@ func New(cfg *config.Config) (*App, error) {
 		"/api/v1/auth/register": true,
 	}
 
+	rateLimitCtx := context.Background()
 	handler := middleware.Chain(mux,
 		middleware.RequestID(),
 		middleware.Logging(),
@@ -122,7 +115,7 @@ func New(cfg *config.Config) (*App, error) {
 		middleware.CORS(cfg.CORS.AllowedOrigins),
 		middleware.SecurityHeaders(),
 		middleware.CSRF(csrfSkip),
-		middleware.RateLimit(300, time.Minute),
+		middleware.RateLimit(rateLimitCtx, 300, time.Minute),
 	)
 
 	srv := &http.Server{

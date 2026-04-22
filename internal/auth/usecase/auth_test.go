@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 )
 
 type mockUserRepo struct {
@@ -110,6 +109,12 @@ func (m *mockSessionRepo) DeleteByID(ctx context.Context, id string) error {
 	return nil
 }
 
+type mockMailService struct{}
+
+func (m *mockMailService) SendVerification(email, token string) error {
+	return nil
+}
+
 func newUsecase(
 	userRepo *mockUserRepo,
 	sessionRepo *mockSessionRepo,
@@ -119,7 +124,7 @@ func newUsecase(
 		userRepo,
 		sessionRepo,
 		verificationRepo,
-		mail.New("", "", "", ""),
+		&mockMailService{},
 		24*time.Hour,
 	)
 }
