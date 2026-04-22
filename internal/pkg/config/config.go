@@ -9,14 +9,33 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Auth     AuthConfig
-	CORS     CORSConfig
-	Runner   RunnerConfig
-	Upload   UploadConfig
-	Mail     MailConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	Redis       RedisConfig
+	Auth        AuthConfig
+	CORS        CORSConfig
+	Runner      RunnerConfig
+	Upload      UploadConfig
+	RateLimit   RateLimitConfig
+	GRPC        GRPCConfig
+	Metrics     MetricsConfig
+	DisableCSRF bool
+	Mail        MailConfig
+}
+
+type MetricsConfig struct {
+	Port string
+}
+
+type GRPCConfig struct {
+	AuthAddr     string
+	NotebookAddr string
+	RunnerAddr   string
+}
+
+type RateLimitConfig struct {
+	MaxRequests int
+	Window      time.Duration
 }
 
 // UploadConfig holds file upload settings.
@@ -55,7 +74,8 @@ func (d DatabaseConfig) DSN() string {
 }
 
 type AuthConfig struct {
-	SessionTTL time.Duration
+	SessionTTL   time.Duration
+	CookieSecure bool
 }
 
 type CORSConfig struct {
@@ -74,6 +94,7 @@ type RunnerConfig struct {
 	TmpfsSize           string
 	PidsLimit           int64
 	IdleTimeout         time.Duration
+	ExecutionTimeout    time.Duration
 }
 
 func Load() *Config {
@@ -97,7 +118,8 @@ func Load() *Config {
 			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 		Auth: AuthConfig{
-			SessionTTL: getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
+			SessionTTL:   getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
+			CookieSecure: getEnvBool("COOKIE_SECURE", true),
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
@@ -116,6 +138,7 @@ func Load() *Config {
 			TmpfsSize:           getEnv("RUNNER_TMPFS_SIZE", "100m"),
 			PidsLimit:           getEnvInt64("RUNNER_PIDS_LIMIT", 64),
 			IdleTimeout:         getEnvDuration("RUNNER_IDLE_TIMEOUT", 15*time.Minute),
+			ExecutionTimeout:    getEnvDuration("RUNNER_EXECUTION_TIMEOUT", 120*time.Second),
 		},
 		Upload: UploadConfig{
 			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),
@@ -127,6 +150,19 @@ func Load() *Config {
 			SMTPHost: getEnv("MAIL_SMTP_HOST", "172.17.0.1"),
 			SMTPPort: getEnv("MAIL_SMTP_PORT", "25"),
 		},
+		RateLimit: RateLimitConfig{
+			MaxRequests: int(getEnvInt64("RATE_LIMIT_MAX_REQUESTS", 300)),
+			Window:      getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
+		},
+		GRPC: GRPCConfig{
+			AuthAddr:     getEnv("AUTH_GRPC_ADDR", "localhost:9001"),
+			NotebookAddr: getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
+			RunnerAddr:   getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
+		},
+		Metrics: MetricsConfig{
+			Port: getEnv("METRICS_PORT", "9090"),
+		},
+		DisableCSRF: getEnvBool("DISABLE_KISS_CSRF", false),
 	}
 }
 
@@ -160,4 +196,13 @@ type MailConfig struct {
 	AppURL   string
 	SMTPHost string
 	SMTPPort string
+}
+
+func getEnvBool(key string, defaultVal bool) bool {
+	if val := os.Getenv(key); val != "" {
+		if parsed, err := strconv.ParseBool(val); err == nil {
+			return parsed
+		}
+	}
+	return defaultVal
 }

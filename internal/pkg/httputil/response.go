@@ -3,6 +3,7 @@ package httputil
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -14,13 +15,17 @@ type response struct {
 func JSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(response{Data: data})
+	if err := json.NewEncoder(w).Encode(response{Data: data}); err != nil {
+		slog.Error("json encode failed", "error", err)
+	}
 }
 
 func Error(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(response{Error: message})
+	if err := json.NewEncoder(w).Encode(response{Error: message}); err != nil {
+		slog.Error("json encode failed", "error", err)
+	}
 }
 
 func DecodeJSON(r *http.Request, dst interface{}) error {

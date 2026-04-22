@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -29,18 +31,22 @@ type NotebookSession interface {
 func NewNotebookSession(NotebookID int64,
 	SessionID string,
 	BaseURL string,
-	LastExecuted int, // Position of last successfully executed block
+	LastExecuted int,
 	BlockStates map[int64]*domain.BlockState,
+	execTimeout time.Duration,
 ) NotebookSession {
-
+	if execTimeout == 0 {
+		execTimeout = 120 * time.Second
+	}
 	s := &notebookSession{
 		NotebookID:   NotebookID,
 		SessionID:    SessionID,
 		BaseURL:      BaseURL,
 		LastExecuted: LastExecuted,
 		BlockStates:  BlockStates,
+		execTimeout:  execTimeout,
 		client: &http.Client{
-			Timeout: 135 * time.Second,
+			Timeout: execTimeout + 15*time.Second,
 		},
 	}
 	s.lastActivity.Store(time.Now().UnixNano())
@@ -51,11 +57,12 @@ type notebookSession struct {
 	NotebookID   int64
 	SessionID    string
 	BaseURL      string
-	LastExecuted int // Position of last successfully executed block
+	LastExecuted int
 	BlockStates  map[int64]*domain.BlockState
+	execTimeout  time.Duration
 	mu           sync.RWMutex
 	client       *http.Client
-	lastActivity atomic.Int64 // Unix nanoseconds, updated on every execution
+	lastActivity atomic.Int64
 }
 
 func (s *notebookSession) GetSessionID() string {
@@ -74,8 +81,9 @@ func (s *notebookSession) ExecuteFromPosition(
 
 	var results []*domain.BlockExecutionResult
 
-	blocks := notebook.Blocks
-	// TODO предполагается что блоки отсортрованы по position - надо это проверить
+	blocks := make([]domain.Block, len(notebook.Blocks))
+	copy(blocks, notebook.Blocks)
+	sort.Slice(blocks, func(i, j int) bool { return blocks[i].Position < blocks[j].Position })
 
 	for i := startPosition; i < len(blocks); i++ {
 		block := blocks[i]
@@ -142,7 +150,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 	startTime := time.Now()
 	req := domain.ExecuteRequest{
 		Code:    block.Content,
-		Timeout: 120,
+		Timeout: s.execTimeout.Seconds(),
 	}
 
 	jsonData, err := json.Marshal(req)
@@ -150,9 +158,9 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// if port is not specified - use 8080 as default (when network in docker is bridge ew should use default)
 	var fullURL string
-	if strings.Count(s.BaseURL, ":") > 1 {
+	parsed, err := url.Parse(s.BaseURL)
+	if err != nil || parsed.Port() != "" {
 		fullURL = s.BaseURL + "/execute"
 	} else {
 		fullURL = s.BaseURL + ":8080/execute"
@@ -198,6 +206,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		Stdout:     stdoutLines,
 		Stderr:     stderrLines,
 		Result:     execResp.Result,
+		Outputs:    execResp.Outputs,
 		ExecutedAt: time.Now(),
 		Duration:   time.Since(startTime),
 	}

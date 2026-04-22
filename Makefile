@@ -1,18 +1,24 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner
 
 build:
-	go build -o server ./cmd/server
+	go build -o gateway ./cmd/gateway
+	go build -o auth ./cmd/auth
+	go build -o notebook ./cmd/notebook
+	go build -o runner ./cmd/runner
 
-run:
-	go run ./cmd/server
+run: run-gateway
 
 test:
-	go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
+	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$$|/grpc$$|internal/runner/container)')
+	@go tool cover -func=coverage.out
+	@TOTAL=$$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $$3}' | tr -d '%'); \
+	echo "Total coverage: $${TOTAL}%"; \
+	awk "BEGIN { if ($${TOTAL}+0 < 70.0) { print \"FAIL: coverage $${TOTAL}% is below 70% threshold\"; exit 1 } }"
 
 lint:
 	golangci-lint run ./...
 
-ci: lint test
+ci: proto generate lint test
 
 docker-up:
 	docker-compose up -d --build
@@ -28,6 +34,33 @@ docs:
 
 generate:
 	go generate ./...
+
+run-gateway:
+	go run ./cmd/gateway
+
+run-auth:
+	go run ./cmd/auth
+
+run-notebook:
+	go run ./cmd/notebook
+
+run-runner:
+	go run ./cmd/runner
+
+proto-tools:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+proto: proto-tools
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/auth/auth.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/notebook/notebook.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/runner/runner.proto
 
 fmt:
 	go fmt ./...

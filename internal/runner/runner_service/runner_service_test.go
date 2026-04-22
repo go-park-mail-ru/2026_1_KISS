@@ -210,8 +210,8 @@ func TestStopSession_Success(t *testing.T) {
 	mockSession := mocks.NewMockNotebookSession(ctrl)
 	sessRepo.EXPECT().GetSession(int64(1)).Return(mockSession, true)
 	mockSession.EXPECT().GetSessionID().Return("session-123")
-	sessRepo.EXPECT().DeleteSession(int64(1))
 	mgr.EXPECT().StopSession(gomock.Any(), "session-123").Return(nil)
+	sessRepo.EXPECT().DeleteSession(int64(1))
 
 	err := svc.StopSession(context.Background(), 1)
 	if err != nil {
@@ -226,7 +226,6 @@ func TestStopSession_ManagerError(t *testing.T) {
 	mockSession := mocks.NewMockNotebookSession(ctrl)
 	sessRepo.EXPECT().GetSession(int64(1)).Return(mockSession, true)
 	mockSession.EXPECT().GetSessionID().Return("session-123")
-	sessRepo.EXPECT().DeleteSession(int64(1))
 	mgr.EXPECT().StopSession(gomock.Any(), "session-123").Return(errors.New("stop failed"))
 
 	err := svc.StopSession(context.Background(), 1)

@@ -11,6 +11,7 @@ type User struct {
 	Status       string
 	Description  string
 	IsVerified   bool
+	IsAdmin      bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

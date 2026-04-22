@@ -305,3 +305,90 @@ func TestNotebookRepo_CountByOwnerID(t *testing.T) {
 		}
 	})
 }
+
+func TestListAll(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock: %v", err)
+		}
+		defer db.Close()
+
+		repo := NewNotebookRepository(db)
+		now := time.Now()
+
+		rows := sqlmock.NewRows([]string{"id", "owner_id", "title", "is_public", "created_at", "updated_at"}).
+			AddRow(int64(1), int64(1), "Notebook 1", true, now, now)
+
+		mock.ExpectQuery(`SELECT id, owner_id, title, is_public, created_at, updated_at`).
+			WithArgs("", 10, 0).
+			WillReturnRows(rows)
+
+		notebooks, err := repo.ListAll(context.Background(), 10, 0, "")
+		if err != nil {
+			t.Fatalf("ListAll() error = %v", err)
+		}
+		if len(notebooks) != 1 {
+			t.Fatalf("expected 1 notebook, got %d", len(notebooks))
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("unmet expectations: %v", err)
+		}
+	})
+}
+
+func TestCountAll(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock: %v", err)
+		}
+		defer db.Close()
+
+		repo := NewNotebookRepository(db)
+
+		mock.ExpectQuery(`SELECT COUNT`).
+			WithArgs("").
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(42))
+
+		count, err := repo.CountAll(context.Background(), "")
+		if err != nil {
+			t.Fatalf("CountAll() error = %v", err)
+		}
+		if count != 42 {
+			t.Fatalf("expected count 42, got %d", count)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("unmet expectations: %v", err)
+		}
+	})
+}
+
+func TestGetByOwnerID_WithSearch(t *testing.T) {
+	t.Run("success with search", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("sqlmock.New() error = %v", err)
+		}
+		defer db.Close()
+
+		repo := NewNotebookRepository(db)
+		now := time.Now()
+
+		mock.ExpectQuery(`SELECT id, owner_id, title, is_public, created_at, updated_at`).
+			WithArgs(int64(1), "test", 10, 0).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id", "title", "is_public", "created_at", "updated_at"}).
+				AddRow(int64(1), int64(1), "test notebook", false, now, now))
+
+		nbs, err := repo.GetByOwnerID(context.Background(), 1, 10, 0, "test")
+		if err != nil {
+			t.Fatalf("GetByOwnerID() error = %v", err)
+		}
+		if len(nbs) != 1 {
+			t.Fatalf("expected 1 notebook, got %d", len(nbs))
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("unmet expectations: %v", err)
+		}
+	})
+}

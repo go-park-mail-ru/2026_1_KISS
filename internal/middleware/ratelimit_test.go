@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +11,9 @@ import (
 )
 
 func TestRateLimit_AllowsUnderLimit(t *testing.T) {
-	handler := middleware.RateLimit(5, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	handler := middleware.RateLimit(ctx, 5, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -26,7 +29,9 @@ func TestRateLimit_AllowsUnderLimit(t *testing.T) {
 }
 
 func TestRateLimit_BlocksOverLimit(t *testing.T) {
-	handler := middleware.RateLimit(2, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	handler := middleware.RateLimit(ctx, 2, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -45,8 +50,10 @@ func TestRateLimit_BlocksOverLimit(t *testing.T) {
 }
 
 func TestRateLimit_RecoverAfterWindow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	window := 200 * time.Millisecond
-	handler := middleware.RateLimit(1, window)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.RateLimit(ctx, 1, window)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -74,8 +81,10 @@ func TestRateLimit_RecoverAfterWindow(t *testing.T) {
 }
 
 func TestRateLimit_RejectedRequestDoesNotResetWindow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	window := 300 * time.Millisecond
-	handler := middleware.RateLimit(1, window)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.RateLimit(ctx, 1, window)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -104,7 +113,9 @@ func TestRateLimit_RejectedRequestDoesNotResetWindow(t *testing.T) {
 }
 
 func TestRateLimit_DifferentIPs(t *testing.T) {
-	handler := middleware.RateLimit(1, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	handler := middleware.RateLimit(ctx, 1, time.Minute)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 

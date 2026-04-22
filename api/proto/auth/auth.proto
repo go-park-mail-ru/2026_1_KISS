@@ -1,0 +1,166 @@
+syntax = "proto3";
+package auth;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
+
+  rpc GetUserByID(GetUserByIDRequest) returns (UserResponse);
+  rpc GetUserByIdentifier(GetUserByIdentifierRequest) returns (UserResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UserResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc ChangeEmail(ChangeEmailRequest) returns (UserResponse);
+  rpc UploadAvatar(stream UploadAvatarChunk) returns (UserResponse);
+
+  rpc GetOAuthURL(GetOAuthURLRequest) returns (GetOAuthURLResponse);
+  rpc OAuthLogin(OAuthLoginRequest) returns (LoginResponse);
+
+  rpc TrackEvent(TrackEventRequest) returns (TrackEventResponse);
+  rpc AdminListUsers(AdminListUsersRequest) returns (AdminListUsersResponse);
+  rpc AdminSetBan(AdminSetBanRequest) returns (AdminSetBanResponse);
+  rpc AdminGetStats(AdminGetStatsRequest) returns (AdminGetStatsResponse);
+}
+
+message UserInfo {
+  int64 id = 1;
+  string username = 2;
+  string email = 3;
+  string avatar_url = 4;
+  string status = 5;
+  string description = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  bool is_admin = 9;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message RegisterResponse {
+  UserInfo user = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string session_id = 1;
+  int64 expires_at = 2;
+  UserInfo user = 3;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+}
+
+message LogoutResponse {}
+
+message ValidateSessionRequest {
+  string session_id = 1;
+}
+
+message ValidateSessionResponse {
+  UserInfo user = 1;
+}
+
+message GetUserByIDRequest {
+  int64 user_id = 1;
+}
+
+message GetUserByIdentifierRequest {
+  string identifier = 1;
+}
+
+message UserResponse {
+  UserInfo user = 1;
+}
+
+message UpdateProfileRequest {
+  int64 user_id = 1;
+  string username = 2;
+  string status = 3;
+  string description = 4;
+}
+
+message ChangePasswordRequest {
+  int64 user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {}
+
+message ChangeEmailRequest {
+  int64 user_id = 1;
+  string new_email = 2;
+  string password = 3;
+}
+
+message UploadAvatarChunk {
+  int64 user_id = 1;
+  bytes data = 2;
+  string filename = 3;
+  int64 file_size = 4;
+}
+
+message GetOAuthURLRequest {
+  string provider = 1;
+  string redirect_uri = 2;
+}
+
+message GetOAuthURLResponse {
+  string auth_url = 1;
+}
+
+message OAuthLoginRequest {
+  string provider = 1;
+  string code = 2;
+  string redirect_uri = 3;
+}
+
+message TrackEventRequest {
+  int64 user_id = 1;
+  string event_type = 2;
+  string metadata_json = 3;
+}
+
+message TrackEventResponse {}
+
+message AdminListUsersRequest {
+  int64 admin_user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string search = 4;
+}
+
+message AdminListUsersResponse {
+  repeated UserInfo users = 1;
+  int32 total = 2;
+}
+
+message AdminSetBanRequest {
+  int64 admin_user_id = 1;
+  int64 target_user_id = 2;
+  bool ban = 3;
+}
+
+message AdminSetBanResponse {}
+
+message AdminGetStatsRequest {
+  int64 admin_user_id = 1;
+}
+
+message AdminGetStatsResponse {
+  int64 total_users = 1;
+  int64 total_sessions = 2;
+  int64 dau = 3;
+  int64 mau = 4;
+}

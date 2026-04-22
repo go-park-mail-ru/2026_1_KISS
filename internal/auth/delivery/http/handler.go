@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/dto"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
@@ -26,8 +28,16 @@ func New(uc authUsecase) *AuthHandler {
 	return &AuthHandler{usecase: uc}
 }
 
+func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
+	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
+	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
+	mux.HandleFunc("GET /api/v1/auth/me", h.Me)
+	mux.HandleFunc("GET /api/v1/auth/confirm", h.ConfirmEmail)
+}
+
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req RegisterRequest
+	var req dto.RegisterRequest
 	if err := httputil.DecodeJSON(r, &req); err != nil {
 		httputil.Error(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -39,19 +49,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusCreated, NewUserResponse(user))
-}
-
-func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
-	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
-	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
-	mux.HandleFunc("GET /api/v1/auth/me", h.Me)
-	mux.HandleFunc("GET /api/v1/auth/confirm", h.ConfirmEmail)
+	httputil.JSON(w, http.StatusCreated, dto.NewUserResponse(user))
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
+	var req dto.LoginRequest
 	if err := httputil.DecodeJSON(r, &req); err != nil {
 		httputil.Error(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -73,9 +75,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	middleware.SetCSRFCookie(w, nil)
+	middleware.SetCSRFCookie(w, session.ExpiresAt, false)
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(user))
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +110,22 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
+	httputil.JSON(w, http.StatusOK, dto.NewUserResponse(user))
+}
+
+func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Redirect(w, r, "https://kisscolab.ru/login?error=invalid_token", http.StatusSeeOther)
+		return
+	}
+
+	if err := h.usecase.ConfirmEmail(r.Context(), token); err != nil {
+		http.Redirect(w, r, "https://kisscolab.ru/login?error=invalid_token", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "https://kisscolab.ru/login?verified=1", http.StatusSeeOther)
 }
 
 func clearSessionCookie(w http.ResponseWriter) {
@@ -125,20 +142,5 @@ func mapDomainError(w http.ResponseWriter, err error) {
 	httputil.MapDomainError(w, err)
 }
 
-func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-
-	if token == "" {
-		httputil.Error(w, http.StatusBadRequest, "token required")
-		return
-	}
-
-	if err := h.usecase.ConfirmEmail(r.Context(), token); err != nil {
-		mapDomainError(w, err)
-		return
-	}
-
-	httputil.JSON(w, http.StatusOK, map[string]string{
-		"message": "email confirmed",
-	})
-}
+// ensure time import is used if needed elsewhere
+var _ = time.Time{}

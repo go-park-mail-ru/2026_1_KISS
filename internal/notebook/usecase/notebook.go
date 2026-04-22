@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"unicode/utf8"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository"
@@ -18,17 +20,27 @@ type NotebookService interface {
 	AddBlock(ctx context.Context, userID, notebookID int64, block *domain.Block) (*domain.Block, error)
 	UpdateBlock(ctx context.Context, userID, notebookID, blockID int64, content, cellType, language string) (*domain.Block, error)
 	DeleteBlock(ctx context.Context, userID, notebookID, blockID int64) error
+	ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error)
+	CountAll(ctx context.Context, search string) (int, error)
+	AdminDelete(ctx context.Context, notebookID int64) error
+
+	GrantPermission(ctx context.Context, requesterID, notebookID, targetUserID int64, level string) error
+	RevokePermission(ctx context.Context, requesterID, notebookID, targetUserID int64) error
+	ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error)
+	ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
 }
 
 type notebookService struct {
 	notebookRepo repository.NotebookRepository
 	blockRepo    repository.BlockRepository
+	permRepo     repository.PermissionRepository
 }
 
-func New(nr repository.NotebookRepository, br repository.BlockRepository) NotebookService {
+func New(nr repository.NotebookRepository, br repository.BlockRepository, pr repository.PermissionRepository) NotebookService {
 	return &notebookService{
 		notebookRepo: nr,
 		blockRepo:    br,
+		permRepo:     pr,
 	}
 }
 
@@ -59,8 +71,15 @@ func (s *notebookService) GetByID(ctx context.Context, userID, notebookID int64)
 		return nil, err
 	}
 	if nb.OwnerID != userID && !nb.IsPublic {
-		logger.Error(ctx, "usecase.notebook.GetByID", "error", domain.ErrForbidden)
-		return nil, domain.ErrForbidden
+		_, err := s.permRepo.GetPermission(ctx, notebookID, userID)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				logger.Error(ctx, "usecase.notebook.GetByID", "error", domain.ErrForbidden)
+				return nil, domain.ErrForbidden
+			}
+			logger.Error(ctx, "usecase.notebook.GetByID", "error", err)
+			return nil, err
+		}
 	}
 	blocks, err := s.blockRepo.GetByNotebookID(ctx, notebookID)
 	if err != nil {
@@ -123,7 +142,7 @@ func (s *notebookService) Update(ctx context.Context, userID, notebookID int64, 
 		logger.Error(ctx, "usecase.notebook.Update", "error", domain.ErrInvalidInput)
 		return nil, domain.ErrInvalidInput
 	}
-	if len(title) > 255 {
+	if utf8.RuneCountInString(title) > 255 {
 		logger.Error(ctx, "usecase.notebook.Update", "error", domain.ErrInvalidInput)
 		return nil, domain.ErrInvalidInput
 	}
@@ -154,9 +173,9 @@ func (s *notebookService) AddBlock(ctx context.Context, userID, notebookID int64
 		logger.Error(ctx, "usecase.notebook.AddBlock", "error", err)
 		return nil, err
 	}
-	if nb.OwnerID != userID {
-		logger.Error(ctx, "usecase.notebook.AddBlock", "error", domain.ErrForbidden)
-		return nil, domain.ErrForbidden
+	if err := s.requireEditorAccess(ctx, nb, userID); err != nil {
+		logger.Error(ctx, "usecase.notebook.AddBlock", "error", err)
+		return nil, err
 	}
 	blocks, err := s.blockRepo.GetByNotebookID(ctx, notebookID)
 	if err != nil {
@@ -186,9 +205,9 @@ func (s *notebookService) UpdateBlock(ctx context.Context, userID, notebookID, b
 		logger.Error(ctx, "usecase.notebook.UpdateBlock", "error", err)
 		return nil, err
 	}
-	if nb.OwnerID != userID {
-		logger.Error(ctx, "usecase.notebook.UpdateBlock", "error", domain.ErrForbidden)
-		return nil, domain.ErrForbidden
+	if err := s.requireEditorAccess(ctx, nb, userID); err != nil {
+		logger.Error(ctx, "usecase.notebook.UpdateBlock", "error", err)
+		return nil, err
 	}
 	block, err := s.blockRepo.GetByID(ctx, blockID)
 	if err != nil {
@@ -222,9 +241,9 @@ func (s *notebookService) DeleteBlock(ctx context.Context, userID, notebookID, b
 		logger.Error(ctx, "usecase.notebook.DeleteBlock", "error", err)
 		return err
 	}
-	if nb.OwnerID != userID {
-		logger.Error(ctx, "usecase.notebook.DeleteBlock", "error", domain.ErrForbidden)
-		return domain.ErrForbidden
+	if err := s.requireEditorAccess(ctx, nb, userID); err != nil {
+		logger.Error(ctx, "usecase.notebook.DeleteBlock", "error", err)
+		return err
 	}
 	block, err := s.blockRepo.GetByID(ctx, blockID)
 	if err != nil {
@@ -241,4 +260,117 @@ func (s *notebookService) DeleteBlock(ctx context.Context, userID, notebookID, b
 	}
 	logger.Info(ctx, "usecase.notebook.DeleteBlock", "block_id", blockID, "status", "ok")
 	return nil
+}
+
+func (s *notebookService) ListAll(ctx context.Context, limit, offset int, search string) ([]domain.Notebook, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return s.notebookRepo.ListAll(ctx, limit, offset, search)
+}
+
+func (s *notebookService) CountAll(ctx context.Context, search string) (int, error) {
+	return s.notebookRepo.CountAll(ctx, search)
+}
+
+func (s *notebookService) AdminDelete(ctx context.Context, notebookID int64) error {
+	return s.notebookRepo.Delete(ctx, notebookID)
+}
+
+func (s *notebookService) requireEditorAccess(ctx context.Context, nb *domain.Notebook, userID int64) error {
+	if nb.OwnerID == userID {
+		return nil
+	}
+	perm, err := s.permRepo.GetPermission(ctx, nb.ID, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrForbidden
+		}
+		return err
+	}
+	if perm.PermissionLevel != domain.PermissionEditor {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
+func (s *notebookService) GrantPermission(ctx context.Context, requesterID, notebookID, targetUserID int64, level string) error {
+	logger.Info(ctx, "usecase.notebook.GrantPermission", "requester_id", requesterID, "notebook_id", notebookID, "target_user_id", targetUserID)
+
+	if level != domain.PermissionReadOnly && level != domain.PermissionEditor {
+		return domain.ErrInvalidInput
+	}
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.GrantPermission", "error", err)
+		return err
+	}
+	if nb.OwnerID != requesterID {
+		logger.Error(ctx, "usecase.notebook.GrantPermission", "error", domain.ErrForbidden)
+		return domain.ErrForbidden
+	}
+	if targetUserID == nb.OwnerID {
+		return domain.ErrInvalidInput
+	}
+	return s.permRepo.Upsert(ctx, &domain.FilePermission{
+		NotebookID:      notebookID,
+		UserID:          targetUserID,
+		PermissionLevel: level,
+	})
+}
+
+func (s *notebookService) RevokePermission(ctx context.Context, requesterID, notebookID, targetUserID int64) error {
+	logger.Info(ctx, "usecase.notebook.RevokePermission", "requester_id", requesterID, "notebook_id", notebookID, "target_user_id", targetUserID)
+
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.RevokePermission", "error", err)
+		return err
+	}
+	if nb.OwnerID != requesterID {
+		logger.Error(ctx, "usecase.notebook.RevokePermission", "error", domain.ErrForbidden)
+		return domain.ErrForbidden
+	}
+	return s.permRepo.Delete(ctx, notebookID, targetUserID)
+}
+
+func (s *notebookService) ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error) {
+	logger.Info(ctx, "usecase.notebook.ListPermissions", "requester_id", requesterID, "notebook_id", notebookID)
+
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ListPermissions", "error", err)
+		return nil, err
+	}
+	if nb.OwnerID != requesterID {
+		logger.Error(ctx, "usecase.notebook.ListPermissions", "error", domain.ErrForbidden)
+		return nil, domain.ErrForbidden
+	}
+	return s.permRepo.GetByNotebookID(ctx, notebookID)
+}
+
+func (s *notebookService) ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error) {
+	logger.Info(ctx, "usecase.notebook.ListSharedWithUser", "user_id", userID, "limit", limit, "offset", offset)
+
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	notebooks, err := s.notebookRepo.GetSharedWithUser(ctx, userID, limit, offset)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ListSharedWithUser", "error", err)
+		return nil, 0, err
+	}
+	total, err := s.notebookRepo.CountSharedWithUser(ctx, userID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ListSharedWithUser", "error", err)
+		return nil, 0, err
+	}
+	logger.Info(ctx, "usecase.notebook.ListSharedWithUser", "total", total)
+	return notebooks, total, nil
 }

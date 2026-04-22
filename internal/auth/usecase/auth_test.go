@@ -17,6 +17,7 @@ type mockUserRepo struct {
 	createFn         func(ctx context.Context, user *domain.User) (int64, error)
 	getByIDFn        func(ctx context.Context, id int64) (*domain.User, error)
 	getByEmailFn     func(ctx context.Context, email string) (*domain.User, error)
+	getByUsernameFn  func(ctx context.Context, username string) (*domain.User, error)
 	updateVerifiedFn func(ctx context.Context, userID int64) error
 }
 
@@ -38,12 +39,26 @@ func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	}
 	return nil, nil
 }
+func (m *mockUserRepo) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	if m.getByUsernameFn != nil {
+		return m.getByUsernameFn(ctx, username)
+	}
+	return nil, nil
+}
 func (m *mockUserRepo) UpdateVerified(ctx context.Context, userID int64) error {
 	if m.updateVerifiedFn != nil {
 		return m.updateVerifiedFn(ctx, userID)
 	}
 	return nil
 }
+func (m *mockUserRepo) UpdateAvatarURL(_ context.Context, _ int64, _ string) error { return nil }
+func (m *mockUserRepo) UpdateProfile(_ context.Context, _ *domain.User) error      { return nil }
+func (m *mockUserRepo) UpdatePassword(_ context.Context, _ int64, _ string) error  { return nil }
+func (m *mockUserRepo) UpdateEmail(_ context.Context, _ int64, _ string) error     { return nil }
+func (m *mockUserRepo) ListAll(_ context.Context, _, _ int, _ string) ([]domain.User, int, error) {
+	return nil, 0, nil
+}
+func (m *mockUserRepo) SetBanned(_ context.Context, _ int64, _ bool) error { return nil }
 
 type mockVerificationRepo struct {
 	createFn func(ctx context.Context, v *domain.VerificationToken) error

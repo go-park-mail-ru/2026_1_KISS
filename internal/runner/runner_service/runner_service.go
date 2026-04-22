@@ -4,7 +4,6 @@ package runner_service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
@@ -16,7 +15,8 @@ import (
 )
 
 var (
-	ErrSessionNotStarted = errors.New("session not started")
+	ErrSessionNotStarted    = errors.New("session not started")
+	ErrBlockPositionInvalid = errors.New("block position out of range")
 )
 
 type RunnerService interface {
@@ -129,6 +129,10 @@ func (s *runnerService) ExecuteBlock(ctx context.Context, notebookID int64, bloc
 		logger.Error(ctx, "usecase.runner.ExecuteBlock", "error", err)
 		return nil, err
 	}
+	if blockPosition < 0 || blockPosition >= len(notebook.Blocks) {
+		logger.Error(ctx, "usecase.runner.ExecuteBlock", "error", ErrBlockPositionInvalid, "block_position", blockPosition, "blocks_count", len(notebook.Blocks))
+		return nil, ErrBlockPositionInvalid
+	}
 	execResult, err := notebookSession.ExecuteBlock(ctx, notebook.Blocks[blockPosition])
 	if err != nil {
 		logger.Error(ctx, "usecase.runner.ExecuteBlock", "error", err)
@@ -146,11 +150,11 @@ func (s *runnerService) StopSession(ctx context.Context, notebookID int64) error
 		logger.Info(ctx, "usecase.runner.StopSession", "notebook_id", notebookID, "status", "no active session")
 		return nil
 	}
-	s.sessionRepo.DeleteSession(notebookID)
 	if err := s.runnerManager.StopSession(ctx, nSession.GetSessionID()); err != nil {
 		logger.Error(ctx, "usecase.runner.StopSession", "error", err)
 		return err
 	}
+	s.sessionRepo.DeleteSession(notebookID)
 	logger.Info(ctx, "usecase.runner.StopSession", "notebook_id", notebookID, "status", "ok")
 	return nil
 }
@@ -174,17 +178,16 @@ func (s *runnerService) evictIdleSessions(ctx context.Context) {
 	sessions := s.sessionRepo.ListSessions()
 	now := time.Now()
 	for notebookID, session := range sessions {
-		fmt.Println("SUB IS: ", now.Sub(session.LastActivity()))
-		fmt.Println("TIMEOUT: ", s.idleTimeout)
-		if now.Sub(session.LastActivity()) < s.idleTimeout {
+		idle := now.Sub(session.LastActivity())
+		if idle < s.idleTimeout {
+			continue
+		}
+		err := s.runnerManager.StopSession(ctx, session.GetSessionID())
+		if err != nil {
+			logger.Error(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "error", err)
 			continue
 		}
 		s.sessionRepo.DeleteSession(notebookID)
-		err := s.runnerManager.StopSession(ctx, session.GetSessionID())
-		if err != nil {
-			fmt.Printf("idle reaper: ERROR failed to stop session %s (notebook %d): %v\n", session.GetSessionID(), notebookID, err)
-			continue
-		}
-		fmt.Printf("idle reaper: stopped idle session %s (notebook %d)\n", session.GetSessionID(), notebookID)
+		logger.Info(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "idle", idle)
 	}
 }

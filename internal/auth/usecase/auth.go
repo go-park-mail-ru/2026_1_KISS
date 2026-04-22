@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -202,7 +203,10 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (*doma
 
 func (uc *AuthUsecase) Logout(ctx context.Context, sessionID string) error {
 	logger.Info(ctx, "usecase.auth.Logout", "session_id", sessionID)
-	_ = uc.sessionRepo.DeleteByID(ctx, sessionID)
+	if err := uc.sessionRepo.DeleteByID(ctx, sessionID); err != nil {
+		logger.Error(ctx, "usecase.auth.Logout", "error", err, "session_id", sessionID)
+		return fmt.Errorf("delete session: %w", err)
+	}
 	logger.Info(ctx, "usecase.auth.Logout", "status", "ok")
 	return nil
 }
@@ -252,4 +256,11 @@ func (uc *AuthUsecase) ConfirmEmail(ctx context.Context, token string) error {
 	}
 
 	return uc.verificationRepo.Delete(ctx, vt.ID)
+}
+func (uc *AuthUsecase) GetUserByIdentifier(ctx context.Context, identifier string) (*domain.User, error) {
+	logger.Info(ctx, "usecase.auth.GetUserByIdentifier", "identifier", identifier)
+	if strings.Contains(identifier, "@") {
+		return uc.userRepo.GetByEmail(ctx, identifier)
+	}
+	return uc.userRepo.GetByUsername(ctx, identifier)
 }

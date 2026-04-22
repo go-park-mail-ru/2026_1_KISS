@@ -20,8 +20,14 @@ jobs:
         with:
           go-version: "1.26"
 
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Generate protobuf
+        run: make proto
+
       - name: golangci-lint
-        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8 run ./...
 
   test:
     name: Test
@@ -35,8 +41,23 @@ jobs:
         with:
           go-version: "1.26"
 
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Generate protobuf
+        run: make proto
+
       - name: Run tests
-        run: go test -race -coverprofile=coverage.out ./...
+        run: |
+          PKGS=$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$|/grpc$|internal/runner/container)')
+          go test -race -coverprofile=coverage.out $PKGS
+
+      - name: Check coverage
+        run: |
+          go tool cover -func=coverage.out
+          TOTAL=$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${TOTAL}%"
+          awk "BEGIN { if (${TOTAL}+0 < 70.0) { print \"FAIL: coverage ${TOTAL}% is below 70% threshold\"; exit 1 } }"
 
   deploy:
     name: Deploy

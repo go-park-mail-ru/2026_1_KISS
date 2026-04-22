@@ -1,0 +1,102 @@
+package app
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"time"
+
+	redisv9 "github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
+
+	authgrpc "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/grpc"
+	authpg "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/postgres"
+	authredis "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/redis"
+	authusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
+	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
+)
+
+type App struct {
+	grpcServer *grpc.Server
+	listener   net.Listener
+	db         *sql.DB
+	rdb        *redisv9.Client
+	metricsSrv *http.Server
+}
+
+func New(cfg *config.Config, grpcPort string) (*App, error) {
+	db, err := database.Connect(cfg.Database.DSN())
+	if err != nil {
+		return nil, fmt.Errorf("connect db: %w", err)
+	}
+
+	rdb := redisv9.NewClient(&redisv9.Options{
+		Addr:         fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
+		Password:     cfg.Redis.Password,
+		DB:           0,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
+	})
+
+	userRepo := authpg.NewUserRepository(db)
+	sessionRepo := authredis.NewSessionRepository(rdb)
+	eventRepo := authpg.NewEventRepository(db)
+
+	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
+
+	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
+	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
+	eventUC := authusecase.NewEventUsecase(eventRepo)
+	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
+
+	lis, err := net.Listen("tcp", ":"+grpcPort)
+	if err != nil {
+		return nil, fmt.Errorf("listen: %w", err)
+	}
+
+	metricsSrv := metrics.StartMetricsServer(":" + cfg.Metrics.Port)
+
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcutil.RecoveryUnaryInterceptor(),
+			grpcutil.MetricsUnaryInterceptor("auth"),
+			grpcutil.LoggingUnaryInterceptor(),
+		),
+	)
+	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC))
+
+	return &App{
+		grpcServer: srv,
+		listener:   lis,
+		db:         db,
+		rdb:        rdb,
+		metricsSrv: metricsSrv,
+	}, nil
+}
+
+func (a *App) Run() error {
+	slog.Info("auth service started", "addr", a.listener.Addr().String())
+	return a.grpcServer.Serve(a.listener)
+}
+
+func (a *App) Shutdown(_ context.Context) {
+	metrics.ShutdownMetricsServer(a.metricsSrv)
+	a.grpcServer.GracefulStop()
+	if err := a.db.Close(); err != nil {
+		slog.Error("db close error", "error", err)
+	}
+	if a.rdb != nil {
+		if err := a.rdb.Close(); err != nil {
+			slog.Error("redis close error", "error", err)
+		}
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 )
@@ -88,7 +89,7 @@ func TestCSRF_EmptyHeader(t *testing.T) {
 
 func TestSetCSRFCookie(t *testing.T) {
 	rec := httptest.NewRecorder()
-	token := middleware.SetCSRFCookie(rec, nil)
+	token := middleware.SetCSRFCookie(rec, time.Time{}, false)
 	if token == "" {
 		t.Error("expected non-empty token")
 	}
@@ -101,5 +102,20 @@ func TestSetCSRFCookie(t *testing.T) {
 	}
 	if !found {
 		t.Error("csrf_token cookie not set")
+	}
+}
+
+func TestClearCSRFCookie(t *testing.T) {
+	rec := httptest.NewRecorder()
+	middleware.ClearCSRFCookie(rec)
+	cookies := rec.Result().Cookies()
+	found := false
+	for _, c := range cookies {
+		if c.Name == "csrf_token" && c.MaxAge < 0 {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("csrf_token cookie not cleared")
 	}
 }

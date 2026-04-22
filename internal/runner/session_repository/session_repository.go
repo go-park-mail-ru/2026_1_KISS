@@ -19,13 +19,15 @@ type ExecutionSessionRepository interface {
 }
 
 type executionSessionRepository struct {
-	sessions   map[int64]notebook_session.NotebookSession
-	sessionsMu sync.RWMutex
+	sessions    map[int64]notebook_session.NotebookSession
+	sessionsMu  sync.RWMutex
+	execTimeout time.Duration
 }
 
-func NewExecutionSessionRepository() ExecutionSessionRepository {
+func NewExecutionSessionRepository(execTimeout time.Duration) ExecutionSessionRepository {
 	return &executionSessionRepository{
-		sessions: make(map[int64]notebook_session.NotebookSession),
+		sessions:    make(map[int64]notebook_session.NotebookSession),
+		execTimeout: execTimeout,
 	}
 }
 
@@ -41,7 +43,7 @@ func (e *executionSessionRepository) CreateSession(notebook *domain.Notebook, ru
 		}
 	}
 
-	session := notebook_session.NewNotebookSession(notebook.ID, sessionID, runnerBaseURL, -1, blockStates)
+	session := notebook_session.NewNotebookSession(notebook.ID, sessionID, runnerBaseURL, -1, blockStates, e.execTimeout)
 	e.sessionsMu.Lock()
 	e.sessions[notebook.ID] = session
 	e.sessionsMu.Unlock()
