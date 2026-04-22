@@ -271,14 +271,19 @@ func TestNotebookHandler_ListShared_GRPCError(t *testing.T) {
 func TestNotebookHandler_ListPermissions_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockNotebookServiceClient(ctrl)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
 
 	client.EXPECT().ListPermissions(gomock.Any(), gomock.Any()).Return(&pb.ListPermissionsResponse{
 		Permissions: []*pb.PermissionInfo{
 			{NotebookId: 1, UserId: 2, PermissionLevel: "editor"},
 		},
 	}, nil)
+	authClient.EXPECT().GetUserByID(gomock.Any(), &pbauth.GetUserByIDRequest{UserId: 2}).Return(
+		&pbauth.UserResponse{User: &pbauth.UserInfo{Email: "user@example.com"}},
+		nil,
+	)
 
-	h := NewNotebookHandler(client, nil)
+	h := NewNotebookHandler(client, authClient)
 	req := httptest.NewRequest("GET", "/api/v1/notebooks/1/permissions", nil)
 	req.SetPathValue("id", "1")
 	req = withUser(req, 1)

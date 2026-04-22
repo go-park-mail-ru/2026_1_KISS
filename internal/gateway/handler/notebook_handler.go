@@ -348,6 +348,7 @@ type permissionResponse struct {
 	NotebookID      int64  `json:"notebook_id"`
 	UserID          int64  `json:"user_id"`
 	PermissionLevel string `json:"permission_level"`
+	Email           string `json:"email,omitempty"`
 }
 
 type permissionListResponse struct {
@@ -411,13 +412,18 @@ func (h *NotebookHandler) ListPermissions(w http.ResponseWriter, r *http.Request
 
 	items := make([]permissionResponse, len(resp.GetPermissions()))
 	for i, p := range resp.GetPermissions() {
+		email := ""
+		userResp, err := h.authClient.GetUserByID(r.Context(), &pbauth.GetUserByIDRequest{UserId: p.GetUserId()})
+		if err == nil {
+			email = userResp.GetUser().GetEmail()
+		}
 		items[i] = permissionResponse{
 			NotebookID:      p.GetNotebookId(),
 			UserID:          p.GetUserId(),
 			PermissionLevel: p.GetPermissionLevel(),
+			Email:           email,
 		}
 	}
-
 	httputil.JSON(w, http.StatusOK, permissionListResponse{Permissions: items})
 }
 
@@ -473,6 +479,7 @@ func (h *NotebookHandler) GrantPermissionByIdentifier(w http.ResponseWriter, r *
 		NotebookID:      notebookID,
 		UserID:          targetUserID,
 		PermissionLevel: req.Level,
+		Email:           req.Identifier,
 	})
 }
 

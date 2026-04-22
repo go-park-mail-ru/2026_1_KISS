@@ -70,8 +70,15 @@ func (s *Server) ValidateSession(ctx context.Context, req *pb.ValidateSessionReq
 	return &pb.ValidateSessionResponse{User: userToProto(user)}, nil
 }
 
-func (s *Server) GetUserByID(_ context.Context, _ *pb.GetUserByIDRequest) (*pb.UserResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "use ValidateSession instead")
+func (s *Server) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.UserResponse, error) {
+	if req.GetUserId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	user, err := s.authUC.GetUserByID(ctx, req.GetUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.UserResponse{User: userToProto(user)}, nil
 }
 
 func (s *Server) GetUserByIdentifier(ctx context.Context, req *pb.GetUserByIdentifierRequest) (*pb.UserResponse, error) {

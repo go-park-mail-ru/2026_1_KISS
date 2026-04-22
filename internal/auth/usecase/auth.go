@@ -138,6 +138,11 @@ func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*
 	return user, nil
 }
 
+func (uc *AuthUsecase) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {
+	logger.Info(ctx, "usecase.auth.GetUserByID", "user_id", userID)
+	return uc.userRepo.GetByID(ctx, userID)
+}
+
 func (uc *AuthUsecase) GetUserByIdentifier(ctx context.Context, identifier string) (*domain.User, error) {
 	logger.Info(ctx, "usecase.auth.GetUserByIdentifier", "identifier", identifier)
 	if strings.Contains(identifier, "@") {
