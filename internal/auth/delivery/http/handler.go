@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 )
 
@@ -72,6 +73,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	middleware.SetCSRFCookie(w, nil)
+
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
 }
 
@@ -83,14 +86,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = h.usecase.Logout(r.Context(), cookie.Value)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
+	clearSessionCookie(w)
+	middleware.ClearCSRFCookie(w)
 
 	httputil.JSON(w, http.StatusOK, nil)
 }
@@ -104,6 +101,9 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.usecase.ValidateSession(r.Context(), cookie.Value)
 	if err != nil {
+		if errors.Is(err, domain.ErrSessionExpired) {
+			clearSessionCookie(w)
+		}
 		mapDomainError(w, err)
 		return
 	}
@@ -111,21 +111,18 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, NewUserResponse(user))
 }
 
+func clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+}
+
 func mapDomainError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		httputil.Error(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, domain.ErrConflict):
-		httputil.Error(w, http.StatusConflict, "email or username already exists")
-	case errors.Is(err, domain.ErrUnauthorized):
-		httputil.Error(w, http.StatusUnauthorized, "invalid credentials")
-	case errors.Is(err, domain.ErrInvalidInput):
-		httputil.Error(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, domain.ErrForbidden):
-		httputil.Error(w, http.StatusForbidden, "access denied")
-	default:
-		httputil.Error(w, http.StatusInternalServerError, "internal server error")
-	}
+	httputil.MapDomainError(w, err)
 }
 
 func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {

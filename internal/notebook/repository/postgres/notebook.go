@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
 
 type NotebookRepo struct {
@@ -17,18 +19,22 @@ func NewNotebookRepository(db *sql.DB) *NotebookRepo {
 }
 
 func (r *NotebookRepo) Create(ctx context.Context, notebook *domain.Notebook) (int64, error) {
+	start := time.Now()
 	var id int64
 	err := r.db.QueryRowContext(ctx,
 		`INSERT INTO notebooks (owner_id, title) VALUES ($1, $2) RETURNING id, created_at, updated_at`,
 		notebook.OwnerID, notebook.Title,
 	).Scan(&id, &notebook.CreatedAt, &notebook.UpdatedAt)
 	if err != nil {
+		logger.Error(ctx, "repo.notebooks.Create", "error", err, "duration", time.Since(start), "owner_id", notebook.OwnerID)
 		return 0, err
 	}
+	logger.Info(ctx, "repo.notebooks.Create", "duration", time.Since(start), "notebook_id", id, "owner_id", notebook.OwnerID)
 	return id, nil
 }
 
 func (r *NotebookRepo) GetByID(ctx context.Context, id int64) (*domain.Notebook, error) {
+	start := time.Now()
 	nb := &domain.Notebook{}
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, owner_id, title, is_public, created_at, updated_at FROM notebooks WHERE id = $1`,
@@ -36,19 +42,29 @@ func (r *NotebookRepo) GetByID(ctx context.Context, id int64) (*domain.Notebook,
 	).Scan(&nb.ID, &nb.OwnerID, &nb.Title, &nb.IsPublic, &nb.CreatedAt, &nb.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error(ctx, "repo.notebooks.GetByID", "error", domain.ErrNotFound, "duration", time.Since(start), "notebook_id", id)
 			return nil, domain.ErrNotFound
 		}
+		logger.Error(ctx, "repo.notebooks.GetByID", "error", err, "duration", time.Since(start), "notebook_id", id)
 		return nil, err
 	}
+	logger.Info(ctx, "repo.notebooks.GetByID", "duration", time.Since(start), "notebook_id", id)
 	return nb, nil
 }
 
-func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int) ([]domain.Notebook, error) {
+func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int, search string) ([]domain.Notebook, error) {
+	start := time.Now()
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, owner_id, title, is_public, created_at, updated_at FROM notebooks WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-		ownerID, limit, offset,
+		`SELECT id, owner_id, title, is_public, created_at, updated_at
+		 FROM notebooks
+		 WHERE owner_id = $1
+		   AND ($2 = '' OR title ILIKE '%' || $2 || '%')
+		 ORDER BY created_at DESC
+		 LIMIT $3 OFFSET $4`,
+		ownerID, search, limit, offset,
 	)
 	if err != nil {
+		logger.Error(ctx, "repo.notebooks.GetByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
 		return nil, err
 	}
 	defer rows.Close()
@@ -57,24 +73,70 @@ func (r *NotebookRepo) GetByOwnerID(ctx context.Context, ownerID int64, limit, o
 	for rows.Next() {
 		var nb domain.Notebook
 		if err := rows.Scan(&nb.ID, &nb.OwnerID, &nb.Title, &nb.IsPublic, &nb.CreatedAt, &nb.UpdatedAt); err != nil {
+			logger.Error(ctx, "repo.notebooks.GetByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
 			return nil, err
 		}
 		notebooks = append(notebooks, nb)
 	}
-	return notebooks, rows.Err()
+	if err := rows.Err(); err != nil {
+		logger.Error(ctx, "repo.notebooks.GetByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return nil, err
+	}
+	logger.Info(ctx, "repo.notebooks.GetByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "count", len(notebooks))
+	return notebooks, nil
 }
 
 func (r *NotebookRepo) Delete(ctx context.Context, id int64) error {
+	start := time.Now()
 	result, err := r.db.ExecContext(ctx, `DELETE FROM notebooks WHERE id = $1`, id)
 	if err != nil {
+		logger.Error(ctx, "repo.notebooks.Delete", "error", err, "duration", time.Since(start), "notebook_id", id)
 		return err
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
+		logger.Error(ctx, "repo.notebooks.Delete", "error", err, "duration", time.Since(start), "notebook_id", id)
 		return err
 	}
 	if rows == 0 {
+		logger.Error(ctx, "repo.notebooks.Delete", "error", domain.ErrNotFound, "duration", time.Since(start), "notebook_id", id)
 		return domain.ErrNotFound
 	}
+	logger.Info(ctx, "repo.notebooks.Delete", "duration", time.Since(start), "notebook_id", id)
 	return nil
+}
+
+func (r *NotebookRepo) Update(ctx context.Context, notebook *domain.Notebook) error {
+	start := time.Now()
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE notebooks SET title = $1, is_public = $2, updated_at = NOW() WHERE id = $3 AND owner_id = $4 RETURNING updated_at`,
+		notebook.Title, notebook.IsPublic, notebook.ID, notebook.OwnerID,
+	).Scan(&notebook.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error(ctx, "repo.notebooks.Update", "error", domain.ErrNotFound, "duration", time.Since(start), "notebook_id", notebook.ID)
+			return domain.ErrNotFound
+		}
+		logger.Error(ctx, "repo.notebooks.Update", "error", err, "duration", time.Since(start), "notebook_id", notebook.ID)
+		return err
+	}
+	logger.Info(ctx, "repo.notebooks.Update", "duration", time.Since(start), "notebook_id", notebook.ID)
+	return nil
+}
+
+func (r *NotebookRepo) CountByOwnerID(ctx context.Context, ownerID int64, search string) (int, error) {
+	start := time.Now()
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM notebooks
+		 WHERE owner_id = $1
+		   AND ($2 = '' OR title ILIKE '%' || $2 || '%')`,
+		ownerID, search,
+	).Scan(&count)
+	if err != nil {
+		logger.Error(ctx, "repo.notebooks.CountByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return 0, err
+	}
+	logger.Info(ctx, "repo.notebooks.CountByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "count", count)
+	return count, nil
 }

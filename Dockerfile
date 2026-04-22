@@ -19,6 +19,7 @@ WORKDIR /app
 COPY --from=builder /app/server .
 COPY --from=builder /app/migrator .
 COPY migrations/ ./migrations/
+RUN mkdir -p /app/uploads
 
 EXPOSE 8080
 

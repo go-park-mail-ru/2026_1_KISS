@@ -1,294 +1,21 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "KISS — API совместных ноутбуков",
-    "description": "REST API сервиса для совместной работы с ноутбуками. Аутентификация — сессионная через HttpOnly cookie.",
+    "title": "KISS Notebook API",
     "version": "1.0.0",
-    "contact": {
-      "name": "go-park-mail-ru/2026_1_KISS"
-    }
+    "description": "REST API for collaborative Jupyter-like notebook platform"
   },
   "servers": [
     {
       "url": "http://localhost:8080",
-      "description": "Локальный сервер разработки"
+      "description": "Local development"
     }
   ],
-  "components": {
-    "securitySchemes": {
-      "cookieAuth": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "session_id",
-        "description": "Идентификатор сессии в HttpOnly cookie. Выдаётся при POST /api/v1/auth/login."
-      }
-    },
-    "schemas": {
-      "RegisterRequest": {
-        "type": "object",
-        "required": ["username", "email", "password"],
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "john_doe"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "john@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "minLength": 1,
-            "example": "secret123"
-          }
-        }
-      },
-      "LoginRequest": {
-        "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "john@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "example": "secret123"
-          }
-        }
-      },
-      "UserResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "username": {
-            "type": "string",
-            "example": "john_doe"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "john@example.com"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-03-08T10:00:00Z"
-          }
-        }
-      },
-      "CreateNotebookRequest": {
-        "type": "object",
-        "required": ["title"],
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "Мои заметки по Python"
-          }
-        }
-      },
-      "CreateBlockRequest": {
-        "type": "object",
-        "required": ["type", "language", "content"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["code", "text", "markdown"],
-            "example": "code"
-          },
-          "language": {
-            "type": "string",
-            "example": "python"
-          },
-          "content": {
-            "type": "string",
-            "example": "print('Привет, мир!')"
-          }
-        }
-      },
-      "BlockResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "type": {
-            "type": "string",
-            "example": "code"
-          },
-          "language": {
-            "type": "string",
-            "example": "python"
-          },
-          "content": {
-            "type": "string",
-            "example": "print('Привет, мир!')"
-          },
-          "position": {
-            "type": "integer",
-            "example": 0
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-03-08T10:00:00Z"
-          }
-        }
-      },
-      "NotebookResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "owner_id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "title": {
-            "type": "string",
-            "example": "Мои заметки по Python"
-          },
-          "is_public": {
-            "type": "boolean",
-            "example": false
-          },
-          "blocks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BlockResponse"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-03-08T10:00:00Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-03-08T10:05:00Z"
-          }
-        }
-      },
-      "SuccessResponse": {
-        "type": "object",
-        "description": "Конверт успешного ответа. Поле 'data' содержит полезную нагрузку.",
-        "properties": {
-          "data": {}
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "description": "Конверт ответа с ошибкой.",
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "неверные учётные данные"
-          }
-        }
-      }
-    },
-    "responses": {
-      "400": {
-        "description": "Неверный запрос — некорректный JSON или недопустимые значения полей.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "example": {
-              "error": "invalid request body"
-            }
-          }
-        }
-      },
-      "401": {
-        "description": "Не авторизован — отсутствует или истёк cookie сессии.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "example": {
-              "error": "invalid credentials"
-            }
-          }
-        }
-      },
-      "403": {
-        "description": "Доступ запрещён — пользователь аутентифицирован, но не имеет прав на ресурс.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "example": {
-              "error": "access denied"
-            }
-          }
-        }
-      },
-      "404": {
-        "description": "Не найдено — запрошенный ресурс не существует.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "example": {
-              "error": "not found"
-            }
-          }
-        }
-      },
-      "409": {
-        "description": "Конфликт — email или имя пользователя уже зарегистрированы.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "example": {
-              "error": "email or username already exists"
-            }
-          }
-        }
-      },
-      "500": {
-        "description": "Внутренняя ошибка сервера.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "example": {
-              "error": "internal server error"
-            }
-          }
-        }
-      }
-    }
-  },
   "paths": {
     "/api/v1/auth/register": {
       "post": {
         "tags": ["auth"],
-        "summary": "Регистрация нового пользователя",
-        "operationId": "register",
+        "summary": "Register a new user",
         "requestBody": {
           "required": true,
           "content": {
@@ -301,37 +28,24 @@
         },
         "responses": {
           "201": {
-            "description": "Пользователь успешно создан.",
+            "description": "User created",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/UserResponse"
-                    }
-                  }
+                  "$ref": "#/components/schemas/DataUserResponse"
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "409": {
-            "$ref": "#/components/responses/409"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         }
       }
     },
     "/api/v1/auth/login": {
       "post": {
         "tags": ["auth"],
-        "summary": "Вход в систему, получение cookie сессии",
-        "operationId": "login",
+        "summary": "Login and create session",
         "requestBody": {
           "required": true,
           "content": {
@@ -344,184 +58,92 @@
         },
         "responses": {
           "200": {
-            "description": "Вход выполнен успешно. Устанавливается HttpOnly cookie `session_id`.",
+            "description": "Login successful",
             "headers": {
               "Set-Cookie": {
-                "description": "HttpOnly cookie сессии: `session_id=<uuid>; Path=/; HttpOnly; SameSite=Lax`",
-                "schema": {
-                  "type": "string",
-                  "example": "session_id=90619fff-b8e0-42b4-bee4-4e858d0745b0; Path=/; HttpOnly; SameSite=Lax"
-                }
+                "schema": { "type": "string" },
+                "description": "session_id cookie"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/UserResponse"
-                    }
-                  }
+                  "$ref": "#/components/schemas/DataUserResponse"
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
     "/api/v1/auth/logout": {
       "post": {
         "tags": ["auth"],
-        "summary": "Выход из системы, инвалидация сессии",
-        "operationId": "logout",
-        "description": "Очищает cookie `session_id`. Если cookie отсутствует, возвращает 200 без ошибки.",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "Logout and destroy session",
+        "security": [{ "cookieAuth": [] }],
         "responses": {
-          "200": {
-            "description": "Выход выполнен успешно.",
-            "headers": {
-              "Set-Cookie": {
-                "description": "Сбрасывает cookie сессии через MaxAge=-1.",
-                "schema": {
-                  "type": "string",
-                  "example": "session_id=; Path=/; HttpOnly; Max-Age=0"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "nullable": true,
-                      "example": null
-                    }
-                  }
-                }
-              }
-            }
-          }
+          "204": { "description": "Logged out" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
     "/api/v1/auth/me": {
       "get": {
         "tags": ["auth"],
-        "summary": "Получить текущего аутентифицированного пользователя",
-        "operationId": "me",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "Get current user",
+        "security": [{ "cookieAuth": [] }],
         "responses": {
           "200": {
-            "description": "Данные текущего пользователя.",
+            "description": "Current user",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/UserResponse"
-                    }
-                  }
+                  "$ref": "#/components/schemas/DataUserResponse"
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
     "/api/v1/notebooks": {
       "get": {
         "tags": ["notebooks"],
-        "summary": "Список ноутбуков текущего пользователя",
-        "operationId": "listNotebooks",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "List user notebooks",
+        "security": [{ "cookieAuth": [] }],
         "parameters": [
           {
             "name": "limit",
             "in": "query",
-            "description": "Максимальное количество ноутбуков в ответе. 0 — без ограничения.",
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "example": 20
-            }
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
           },
           {
             "name": "offset",
             "in": "query",
-            "description": "Количество ноутбуков для пропуска (пагинация).",
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "example": 0
-            }
+            "schema": { "type": "integer", "default": 0 }
           }
         ],
         "responses": {
           "200": {
-            "description": "Список ноутбуков.",
+            "description": "Paginated notebook list",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/NotebookResponse"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/DataNotebookListResponse"
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
         "tags": ["notebooks"],
-        "summary": "Создать новый ноутбук",
-        "operationId": "createNotebook",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "Create a notebook",
+        "security": [{ "cookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -534,154 +156,102 @@
         },
         "responses": {
           "201": {
-            "description": "Ноутбук успешно создан.",
+            "description": "Notebook created",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/NotebookResponse"
-                    }
-                  }
+                  "$ref": "#/components/schemas/DataNotebookResponse"
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
     "/api/v1/notebooks/{id}": {
       "get": {
         "tags": ["notebooks"],
-        "summary": "Получить ноутбук по ID",
-        "operationId": "getNotebook",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "Get notebook by ID",
+        "security": [{ "cookieAuth": [] }],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ноутбука.",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            }
-          }
+          { "$ref": "#/components/parameters/NotebookID" }
         ],
         "responses": {
           "200": {
-            "description": "Ноутбук со всеми блоками.",
+            "description": "Notebook with blocks",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/NotebookResponse"
-                    }
-                  }
+                  "$ref": "#/components/schemas/DataNotebookResponse"
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["notebooks"],
+        "summary": "Update notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotebookRequest"
+              }
+            }
           }
+        },
+        "responses": {
+          "200": {
+            "description": "Notebook updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataNotebookResponse"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
         "tags": ["notebooks"],
-        "summary": "Удалить ноутбук по ID",
-        "operationId": "deleteNotebook",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "Delete notebook",
+        "security": [{ "cookieAuth": [] }],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ноутбука.",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            }
-          }
+          { "$ref": "#/components/parameters/NotebookID" }
         ],
         "responses": {
-          "204": {
-            "description": "Ноутбук успешно удалён. Тело ответа отсутствует."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+          "204": { "description": "Notebook deleted" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
     "/api/v1/notebooks/{id}/blocks": {
       "post": {
         "tags": ["blocks"],
-        "summary": "Добавить блок в ноутбук",
-        "operationId": "addBlock",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
+        "summary": "Add block to notebook",
+        "security": [{ "cookieAuth": [] }],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ноутбука.",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            }
-          }
+          { "$ref": "#/components/parameters/NotebookID" }
         ],
         "requestBody": {
           "required": true,
@@ -689,62 +259,307 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateBlockRequest"
-              },
-              "example": {
-                "type": "code",
-                "language": "python",
-                "content": "print('Привет, мир!')"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Блок создан и добавлен в ноутбук.",
+            "description": "Block created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlockResponse"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/blocks/{blockID}": {
+      "put": {
+        "tags": ["blocks"],
+        "summary": "Update block",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBlockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Block updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataBlockResponse"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["blocks"],
+        "summary": "Delete block",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" }
+        ],
+        "responses": {
+          "204": { "description": "Block deleted" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service healthy",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/BlockResponse"
+                      "type": "object",
+                      "properties": {
+                        "status": { "type": "string", "example": "ok" }
+                      }
                     }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
+          "503": {
+            "description": "Database unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     }
   },
-  "tags": [
-    {
-      "name": "auth",
-      "description": "Аутентификация и управление сессиями"
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session_id"
+      }
     },
-    {
-      "name": "notebooks",
-      "description": "CRUD операции с ноутбуками"
+    "parameters": {
+      "NotebookID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "BlockID": {
+        "name": "blockID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
     },
-    {
-      "name": "blocks",
-      "description": "Блоки кода и текста внутри ноутбуков"
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Not authenticated",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Access denied",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Resource conflict",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "email", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "username": { "type": "string" },
+          "email": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataUserResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/UserResponse" }
+        }
+      },
+      "CreateNotebookRequest": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" }
+        }
+      },
+      "UpdateNotebookRequest": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 255 },
+          "is_public": { "type": "boolean" }
+        }
+      },
+      "NotebookResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "owner_id": { "type": "integer", "format": "int64" },
+          "title": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "blocks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BlockResponse" }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataNotebookResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/NotebookResponse" }
+        }
+      },
+      "NotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "notebooks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/NotebookResponse" }
+          },
+          "total": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "DataNotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/NotebookListResponse" }
+        }
+      },
+      "CreateBlockRequest": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "language": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      },
+      "UpdateBlockRequest": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "language": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      },
+      "BlockResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "type": { "type": "string" },
+          "language": { "type": "string" },
+          "content": { "type": "string" },
+          "position": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataBlockResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/BlockResponse" }
+        }
+      }
     }
-  ]
+  }
 }
