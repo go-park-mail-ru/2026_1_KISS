@@ -94,6 +94,10 @@ func executionResultToProto(r *domain.BlockExecutionResult) *pb.BlockExecutionRe
 	if r.Error != nil {
 		errMsg = r.Error.Error()
 	}
+	pbOutputs := make([]*pb.OutputItem, len(r.Outputs))
+	for i, o := range r.Outputs {
+		pbOutputs[i] = &pb.OutputItem{MimeType: o.MimeType, Data: o.Data}
+	}
 	return &pb.BlockExecutionResult{
 		BlockId:    r.BlockID,
 		Position:   int32(r.Position), //nolint:gosec // block position fits int32
@@ -103,5 +107,6 @@ func executionResultToProto(r *domain.BlockExecutionResult) *pb.BlockExecutionRe
 		Error:      errMsg,
 		ExecutedAt: r.ExecutedAt.Unix(),
 		DurationNs: r.Duration.Nanoseconds(),
+		Outputs:    pbOutputs,
 	}
 }

@@ -25,15 +25,21 @@ func (h *RunnerHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Mid
 	mux.Handle("POST /api/v1/runner/{notebook_id}/stop", authMw(http.HandlerFunc(h.StopSession)))
 }
 
+type outputItemResponse struct {
+	MimeType string `json:"mime_type"`
+	Data     string `json:"data"`
+}
+
 type executionResultResponse struct {
-	BlockID    int64    `json:"block_id"`
-	Position   int      `json:"position"`
-	Stdout     []string `json:"stdout,omitempty"`
-	Stderr     []string `json:"stderr,omitempty"`
-	Result     string   `json:"result,omitempty"`
-	Error      string   `json:"error,omitempty"`
-	ExecutedAt string   `json:"executed_at"`
-	Duration   string   `json:"duration"`
+	BlockID    int64                `json:"block_id"`
+	Position   int                  `json:"position"`
+	Stdout     []string             `json:"stdout,omitempty"`
+	Stderr     []string             `json:"stderr,omitempty"`
+	Result     string               `json:"result,omitempty"`
+	Outputs    []outputItemResponse `json:"outputs,omitempty"`
+	Error      string               `json:"error,omitempty"`
+	ExecutedAt string               `json:"executed_at"`
+	Duration   string               `json:"duration"`
 }
 
 func (h *RunnerHandler) ExecuteFromPosition(w http.ResponseWriter, r *http.Request) {
@@ -136,12 +142,17 @@ func (h *RunnerHandler) StopSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func protoResultToResponse(r *pb.BlockExecutionResult) executionResultResponse {
+	outputs := make([]outputItemResponse, len(r.GetOutputs()))
+	for i, o := range r.GetOutputs() {
+		outputs[i] = outputItemResponse{MimeType: o.GetMimeType(), Data: o.GetData()}
+	}
 	return executionResultResponse{
 		BlockID:    r.GetBlockId(),
 		Position:   int(r.GetPosition()),
 		Stdout:     r.GetStdout(),
 		Stderr:     r.GetStderr(),
 		Result:     r.GetResult(),
+		Outputs:    outputs,
 		Error:      r.GetError(),
 		ExecutedAt: time.Unix(r.GetExecutedAt(), 0).Format(time.RFC3339),
 		Duration:   time.Duration(r.GetDurationNs()).String(),
