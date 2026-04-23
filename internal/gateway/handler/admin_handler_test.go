@@ -60,11 +60,14 @@ func TestAdminHandler_ListUsers_GRPCError(t *testing.T) {
 func TestAdminHandler_BanUser_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	nbClient := mocks.NewMockNotebookServiceClient(ctrl)
 
 	authClient.EXPECT().AdminSetBan(gomock.Any(), gomock.Any()).
 		Return(&pbauth.AdminSetBanResponse{}, nil)
+	nbClient.EXPECT().AdminSetUserNotebooksPrivate(gomock.Any(), gomock.Any()).
+		Return(&pbnotebook.AdminSetUserNotebooksPrivateResponse{}, nil)
 
-	h := NewAdminHandler(authClient, nil)
+	h := NewAdminHandler(authClient, nbClient)
 	req := httptest.NewRequest("POST", "/api/v1/admin/users/2/ban", nil)
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -239,6 +242,7 @@ func TestAdminHandler_DeleteNotebook_GRPCError(t *testing.T) {
 func TestAdminHandler_GetStats_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	nbClient := mocks.NewMockNotebookServiceClient(ctrl)
 
 	authClient.EXPECT().AdminGetStats(gomock.Any(), gomock.Any()).Return(&pbauth.AdminGetStatsResponse{
 		TotalUsers:    100,
@@ -246,8 +250,10 @@ func TestAdminHandler_GetStats_Success(t *testing.T) {
 		Dau:           10,
 		Mau:           30,
 	}, nil)
+	nbClient.EXPECT().AdminGetNotebookCount(gomock.Any(), gomock.Any()).
+		Return(&pbnotebook.AdminGetNotebookCountResponse{Total: 25}, nil)
 
-	h := NewAdminHandler(authClient, nil)
+	h := NewAdminHandler(authClient, nbClient)
 	req := httptest.NewRequest("GET", "/api/v1/admin/stats", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
