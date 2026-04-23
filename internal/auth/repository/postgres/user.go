@@ -11,6 +11,8 @@ import (
 	"github.com/lib/pq"
 )
 
+const userColumns = `id, username, email, password_hash, avatar_url, status, description, is_admin, plan, last_active_at, total_time_seconds, created_at, updated_at`
+
 type UserRepo struct {
 	db *sql.DB
 }
@@ -42,9 +44,13 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) 
 	start := time.Now()
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, avatar_url, status, description, is_admin, created_at, updated_at FROM users WHERE id = $1`,
-		id,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT `+userColumns+` FROM users WHERE id = $1`, id,
+	).Scan(
+		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
+		&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+		&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
+		&u.CreatedAt, &u.UpdatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Error(ctx, "repo.users.GetByID", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", id)
@@ -61,9 +67,13 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 	start := time.Now()
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, avatar_url, status, description, is_admin, created_at, updated_at FROM users WHERE email = $1`,
-		email,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT `+userColumns+` FROM users WHERE email = $1`, email,
+	).Scan(
+		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
+		&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+		&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
+		&u.CreatedAt, &u.UpdatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Error(ctx, "repo.users.GetByEmail", "error", domain.ErrNotFound, "duration", time.Since(start), "email", email)
@@ -80,9 +90,13 @@ func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*domain.
 	start := time.Now()
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, avatar_url, status, description, is_admin, created_at, updated_at FROM users WHERE username = $1`,
-		username,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
+		`SELECT `+userColumns+` FROM users WHERE username = $1`, username,
+	).Scan(
+		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
+		&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+		&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
+		&u.CreatedAt, &u.UpdatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Error(ctx, "repo.users.GetByUsername", "error", domain.ErrNotFound, "duration", time.Since(start), "username", username)
@@ -219,14 +233,14 @@ func (r *UserRepo) ListAll(ctx context.Context, limit, offset int, search string
 	var err error
 	if search != "" {
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT id, username, email, password_hash, avatar_url, status, description, is_admin, created_at, updated_at
+			`SELECT `+userColumns+`
 			 FROM users WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'
 			 ORDER BY id DESC LIMIT $2 OFFSET $3`,
 			search, limit, offset,
 		)
 	} else {
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT id, username, email, password_hash, avatar_url, status, description, is_admin, created_at, updated_at
+			`SELECT `+userColumns+`
 			 FROM users ORDER BY id DESC LIMIT $1 OFFSET $2`,
 			limit, offset,
 		)
@@ -240,7 +254,12 @@ func (r *UserRepo) ListAll(ctx context.Context, limit, offset int, search string
 	var users []domain.User
 	for rows.Next() {
 		var u domain.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&u.ID, &u.Username, &u.Email, &u.PasswordHash,
+			&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+			&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
+			&u.CreatedAt, &u.UpdatedAt,
+		); err != nil {
 			logger.Error(ctx, "repo.users.ListAll.scan", "error", err, "duration", time.Since(start))
 			return nil, 0, err
 		}
@@ -278,6 +297,97 @@ func (r *UserRepo) SetBanned(ctx context.Context, userID int64, banned bool) err
 		return domain.ErrNotFound
 	}
 	logger.Info(ctx, "repo.users.SetBanned", "duration", time.Since(start), "user_id", userID, "banned", banned)
+	return nil
+}
+
+func (r *UserRepo) CountAll(ctx context.Context) (int64, error) {
+	start := time.Now()
+	var count int64
+	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	if err != nil {
+		logger.Error(ctx, "repo.users.CountAll", "error", err, "duration", time.Since(start))
+		return 0, err
+	}
+	logger.Info(ctx, "repo.users.CountAll", "duration", time.Since(start), "count", count)
+	return count, nil
+}
+
+func (r *UserRepo) UpdatePlan(ctx context.Context, userID int64, plan string) error {
+	start := time.Now()
+	isAdmin := plan == domain.PlanAdmin
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET plan = $1, is_admin = $2 WHERE id = $3`,
+		plan, isAdmin, userID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.users.UpdatePlan", "error", err, "duration", time.Since(start), "user_id", userID)
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		logger.Error(ctx, "repo.users.UpdatePlan", "error", err, "duration", time.Since(start), "user_id", userID)
+		return err
+	}
+	if n == 0 {
+		logger.Error(ctx, "repo.users.UpdatePlan", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", userID)
+		return domain.ErrNotFound
+	}
+	logger.Info(ctx, "repo.users.UpdatePlan", "duration", time.Since(start), "user_id", userID, "plan", plan)
+	return nil
+}
+
+func (r *UserRepo) UpdateLastActive(ctx context.Context, userID int64, t time.Time) error {
+	start := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET last_active_at = $1 WHERE id = $2`,
+		t, userID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.users.UpdateLastActive", "error", err, "duration", time.Since(start), "user_id", userID)
+		return err
+	}
+	logger.Info(ctx, "repo.users.UpdateLastActive", "duration", time.Since(start), "user_id", userID)
+	return nil
+}
+
+func (r *UserRepo) IncrementTotalTime(ctx context.Context, userID int64, seconds int64) error {
+	start := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET total_time_seconds = total_time_seconds + $1 WHERE id = $2`,
+		seconds, userID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.users.IncrementTotalTime", "error", err, "duration", time.Since(start), "user_id", userID)
+		return err
+	}
+	logger.Info(ctx, "repo.users.IncrementTotalTime", "duration", time.Since(start), "user_id", userID, "seconds", seconds)
+	return nil
+}
+
+func (r *UserRepo) AdminUpdateUser(ctx context.Context, userID int64, username, email string) error {
+	start := time.Now()
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET username = $1, email = $2 WHERE id = $3`,
+		username, email, userID,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			logger.Error(ctx, "repo.users.AdminUpdateUser", "error", domain.ErrConflict, "duration", time.Since(start), "user_id", userID)
+			return domain.ErrConflict
+		}
+		logger.Error(ctx, "repo.users.AdminUpdateUser", "error", err, "duration", time.Since(start), "user_id", userID)
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		logger.Error(ctx, "repo.users.AdminUpdateUser", "error", err, "duration", time.Since(start), "user_id", userID)
+		return err
+	}
+	if n == 0 {
+		logger.Error(ctx, "repo.users.AdminUpdateUser", "error", domain.ErrNotFound, "duration", time.Since(start), "user_id", userID)
+		return domain.ErrNotFound
+	}
+	logger.Info(ctx, "repo.users.AdminUpdateUser", "duration", time.Since(start), "user_id", userID)
 	return nil
 }
 

@@ -22,6 +22,10 @@ service AuthService {
   rpc AdminListUsers(AdminListUsersRequest) returns (AdminListUsersResponse);
   rpc AdminSetBan(AdminSetBanRequest) returns (AdminSetBanResponse);
   rpc AdminGetStats(AdminGetStatsRequest) returns (AdminGetStatsResponse);
+  rpc AdminUpdateUser(AdminUpdateUserRequest) returns (UserResponse);
+  rpc AdminResetPassword(AdminResetPasswordRequest) returns (AdminResetPasswordResponse);
+  rpc AdminSetPlan(AdminSetPlanRequest) returns (AdminSetPlanResponse);
+  rpc AdminGetActivityStats(AdminGetActivityStatsRequest) returns (AdminGetActivityStatsResponse);
 }
 
 message UserInfo {
@@ -34,6 +38,9 @@ message UserInfo {
   int64 created_at = 7;
   int64 updated_at = 8;
   bool is_admin = 9;
+  string plan = 10;
+  int64 last_active_at = 11;
+  int64 total_time_seconds = 12;
 }
 
 message RegisterRequest {
@@ -163,4 +170,49 @@ message AdminGetStatsResponse {
   int64 total_sessions = 2;
   int64 dau = 3;
   int64 mau = 4;
+  int64 total_notebooks = 5;
+}
+
+message AdminUpdateUserRequest {
+  int64 admin_user_id = 1;
+  int64 target_user_id = 2;
+  string username = 3;
+  string email = 4;
+}
+
+message AdminResetPasswordRequest {
+  int64 admin_user_id = 1;
+  int64 target_user_id = 2;
+  string new_password = 3;
+}
+
+message AdminResetPasswordResponse {}
+
+message AdminSetPlanRequest {
+  int64 admin_user_id = 1;
+  int64 target_user_id = 2;
+  string plan = 3;
+}
+
+message AdminSetPlanResponse {}
+
+message AdminGetActivityStatsRequest {
+  int64 admin_user_id = 1;
+  int32 dau_days = 2;
+  int32 mau_months = 3;
+}
+
+message DauEntry {
+  string date = 1;
+  int64 count = 2;
+}
+
+message MauEntry {
+  string month = 1;
+  int64 count = 2;
+}
+
+message AdminGetActivityStatsResponse {
+  repeated DauEntry dau = 1;
+  repeated MauEntry mau = 2;
 }

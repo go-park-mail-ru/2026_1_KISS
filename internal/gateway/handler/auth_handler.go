@@ -135,15 +135,22 @@ func clearSessionCookie(w http.ResponseWriter) {
 }
 
 func protoUserToDTO(info *pb.UserInfo) dto.UserResponse {
-	return dto.UserResponse{
-		ID:          info.GetId(),
-		Username:    info.GetUsername(),
-		Email:       info.GetEmail(),
-		AvatarURL:   info.GetAvatarUrl(),
-		Status:      info.GetStatus(),
-		Description: info.GetDescription(),
-		IsAdmin:     info.GetIsAdmin(),
-		CreatedAt:   time.Unix(info.GetCreatedAt(), 0),
-		UpdatedAt:   time.Unix(info.GetUpdatedAt(), 0),
+	resp := dto.UserResponse{
+		ID:               info.GetId(),
+		Username:         info.GetUsername(),
+		Email:            info.GetEmail(),
+		AvatarURL:        info.GetAvatarUrl(),
+		Status:           info.GetStatus(),
+		Description:      info.GetDescription(),
+		IsAdmin:          info.GetIsAdmin(),
+		Plan:             info.GetPlan(),
+		TotalTimeSeconds: info.GetTotalTimeSeconds(),
+		CreatedAt:        time.Unix(info.GetCreatedAt(), 0),
+		UpdatedAt:        time.Unix(info.GetUpdatedAt(), 0),
 	}
+	if info.GetLastActiveAt() != 0 {
+		t := time.Unix(info.GetLastActiveAt(), 0)
+		resp.LastActiveAt = &t
+	}
+	return resp
 }

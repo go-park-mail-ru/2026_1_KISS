@@ -17,6 +17,8 @@ service NotebookService {
 
   rpc AdminListNotebooks(AdminListNotebooksRequest) returns (AdminListNotebooksResponse);
   rpc AdminDeleteNotebook(AdminDeleteNotebookRequest) returns (DeleteNotebookResponse);
+  rpc AdminSetUserNotebooksPrivate(AdminSetUserNotebooksPrivateRequest) returns (AdminSetUserNotebooksPrivateResponse);
+  rpc AdminGetNotebookCount(AdminGetNotebookCountRequest) returns (AdminGetNotebookCountResponse);
 
   rpc GrantPermission(GrantPermissionRequest) returns (GrantPermissionResponse);
   rpc RevokePermission(RevokePermissionRequest) returns (RevokePermissionResponse);
@@ -178,4 +180,16 @@ message ListSharedWithUserRequest {
   int64 user_id = 1;
   int32 limit = 2;
   int32 offset = 3;
+}
+
+message AdminSetUserNotebooksPrivateRequest {
+  int64 owner_id = 1;
+}
+
+message AdminSetUserNotebooksPrivateResponse {}
+
+message AdminGetNotebookCountRequest {}
+
+message AdminGetNotebookCountResponse {
+  int64 total = 1;
 }
