@@ -28,6 +28,7 @@ type NotebookService interface {
 	RevokePermission(ctx context.Context, requesterID, notebookID, targetUserID int64) error
 	ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error)
 	ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	SetAllPrivateByOwner(ctx context.Context, ownerID int64) error
 }
 
 type notebookService struct {
@@ -373,4 +374,8 @@ func (s *notebookService) ListSharedWithUser(ctx context.Context, userID int64, 
 	}
 	logger.Info(ctx, "usecase.notebook.ListSharedWithUser", "total", total)
 	return notebooks, total, nil
+}
+
+func (s *notebookService) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
+	return s.notebookRepo.SetAllPrivateByOwner(ctx, ownerID)
 }

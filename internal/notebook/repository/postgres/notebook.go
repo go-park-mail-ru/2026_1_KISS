@@ -246,3 +246,17 @@ func (r *NotebookRepo) CountSharedWithUser(ctx context.Context, userID int64) (i
 	logger.Info(ctx, "repo.notebooks.CountSharedWithUser", "duration", time.Since(start), "user_id", userID, "count", count)
 	return count, nil
 }
+
+func (r *NotebookRepo) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
+	start := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE notebooks SET is_public = false WHERE owner_id = $1 AND is_public = true`,
+		ownerID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.notebooks.SetAllPrivateByOwner", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return err
+	}
+	logger.Info(ctx, "repo.notebooks.SetAllPrivateByOwner", "duration", time.Since(start), "owner_id", ownerID)
+	return nil
+}
