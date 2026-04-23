@@ -198,6 +198,7 @@ func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 	info := &pb.NotebookInfo{
 		Id:        nb.ID,
 		OwnerId:   nb.OwnerID,
+		OwnerName: nb.OwnerUsername,
 		Title:     nb.Title,
 		IsPublic:  nb.IsPublic,
 		CreatedAt: nb.CreatedAt.Unix(),

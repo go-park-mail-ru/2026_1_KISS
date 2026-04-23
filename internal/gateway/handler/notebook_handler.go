@@ -60,13 +60,14 @@ type updateBlockRequest struct {
 }
 
 type notebookResponse struct {
-	ID        int64           `json:"id"`
-	OwnerID   int64           `json:"owner_id"`
-	Title     string          `json:"title"`
-	IsPublic  bool            `json:"is_public"`
-	Blocks    []blockResponse `json:"blocks,omitempty"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
+	ID            int64           `json:"id"`
+	OwnerID       int64           `json:"owner_id"`
+	OwnerUsername string          `json:"owner_username,omitempty"`
+	Title         string          `json:"title"`
+	IsPublic      bool            `json:"is_public"`
+	Blocks        []blockResponse `json:"blocks,omitempty"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
 type blockResponse struct {
@@ -560,12 +561,13 @@ func (h *NotebookHandler) RevokePermission(w http.ResponseWriter, r *http.Reques
 
 func protoNotebookToResponse(nb *pb.NotebookInfo) notebookResponse {
 	resp := notebookResponse{
-		ID:        nb.GetId(),
-		OwnerID:   nb.GetOwnerId(),
-		Title:     nb.GetTitle(),
-		IsPublic:  nb.GetIsPublic(),
-		CreatedAt: time.Unix(nb.GetCreatedAt(), 0),
-		UpdatedAt: time.Unix(nb.GetUpdatedAt(), 0),
+		ID:            nb.GetId(),
+		OwnerID:       nb.GetOwnerId(),
+		OwnerUsername: nb.GetOwnerName(),
+		Title:         nb.GetTitle(),
+		IsPublic:      nb.GetIsPublic(),
+		CreatedAt:     time.Unix(nb.GetCreatedAt(), 0),
+		UpdatedAt:     time.Unix(nb.GetUpdatedAt(), 0),
 	}
 	if len(nb.GetBlocks()) > 0 {
 		resp.Blocks = make([]blockResponse, len(nb.GetBlocks()))
