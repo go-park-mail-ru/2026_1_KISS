@@ -18,6 +18,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	_ "github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
+	pbissue "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/issue"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pbrunner "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
@@ -55,11 +56,19 @@ func New(cfg *config.Config) (*App, error) {
 		runConn.Close()
 		return nil, fmt.Errorf("dial storage: %w", err)
 	}
-
+	issueConn, err := grpc.NewClient(cfg.GRPC.IssueAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		authConn.Close()
+		nbConn.Close()
+		runConn.Close()
+		storConn.Close()
+		return nil, fmt.Errorf("dial storage: %w", err)
+	}
 	authClient := pbauth.NewAuthServiceClient(authConn)
 	nbClient := pbnotebook.NewNotebookServiceClient(nbConn)
 	runClient := pbrunner.NewRunnerServiceClient(runConn)
 	storageClient := pbstorage.NewStorageServiceClient(storConn)
+	issueClient := pbissue.NewIssueServiceClient(issueConn)
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
@@ -70,6 +79,7 @@ func New(cfg *config.Config) (*App, error) {
 	eventHandler := handler.NewEventHandler(authClient)
 	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient)
 	wsHandler := handler.NewWSHandler(authClient, nbClient)
+	issueHandler := handler.NewIssueHandler(issueClient, authClient)
 
 	mux := http.NewServeMux()
 	authMw := gwmw.Auth(authClient)
@@ -84,6 +94,7 @@ func New(cfg *config.Config) (*App, error) {
 	eventHandler.RegisterRoutes(mux, authMw)
 	adminHandler.RegisterRoutes(mux, authMw, adminMw)
 	wsHandler.RegisterRoutes(mux)
+	issueHandler.RegisterRoues(mux, authMw)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())

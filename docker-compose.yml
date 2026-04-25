@@ -22,6 +22,7 @@ services:
       NOTEBOOK_GRPC_ADDR: "notebook:9002"
       RUNNER_GRPC_ADDR: "runner:9003"
       STORAGE_GRPC_ADDR: "storage:9004"
+      ISSUE_GRPC_ADDR: "issue:9005"
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       UPLOAD_DIR: /app/uploads
       RATE_LIMIT_MAX_REQUESTS: "${RATE_LIMIT_MAX_REQUESTS:-300}"
@@ -59,6 +60,11 @@ services:
       STORAGE_GRPC_ADDR: "storage:9004"
     networks:
       - app-network
+
+  issue:
+    build:
+      context: .
+      dockerfile: deploy/issue/Dockerfile
 
   notebook:
     build:

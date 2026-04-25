@@ -31,6 +31,7 @@ type GRPCConfig struct {
 	NotebookAddr string
 	RunnerAddr   string
 	StorageAddr  string
+	IssueAddr    string
 }
 
 type RateLimitConfig struct {
@@ -158,6 +159,7 @@ func Load() *Config {
 			NotebookAddr: getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
 			RunnerAddr:   getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
 			StorageAddr:  getEnv("STORAGE_GRPC_ADDR", "localhost:9004"),
+			IssueAddr:    getEnv("ISSUE_GRPC_ADDR", "localhost:9005"),
 		},
 		Metrics: MetricsConfig{
 			Port: getEnv("METRICS_PORT", "9090"),
