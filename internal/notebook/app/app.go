@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	nbgrpc "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/grpc"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/hub"
 	nbpg "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository/postgres"
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
@@ -36,7 +37,8 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	notebookRepo := nbpg.NewNotebookRepository(db)
 	blockRepo := nbpg.NewBlockRepository(db)
 	permRepo := nbpg.NewPermissionRepository(db)
-	notebookUC := nbusecase.New(notebookRepo, blockRepo, permRepo)
+	eventHub := hub.New()
+	notebookUC := nbusecase.New(notebookRepo, blockRepo, permRepo, eventHub)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -52,7 +54,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
-	pb.RegisterNotebookServiceServer(srv, nbgrpc.NewServer(notebookUC, blockRepo))
+	pb.RegisterNotebookServiceServer(srv, nbgrpc.NewServer(notebookUC, blockRepo, eventHub))
 
 	return &App{
 		grpcServer: srv,

@@ -302,6 +302,26 @@ func (mr *MockNotebookServiceClientMockRecorder) RevokePermission(ctx, in any, o
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokePermission", reflect.TypeOf((*MockNotebookServiceClient)(nil).RevokePermission), varargs...)
 }
 
+// SubscribeNotebook mocks base method.
+func (m *MockNotebookServiceClient) SubscribeNotebook(ctx context.Context, in *notebook.SubscribeNotebookRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[notebook.NotebookEvent], error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SubscribeNotebook", varargs...)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[notebook.NotebookEvent])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeNotebook indicates an expected call of SubscribeNotebook.
+func (mr *MockNotebookServiceClientMockRecorder) SubscribeNotebook(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeNotebook", reflect.TypeOf((*MockNotebookServiceClient)(nil).SubscribeNotebook), varargs...)
+}
+
 // Update mocks base method.
 func (m *MockNotebookServiceClient) Update(ctx context.Context, in *notebook.UpdateNotebookRequest, opts ...grpc.CallOption) (*notebook.NotebookResponse, error) {
 	m.ctrl.T.Helper()
