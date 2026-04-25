@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 	"time"
 
@@ -15,6 +18,17 @@ type statusRecorder struct {
 func (sr *statusRecorder) WriteHeader(code int) {
 	sr.statusCode = code
 	sr.ResponseWriter.WriteHeader(code)
+}
+
+// Hijack делегирует вызов нижестоящему ResponseWriter, чтобы апгрейд
+// HTTP→WebSocket работал через цепочку middleware (websocket.Accept
+// требует http.Hijacker).
+func (sr *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := sr.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("statusRecorder: underlying ResponseWriter does not implement http.Hijacker")
+	}
+	return hj.Hijack()
 }
 
 func Logging() Middleware {

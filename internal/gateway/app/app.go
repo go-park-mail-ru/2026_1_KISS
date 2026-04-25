@@ -58,6 +58,7 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler := handler.NewHealthHandler()
 	eventHandler := handler.NewEventHandler(authClient)
 	adminHandler := handler.NewAdminHandler(authClient, nbClient)
+	wsHandler := handler.NewWSHandler(authClient, nbClient)
 
 	mux := http.NewServeMux()
 	authMw := gwmw.Auth(authClient)
@@ -70,6 +71,7 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler.RegisterRoutes(mux)
 	eventHandler.RegisterRoutes(mux, authMw)
 	adminHandler.RegisterRoutes(mux, authMw, adminMw)
+	wsHandler.RegisterRoutes(mux)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())
