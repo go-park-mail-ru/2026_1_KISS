@@ -86,6 +86,9 @@ jobs:
 
             git reset --hard origin/develop
 
+            docker builder prune -af --filter "until=168h"
+            docker image prune -af --filter "until=168h"
+
             if echo "$CHANGED" | grep -q '^build/'; then
               echo "Python runner image changed, rebuilding..."
               cd build
