@@ -174,11 +174,11 @@ func TestIssueRepo_Delete(t *testing.T) {
 
 		repo := &issueRepo{db: db}
 
-		mock.ExpectExec(`DELETE FROM issue WHERE id = \$1`).
-			WithArgs(int64(7)).
+		mock.ExpectExec(`DELETE FROM issue WHERE id = \$1 AND user_id = \$2`).
+			WithArgs(int64(7), int64(100)).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		err = repo.Delete(context.Background(), 7)
+		err = repo.Delete(context.Background(), 7, 100)
 		if err != nil {
 			t.Fatalf("Delete() error = %v", err)
 		}
@@ -196,11 +196,11 @@ func TestIssueRepo_Delete(t *testing.T) {
 
 		repo := &issueRepo{db: db}
 
-		mock.ExpectExec(`DELETE FROM issue WHERE id = \$1`).
-			WithArgs(int64(999)).
+		mock.ExpectExec(`DELETE FROM issue WHERE id = \$1 AND user_id = \$2`).
+			WithArgs(int64(999), int64(100)).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		err = repo.Delete(context.Background(), 999)
+		err = repo.Delete(context.Background(), 999, 100)
 		if !errors.Is(err, domain.ErrNotFound) {
 			t.Fatalf("expected ErrNotFound, got %v", err)
 		}

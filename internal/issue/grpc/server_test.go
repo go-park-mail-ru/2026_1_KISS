@@ -21,6 +21,7 @@ import (
 type testEnv struct {
 	client    pb.IssueServiceClient
 	issueRepo *mocks.MockIssueRepository
+	msgRepo   *mocks.MockIssueMessageRepository
 	conn      *grpc.ClientConn
 }
 
@@ -30,8 +31,10 @@ func setup(t *testing.T) *testEnv {
 	t.Cleanup(ctrl.Finish)
 
 	issueRepo := mocks.NewMockIssueRepository(ctrl)
+	msgRepo := mocks.NewMockIssueMessageRepository(ctrl)
 	issueUC := usecase.NewIssueService(issueRepo)
-	srv := NewServer(issueUC)
+	msgUC := usecase.NewIssueMessageService(msgRepo)
+	srv := NewServer(issueUC, msgUC)
 
 	lis := bufconn.Listen(1024 * 1024)
 	grpcServer := grpc.NewServer()
@@ -62,6 +65,7 @@ func setup(t *testing.T) *testEnv {
 	return &testEnv{
 		client:    pb.NewIssueServiceClient(conn),
 		issueRepo: issueRepo,
+		msgRepo:   msgRepo,
 		conn:      conn,
 	}
 }
@@ -78,6 +82,7 @@ func TestIssueService_GetByID_Success(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil)
+	env.msgRepo.EXPECT().GetByIssueID(gomock.Any(), int64(1)).Return([]domain.IssueMessage{}, nil)
 
 	resp, err := env.client.GetByID(context.Background(), &pb.GetIssueRequest{
 		Id: 1,
@@ -227,10 +232,11 @@ func TestIssueService_GetAll_WithFilter(t *testing.T) {
 func TestIssueService_Delete_Success(t *testing.T) {
 	env := setup(t)
 
-	env.issueRepo.EXPECT().Delete(gomock.Any(), int64(1)).Return(nil)
+	env.issueRepo.EXPECT().Delete(gomock.Any(), int64(1), int64(100)).Return(nil)
 
 	_, err := env.client.Delete(context.Background(), &pb.DeleteIssueRequest{
-		Id: 1,
+		Id:     1,
+		UserId: 100,
 	})
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
@@ -240,10 +246,11 @@ func TestIssueService_Delete_Success(t *testing.T) {
 func TestIssueService_Delete_NotFound(t *testing.T) {
 	env := setup(t)
 
-	env.issueRepo.EXPECT().Delete(gomock.Any(), int64(999)).Return(domain.ErrNotFound)
+	env.issueRepo.EXPECT().Delete(gomock.Any(), int64(999), int64(100)).Return(domain.ErrNotFound)
 
 	_, err := env.client.Delete(context.Background(), &pb.DeleteIssueRequest{
-		Id: 999,
+		Id:     999,
+		UserId: 100,
 	})
 	if err == nil {
 		t.Fatal("expected error for not found")

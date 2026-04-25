@@ -453,11 +453,11 @@ func TestIssueService_Delete_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	issueRepo := mocks.NewMockIssueRepository(ctrl)
-	issueRepo.EXPECT().Delete(gomock.Any(), int64(42)).
+	issueRepo.EXPECT().Delete(gomock.Any(), int64(42), int64(100)).
 		Return(nil)
 
 	uc := usecase.NewIssueService(issueRepo)
-	err := uc.Delete(context.Background(), 42)
+	err := uc.Delete(context.Background(), 42, 100)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -468,11 +468,11 @@ func TestIssueService_Delete_NotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	issueRepo := mocks.NewMockIssueRepository(ctrl)
-	issueRepo.EXPECT().Delete(gomock.Any(), int64(999)).
+	issueRepo.EXPECT().Delete(gomock.Any(), int64(999), int64(100)).
 		Return(domain.ErrNotFound)
 
 	uc := usecase.NewIssueService(issueRepo)
-	err := uc.Delete(context.Background(), 999)
+	err := uc.Delete(context.Background(), 999, 100)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
 	}
@@ -483,11 +483,11 @@ func TestIssueService_Delete_RepoError(t *testing.T) {
 	defer ctrl.Finish()
 
 	issueRepo := mocks.NewMockIssueRepository(ctrl)
-	issueRepo.EXPECT().Delete(gomock.Any(), int64(42)).
+	issueRepo.EXPECT().Delete(gomock.Any(), int64(42), int64(100)).
 		Return(errors.New("db error"))
 
 	uc := usecase.NewIssueService(issueRepo)
-	err := uc.Delete(context.Background(), 42)
+	err := uc.Delete(context.Background(), 42, 100)
 	if err == nil {
 		t.Error("expected error")
 	}

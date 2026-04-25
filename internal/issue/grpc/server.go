@@ -15,10 +15,11 @@ import (
 type Server struct {
 	pb.UnimplementedIssueServiceServer
 	issueUC usecase.IssueService
+	msgUC   usecase.IssueMessageService
 }
 
-func NewServer(issueUC usecase.IssueService) *Server {
-	return &Server{issueUC: issueUC}
+func NewServer(issueUC usecase.IssueService, msgUC usecase.IssueMessageService) *Server {
+	return &Server{issueUC: issueUC, msgUC: msgUC}
 }
 
 func (s *Server) GetByID(ctx context.Context, req *pb.GetIssueRequest) (*pb.IssueResponse, error) {
@@ -26,7 +27,18 @@ func (s *Server) GetByID(ctx context.Context, req *pb.GetIssueRequest) (*pb.Issu
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
-	return &pb.IssueResponse{Issue: issueToProto(issue)}, nil
+
+	resp := &pb.IssueResponse{Issue: issueToProto(issue)}
+
+	if s.msgUC != nil {
+		msgs, err := s.msgUC.GetByIssueID(ctx, issue.ID)
+		if err != nil {
+			return nil, grpcutil.DomainToGRPCError(err)
+		}
+		resp.Messages = msgsToProto(msgs)
+	}
+
+	return resp, nil
 }
 
 func (s *Server) GetAll(ctx context.Context, req *pb.GetAllIssuesRequest) (*pb.GetAllIssuesResponse, error) {
@@ -47,7 +59,7 @@ func (s *Server) GetAll(ctx context.Context, req *pb.GetAllIssuesRequest) (*pb.G
 	}
 
 	total := len(items)
-	if total > int(^uint32(0)>>1) { // max int32
+	if total > int(^uint32(0)>>1) {
 		return nil, status.Error(codes.Internal, "total count exceeds int32 limit")
 	}
 
@@ -77,17 +89,12 @@ func (s *Server) Create(ctx context.Context, req *pb.CreateIssueRequest) (*pb.Is
 }
 
 func (s *Server) Update(ctx context.Context, req *pb.UpdateIssueRequest) (*pb.IssueResponse, error) {
-	// Для обновления нужен user_id, но его нет в UpdateIssueRequest
-	// Придется получать из контекста или добавить в proto
-	// Пока используем заглушку - нужно получить user_id из контекста аутентификации
-	userID := getUserIDFromContext(ctx) // Реализуйте получение user_id из контекста
-
 	issue := &domain.Issue{
 		ID:       req.GetId(),
 		Category: domain.IssueCategory(req.GetCategory()),
 		Status:   domain.IssueStatus(req.GetStatus()),
 		Content:  req.GetContent(),
-		UserID:   userID,
+		UserID:   req.GetUserId(),
 	}
 
 	if err := s.issueUC.Update(ctx, issue); err != nil {
@@ -99,7 +106,7 @@ func (s *Server) Update(ctx context.Context, req *pb.UpdateIssueRequest) (*pb.Is
 }
 
 func (s *Server) Delete(ctx context.Context, req *pb.DeleteIssueRequest) (*pb.DeleteIssueResponse, error) {
-	if err := s.issueUC.Delete(ctx, req.GetId()); err != nil {
+	if err := s.issueUC.Delete(ctx, req.GetId(), req.GetUserId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
 
@@ -123,6 +130,8 @@ func (s *Server) AdminGetAllIssues(ctx context.Context, req *pb.AdminGetAllIssue
 	filter := &domain.IssueFilter{
 		Category: domain.IssueCategory(req.GetCategory()),
 		Status:   domain.IssueStatus(req.GetStatus()),
+		UserID:   req.GetUserId(),
+		Content:  req.GetContent(),
 	}
 
 	issues, err := s.issueUC.GetAll(ctx, limit, offset, filter)
@@ -136,7 +145,7 @@ func (s *Server) AdminGetAllIssues(ctx context.Context, req *pb.AdminGetAllIssue
 	}
 
 	total := len(items)
-	if total > int(^uint32(0)>>1) { // max int32
+	if total > int(^uint32(0)>>1) {
 		return nil, status.Error(codes.Internal, "total count exceeds int32 limit")
 	}
 
@@ -148,24 +157,93 @@ func (s *Server) AdminGetAllIssues(ctx context.Context, req *pb.AdminGetAllIssue
 	}, nil
 }
 
-// Вспомогательные функции
+func (s *Server) AdminUpdateStatus(ctx context.Context, req *pb.AdminUpdateIssueStatusRequest) (*pb.IssueResponse, error) {
+	if err := s.issueUC.AdminUpdateStatus(ctx, req.GetId(), domain.IssueStatus(req.GetStatus())); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+
+	issue, err := s.issueUC.GetByID(ctx, req.GetId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+
+	logger.Info(ctx, "grpc.issue.AdminUpdateStatus", "issue_id", req.GetId(), "status", req.GetStatus())
+	return &pb.IssueResponse{Issue: issueToProto(issue)}, nil
+}
+
+func (s *Server) AddMessage(ctx context.Context, req *pb.AddIssueMessageRequest) (*pb.AddIssueMessageResponse, error) {
+	if s.msgUC == nil {
+		return nil, status.Error(codes.Unimplemented, "messages not configured")
+	}
+
+	msg := &domain.IssueMessage{
+		IssueID: req.GetIssueId(),
+		UserID:  req.GetUserId(),
+		IsAdmin: req.GetIsAdmin(),
+		Content: req.GetContent(),
+	}
+
+	id, err := s.msgUC.AddMessage(ctx, msg)
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	msg.ID = id
+
+	logger.Info(ctx, "grpc.issue.AddMessage", "message_id", id, "issue_id", msg.IssueID)
+	return &pb.AddIssueMessageResponse{Message: msgToProto(msg)}, nil
+}
+
+func (s *Server) GetStats(ctx context.Context, _ *pb.GetIssueStatsRequest) (*pb.IssueStatsResponse, error) {
+	stats, err := s.issueUC.GetStats(ctx)
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+
+	return &pb.IssueStatsResponse{
+		Total:      stats.Total,
+		Open:       stats.Open,
+		InProgress: stats.InProgress,
+		Closed:     stats.Closed,
+		Bug:        stats.Bug,
+		Idea:       stats.Idea,
+		Problem:    stats.Problem,
+		Feedback:   stats.Feedback,
+	}, nil
+}
 
 func issueToProto(issue *domain.Issue) *pb.IssueInfo {
 	if issue == nil {
 		return nil
 	}
 	return &pb.IssueInfo{
-		Id:       issue.ID,
-		Category: string(issue.Category),
-		Status:   string(issue.Status),
-		Content:  issue.Content,
-		UserId:   issue.UserID,
+		Id:        issue.ID,
+		Category:  string(issue.Category),
+		Status:    string(issue.Status),
+		Content:   issue.Content,
+		UserId:    issue.UserID,
+		CreatedAt: issue.CreatedAt.Unix(),
+		UpdatedAt: issue.UpdatedAt.Unix(),
 	}
 }
 
-// Временная функция - замените на реальное получение user_id из контекста
-func getUserIDFromContext(ctx context.Context) int64 {
-	// Реализуйте получение user_id из контекста
-	// Например, из метаданных gRPC или JWT токена
-	return 0
+func msgToProto(msg *domain.IssueMessage) *pb.IssueMessageInfo {
+	if msg == nil {
+		return nil
+	}
+	return &pb.IssueMessageInfo{
+		Id:        msg.ID,
+		IssueId:   msg.IssueID,
+		UserId:    msg.UserID,
+		IsAdmin:   msg.IsAdmin,
+		Content:   msg.Content,
+		CreatedAt: msg.CreatedAt.Unix(),
+	}
+}
+
+func msgsToProto(msgs []domain.IssueMessage) []*pb.IssueMessageInfo {
+	result := make([]*pb.IssueMessageInfo, len(msgs))
+	for i := range msgs {
+		result[i] = msgToProto(&msgs[i])
+	}
+	return result
 }
