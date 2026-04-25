@@ -39,6 +39,7 @@ type NotebookService interface {
 	RevokePermission(ctx context.Context, requesterID, notebookID, targetUserID int64) error
 	ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error)
 	ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	SetAllPrivateByOwner(ctx context.Context, ownerID int64) error
 }
 
 type notebookService struct {
@@ -430,4 +431,8 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 		CreatedAt:  b.CreatedAt.Unix(),
 		UpdatedAt:  b.UpdatedAt.Unix(),
 	}
+}
+
+func (s *notebookService) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
+	return s.notebookRepo.SetAllPrivateByOwner(ctx, ownerID)
 }

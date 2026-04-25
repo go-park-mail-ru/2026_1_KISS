@@ -55,7 +55,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
 	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
-	eventUC := authusecase.NewEventUsecase(eventRepo)
+	eventUC := authusecase.NewEventUsecase(eventRepo, userRepo)
 	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)

@@ -75,6 +75,10 @@ func (a *NotebookAdapter) GetSharedWithUser(ctx context.Context, userID int64, l
 	return notebooks, nil
 }
 
+func (a *NotebookAdapter) SetAllPrivateByOwner(_ context.Context, _ int64) error {
+	return errNotSupported
+}
+
 func (a *NotebookAdapter) CountSharedWithUser(ctx context.Context, userID int64) (int, error) {
 	resp, err := a.client.ListSharedWithUser(ctx, &pb.ListSharedWithUserRequest{
 		UserId: userID,

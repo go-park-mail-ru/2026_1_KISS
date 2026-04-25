@@ -17,6 +17,8 @@ service NotebookService {
 
   rpc AdminListNotebooks(AdminListNotebooksRequest) returns (AdminListNotebooksResponse);
   rpc AdminDeleteNotebook(AdminDeleteNotebookRequest) returns (DeleteNotebookResponse);
+  rpc AdminSetUserNotebooksPrivate(AdminSetUserNotebooksPrivateRequest) returns (AdminSetUserNotebooksPrivateResponse);
+  rpc AdminGetNotebookCount(AdminGetNotebookCountRequest) returns (AdminGetNotebookCountResponse);
 
   rpc GrantPermission(GrantPermissionRequest) returns (GrantPermissionResponse);
   rpc RevokePermission(RevokePermissionRequest) returns (RevokePermissionResponse);
@@ -202,4 +204,16 @@ message NotebookEvent {
     int64 deleted_block_id   = 5;
   }
   int64 timestamp = 6;
+}
+
+message AdminSetUserNotebooksPrivateRequest {
+  int64 owner_id = 1;
+}
+
+message AdminSetUserNotebooksPrivateResponse {}
+
+message AdminGetNotebookCountRequest {}
+
+message AdminGetNotebookCountResponse {
+  int64 total = 1;
 }

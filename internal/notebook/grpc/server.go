@@ -164,6 +164,21 @@ func (s *Server) AdminDeleteNotebook(ctx context.Context, req *pb.AdminDeleteNot
 	return &pb.DeleteNotebookResponse{}, nil
 }
 
+func (s *Server) AdminSetUserNotebooksPrivate(ctx context.Context, req *pb.AdminSetUserNotebooksPrivateRequest) (*pb.AdminSetUserNotebooksPrivateResponse, error) {
+	if err := s.notebookUC.SetAllPrivateByOwner(ctx, req.GetOwnerId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminSetUserNotebooksPrivateResponse{}, nil
+}
+
+func (s *Server) AdminGetNotebookCount(ctx context.Context, _ *pb.AdminGetNotebookCountRequest) (*pb.AdminGetNotebookCountResponse, error) {
+	count, err := s.notebookUC.CountAll(ctx, "")
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminGetNotebookCountResponse{Total: int64(count)}, nil
+}
+
 func (s *Server) GrantPermission(ctx context.Context, req *pb.GrantPermissionRequest) (*pb.GrantPermissionResponse, error) {
 	err := s.notebookUC.GrantPermission(ctx, req.GetRequesterId(), req.GetNotebookId(), req.GetTargetUserId(), req.GetLevel())
 	if err != nil {

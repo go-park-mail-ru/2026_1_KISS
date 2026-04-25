@@ -96,8 +96,9 @@ func TestUserRepo_GetByID_Success(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
 		"avatar_url", "status", "description", "is_admin",
+		"plan", "last_active_at", "total_time_seconds",
 		"created_at", "updated_at",
-	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "avatar.png", "active", "desc", false, now, now)
+	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "avatar.png", "active", "desc", false, "free", now, int64(0), now, now)
 
 	mock.ExpectQuery("SELECT .+ FROM users WHERE id").
 		WithArgs(int64(1)).
@@ -161,8 +162,9 @@ func TestUserRepo_GetByEmail_Success(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
 		"avatar_url", "status", "description", "is_admin",
+		"plan", "last_active_at", "total_time_seconds",
 		"created_at", "updated_at",
-	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", false, now, now)
+	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", false, "free", nil, int64(0), now, now)
 
 	mock.ExpectQuery("SELECT .+ FROM users WHERE email").
 		WithArgs("test@example.com").
@@ -472,10 +474,11 @@ func TestUserRepo_ListAll_Success(t *testing.T) {
 	dataRows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
 		"avatar_url", "status", "description", "is_admin",
+		"plan", "last_active_at", "total_time_seconds",
 		"created_at", "updated_at",
 	}).
-		AddRow(int64(1), "user1", "user1@example.com", "hash1", "", "", "", false, now, now).
-		AddRow(int64(2), "user2", "user2@example.com", "hash2", "", "", "", false, now, now)
+		AddRow(int64(1), "user1", "user1@example.com", "hash1", "", "", "", false, "free", nil, int64(0), now, now).
+		AddRow(int64(2), "user2", "user2@example.com", "hash2", "", "", "", false, "free", nil, int64(0), now, now)
 
 	mock.ExpectQuery("SELECT COUNT").
 		WillReturnRows(countRows)
@@ -533,9 +536,10 @@ func TestUserRepo_ListAll_WithSearch(t *testing.T) {
 	dataRows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
 		"avatar_url", "status", "description", "is_admin",
+		"plan", "last_active_at", "total_time_seconds",
 		"created_at", "updated_at",
 	}).
-		AddRow(int64(1), "searchuser", "search@example.com", "hash1", "", "", "", false, now, now)
+		AddRow(int64(1), "searchuser", "search@example.com", "hash1", "", "", "", false, "free", nil, int64(0), now, now)
 
 	mock.ExpectQuery("SELECT COUNT").
 		WithArgs("searchterm").
@@ -593,8 +597,9 @@ func TestUserRepo_GetByUsername_Success(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
 		"avatar_url", "status", "description", "is_admin",
+		"plan", "last_active_at", "total_time_seconds",
 		"created_at", "updated_at",
-	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", false, now, now)
+	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", false, "free", nil, int64(0), now, now)
 
 	mock.ExpectQuery("SELECT .+ FROM users WHERE username").
 		WithArgs("testuser").
@@ -652,6 +657,7 @@ func TestUserRepo_ListAll_Empty(t *testing.T) {
 	dataRows := sqlmock.NewRows([]string{
 		"id", "username", "email", "password_hash",
 		"avatar_url", "status", "description", "is_admin",
+		"plan", "last_active_at", "total_time_seconds",
 		"created_at", "updated_at",
 	})
 

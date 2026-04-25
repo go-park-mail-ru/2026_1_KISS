@@ -18,6 +18,7 @@ type NotebookRepository interface {
 	CountAll(ctx context.Context, search string) (int, error)
 	GetSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error)
 	CountSharedWithUser(ctx context.Context, userID int64) (int, error)
+	SetAllPrivateByOwner(ctx context.Context, ownerID int64) error
 }
 
 type BlockRepository interface {

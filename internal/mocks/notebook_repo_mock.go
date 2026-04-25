@@ -175,6 +175,20 @@ func (mr *MockNotebookRepositoryMockRecorder) ListAll(ctx, limit, offset, search
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockNotebookRepository)(nil).ListAll), ctx, limit, offset, search)
 }
 
+// SetAllPrivateByOwner mocks base method.
+func (m *MockNotebookRepository) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetAllPrivateByOwner", ctx, ownerID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetAllPrivateByOwner indicates an expected call of SetAllPrivateByOwner.
+func (mr *MockNotebookRepositoryMockRecorder) SetAllPrivateByOwner(ctx, ownerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAllPrivateByOwner", reflect.TypeOf((*MockNotebookRepository)(nil).SetAllPrivateByOwner), ctx, ownerID)
+}
+
 // Update mocks base method.
 func (m *MockNotebookRepository) Update(ctx context.Context, notebook *domain.Notebook) error {
 	m.ctrl.T.Helper()
