@@ -9,16 +9,21 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/issue/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
 
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
-type IssueRepo struct {
+type issueRepo struct {
 	db *sql.DB
 }
 
-func (r *IssueRepo) GetByID(ctx context.Context, id int64) (*domain.Issue, error) {
+func NewIssueRepository(db *sql.DB) repository.IssueRepository {
+	return &issueRepo{db: db}
+}
+
+func (r *issueRepo) GetByID(ctx context.Context, id int64) (*domain.Issue, error) {
 	start := time.Now()
 	issue := &domain.Issue{}
 	err := r.db.QueryRowContext(ctx,
@@ -37,7 +42,7 @@ func (r *IssueRepo) GetByID(ctx context.Context, id int64) (*domain.Issue, error
 	return issue, nil
 }
 
-func (r *IssueRepo) GetAll(ctx context.Context, limit, offset int, filter *domain.IssueFilter) ([]domain.Issue, error) {
+func (r *issueRepo) GetAll(ctx context.Context, limit, offset int, filter *domain.IssueFilter) ([]domain.Issue, error) {
 	start := time.Now()
 
 	query := `SELECT id, category, status, content, created_at, updated_at, user_id FROM issue WHERE 1=1`
@@ -113,7 +118,7 @@ func (r *IssueRepo) GetAll(ctx context.Context, limit, offset int, filter *domai
 	return issues, nil
 }
 
-func (r *IssueRepo) Create(ctx context.Context, issue *domain.Issue) (int64, error) {
+func (r *issueRepo) Create(ctx context.Context, issue *domain.Issue) (int64, error) {
 	start := time.Now()
 	var id int64
 	err := r.db.QueryRowContext(ctx,
@@ -128,7 +133,7 @@ func (r *IssueRepo) Create(ctx context.Context, issue *domain.Issue) (int64, err
 	return id, nil
 }
 
-func (r *IssueRepo) Update(ctx context.Context, issue *domain.Issue) error {
+func (r *issueRepo) Update(ctx context.Context, issue *domain.Issue) error {
 	start := time.Now()
 	err := r.db.QueryRowContext(ctx,
 		`UPDATE issue SET category = $1, status = $2, content = $3, updated_at = NOW() WHERE id = $4 AND user_id = $5 RETURNING updated_at`,
@@ -146,7 +151,7 @@ func (r *IssueRepo) Update(ctx context.Context, issue *domain.Issue) error {
 	return nil
 }
 
-func (r *IssueRepo) Delete(ctx context.Context, id int64) error {
+func (r *issueRepo) Delete(ctx context.Context, id int64) error {
 	start := time.Now()
 	result, err := r.db.ExecContext(ctx, `DELETE FROM issue WHERE id = $1`, id)
 	if err != nil {
