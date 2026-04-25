@@ -13,12 +13,15 @@ services:
         condition: service_healthy
       runner:
         condition: service_healthy
+      storage:
+        condition: service_healthy
     environment:
       SERVER_PORT: "${SERVER_PORT:-8080}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
       AUTH_GRPC_ADDR: "auth:9001"
       NOTEBOOK_GRPC_ADDR: "notebook:9002"
       RUNNER_GRPC_ADDR: "runner:9003"
+      STORAGE_GRPC_ADDR: "storage:9004"
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       UPLOAD_DIR: /app/uploads
       RATE_LIMIT_MAX_REQUESTS: "${RATE_LIMIT_MAX_REQUESTS:-300}"
@@ -103,6 +106,31 @@ services:
       RUNNER_IDLE_TIMEOUT: "${RUNNER_IDLE_TIMEOUT:-15m}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-network
+
+  storage:
+    build:
+      context: .
+      dockerfile: deploy/storage/Dockerfile
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9004 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
+      GRPC_PORT: "9004"
+      METRICS_PORT: "9090"
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
     networks:
       - app-network
 

@@ -22,6 +22,23 @@ func TestSession_IsExpired_False(t *testing.T) {
 	}
 }
 
+func TestValidFileCategory(t *testing.T) {
+	valid := []domain.FileCategory{
+		domain.FileCategoryAvatar,
+		domain.FileCategoryFeedback,
+		domain.FileCategoryDataset,
+		domain.FileCategoryGeneral,
+	}
+	for _, c := range valid {
+		if !domain.ValidFileCategory(c) {
+			t.Errorf("expected %s to be valid", c)
+		}
+	}
+	if domain.ValidFileCategory("invalid") {
+		t.Error("expected 'invalid' to be invalid category")
+	}
+}
+
 func TestErrors(t *testing.T) {
 	errs := []error{
 		domain.ErrNotFound,

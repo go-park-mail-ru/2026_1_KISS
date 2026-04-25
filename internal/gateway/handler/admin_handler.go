@@ -11,15 +11,17 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
 type AdminHandler struct {
 	authClient     pbauth.AuthServiceClient
 	notebookClient pbnotebook.NotebookServiceClient
+	storageClient  pbstorage.StorageServiceClient
 }
 
-func NewAdminHandler(authClient pbauth.AuthServiceClient, notebookClient pbnotebook.NotebookServiceClient) *AdminHandler {
-	return &AdminHandler{authClient: authClient, notebookClient: notebookClient}
+func NewAdminHandler(authClient pbauth.AuthServiceClient, notebookClient pbnotebook.NotebookServiceClient, storageClient pbstorage.StorageServiceClient) *AdminHandler {
+	return &AdminHandler{authClient: authClient, notebookClient: notebookClient, storageClient: storageClient}
 }
 
 func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux, authMw, adminMw middleware.Middleware) {
@@ -36,6 +38,8 @@ func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux, authMw, adminMw middle
 	mux.Handle("DELETE /api/v1/admin/notebooks/{id}", chain(h.DeleteNotebook))
 	mux.Handle("GET /api/v1/admin/stats", chain(h.GetStats))
 	mux.Handle("GET /api/v1/admin/stats/activity", chain(h.GetActivityStats))
+	mux.Handle("GET /api/v1/admin/storage/stats", chain(h.GetStorageStats))
+	mux.Handle("GET /api/v1/admin/storage/files", chain(h.ListStorageFiles))
 }
 
 func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +64,7 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	for i, u := range resp.GetUsers() {
 		users[i] = protoUserToDTO(u)
 	}
-	httputil.JSON(w, http.StatusOK, map[string]interface{}{
+	httputil.JSON(w, http.StatusOK, map[string]any{
 		"users": users,
 		"total": resp.GetTotal(),
 	})
@@ -231,7 +235,7 @@ func (h *AdminHandler) ListNotebooks(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: time.Unix(nb.GetUpdatedAt(), 0),
 		}
 	}
-	httputil.JSON(w, http.StatusOK, map[string]interface{}{
+	httputil.JSON(w, http.StatusOK, map[string]any{
 		"notebooks": notebooks,
 		"total":     resp.GetTotal(),
 	})
@@ -271,7 +275,7 @@ func (h *AdminHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 		totalNotebooks = nbResp.GetTotal()
 	}
 
-	httputil.JSON(w, http.StatusOK, map[string]interface{}{
+	httputil.JSON(w, http.StatusOK, map[string]any{
 		"total_users":     resp.GetTotalUsers(),
 		"total_sessions":  resp.GetTotalSessions(),
 		"dau":             resp.GetDau(),
@@ -314,8 +318,49 @@ func (h *AdminHandler) GetActivityStats(w http.ResponseWriter, r *http.Request) 
 		mau[i] = mauItem{Month: m.GetMonth(), Count: m.GetCount()}
 	}
 
-	httputil.JSON(w, http.StatusOK, map[string]interface{}{
+	httputil.JSON(w, http.StatusOK, map[string]any{
 		"dau": dau,
 		"mau": mau,
+	})
+}
+
+func (h *AdminHandler) GetStorageStats(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.storageClient.GetStorageStats(r.Context(), &pbstorage.GetStorageStatsRequest{})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+	httputil.JSON(w, http.StatusOK, map[string]any{
+		"total_files":       resp.GetTotalFiles(),
+		"total_size_bytes":  resp.GetTotalSizeBytes(),
+		"files_by_category": resp.GetFilesByCategory(),
+		"size_by_category":  resp.GetSizeByCategory(),
+	})
+}
+
+func (h *AdminHandler) ListStorageFiles(w http.ResponseWriter, r *http.Request) {
+	category := r.URL.Query().Get("category")
+	ownerID, _ := strconv.ParseInt(r.URL.Query().Get("owner_id"), 10, 64)
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	resp, err := h.storageClient.AdminListFiles(r.Context(), &pbstorage.AdminListFilesRequest{
+		Category: category,
+		OwnerId:  ownerID,
+		Limit:    int32(limit),  //nolint:gosec
+		Offset:   int32(offset), //nolint:gosec
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	files := make([]fileResponse, len(resp.GetFiles()))
+	for i, f := range resp.GetFiles() {
+		files[i] = fileInfoToResponse(f)
+	}
+	httputil.JSON(w, http.StatusOK, map[string]any{
+		"files": files,
+		"total": resp.GetTotal(),
 	})
 }
