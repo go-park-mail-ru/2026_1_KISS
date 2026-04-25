@@ -25,12 +25,13 @@ import (
 )
 
 type App struct {
-	srv      *http.Server
-	authConn *grpc.ClientConn
-	nbConn   *grpc.ClientConn
-	runConn  *grpc.ClientConn
-	storConn *grpc.ClientConn
-	cancelMw context.CancelFunc
+	srv       *http.Server
+	authConn  *grpc.ClientConn
+	nbConn    *grpc.ClientConn
+	runConn   *grpc.ClientConn
+	storConn  *grpc.ClientConn
+	issueConn *grpc.ClientConn
+	cancelMw  context.CancelFunc
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -94,7 +95,7 @@ func New(cfg *config.Config) (*App, error) {
 	eventHandler.RegisterRoutes(mux, authMw)
 	adminHandler.RegisterRoutes(mux, authMw, adminMw)
 	wsHandler.RegisterRoutes(mux)
-	issueHandler.RegisterRoues(mux, authMw)
+	issueHandler.RegisterRoutes(mux, authMw, adminMw)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())
@@ -130,12 +131,13 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	return &App{
-		srv:      srv,
-		authConn: authConn,
-		nbConn:   nbConn,
-		runConn:  runConn,
-		storConn: storConn,
-		cancelMw: cancelMw,
+		srv:       srv,
+		authConn:  authConn,
+		nbConn:    nbConn,
+		runConn:   runConn,
+		storConn:  storConn,
+		issueConn: issueConn,
+		cancelMw:  cancelMw,
 	}, nil
 }
 
@@ -153,4 +155,5 @@ func (a *App) Shutdown(ctx context.Context) {
 	a.nbConn.Close()
 	a.runConn.Close()
 	a.storConn.Close()
+	a.issueConn.Close()
 }

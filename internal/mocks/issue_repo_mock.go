@@ -41,6 +41,20 @@ func (m *MockIssueRepository) EXPECT() *MockIssueRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AdminUpdateStatus mocks base method.
+func (m *MockIssueRepository) AdminUpdateStatus(ctx context.Context, id int64, status domain.IssueStatus) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AdminUpdateStatus", ctx, id, status)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AdminUpdateStatus indicates an expected call of AdminUpdateStatus.
+func (mr *MockIssueRepositoryMockRecorder) AdminUpdateStatus(ctx, id, status any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminUpdateStatus", reflect.TypeOf((*MockIssueRepository)(nil).AdminUpdateStatus), ctx, id, status)
+}
+
 // Create mocks base method.
 func (m *MockIssueRepository) Create(ctx context.Context, issue *domain.Issue) (int64, error) {
 	m.ctrl.T.Helper()
@@ -57,17 +71,17 @@ func (mr *MockIssueRepositoryMockRecorder) Create(ctx, issue any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockIssueRepository) Delete(ctx context.Context, id int64) error {
+func (m *MockIssueRepository) Delete(ctx context.Context, id, userID int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret := m.ctrl.Call(m, "Delete", ctx, id, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockIssueRepositoryMockRecorder) Delete(ctx, id any) *gomock.Call {
+func (mr *MockIssueRepositoryMockRecorder) Delete(ctx, id, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockIssueRepository)(nil).Delete), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockIssueRepository)(nil).Delete), ctx, id, userID)
 }
 
 // GetAll mocks base method.
@@ -98,6 +112,21 @@ func (m *MockIssueRepository) GetByID(ctx context.Context, id int64) (*domain.Is
 func (mr *MockIssueRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockIssueRepository)(nil).GetByID), ctx, id)
+}
+
+// GetStats mocks base method.
+func (m *MockIssueRepository) GetStats(ctx context.Context) (*domain.IssueStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStats", ctx)
+	ret0, _ := ret[0].(*domain.IssueStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStats indicates an expected call of GetStats.
+func (mr *MockIssueRepositoryMockRecorder) GetStats(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockIssueRepository)(nil).GetStats), ctx)
 }
 
 // Update mocks base method.

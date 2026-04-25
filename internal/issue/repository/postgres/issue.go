@@ -151,9 +151,9 @@ func (r *issueRepo) Update(ctx context.Context, issue *domain.Issue) error {
 	return nil
 }
 
-func (r *issueRepo) Delete(ctx context.Context, id int64) error {
+func (r *issueRepo) Delete(ctx context.Context, id int64, userID int64) error {
 	start := time.Now()
-	result, err := r.db.ExecContext(ctx, `DELETE FROM issue WHERE id = $1`, id)
+	result, err := r.db.ExecContext(ctx, `DELETE FROM issue WHERE id = $1 AND user_id = $2`, id, userID)
 	if err != nil {
 		logger.Error(ctx, "repo.issue.Delete", "error", err, "duration", time.Since(start), "issue_id", id)
 		return err
@@ -169,4 +169,59 @@ func (r *issueRepo) Delete(ctx context.Context, id int64) error {
 	}
 	logger.Info(ctx, "repo.issue.Delete", "duration", time.Since(start), "issue_id", id)
 	return nil
+}
+
+func (r *issueRepo) AdminUpdateStatus(ctx context.Context, id int64, status domain.IssueStatus) error {
+	start := time.Now()
+	result, err := r.db.ExecContext(ctx,
+		`UPDATE issue SET status = $1, updated_at = NOW() WHERE id = $2`,
+		status, id,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.issue.AdminUpdateStatus", "error", err, "duration", time.Since(start), "issue_id", id)
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		logger.Error(ctx, "repo.issue.AdminUpdateStatus", "error", err, "duration", time.Since(start), "issue_id", id)
+		return err
+	}
+	if rows == 0 {
+		logger.Error(ctx, "repo.issue.AdminUpdateStatus", "error", domain.ErrNotFound, "duration", time.Since(start), "issue_id", id)
+		return domain.ErrNotFound
+	}
+	logger.Info(ctx, "repo.issue.AdminUpdateStatus", "duration", time.Since(start), "issue_id", id)
+	return nil
+}
+
+func (r *issueRepo) GetStats(ctx context.Context) (*domain.IssueStats, error) {
+	start := time.Now()
+	stats := &domain.IssueStats{}
+	err := r.db.QueryRowContext(ctx, `
+		SELECT
+			COUNT(*)                                           AS total,
+			COUNT(*) FILTER (WHERE status = 'open')            AS open,
+			COUNT(*) FILTER (WHERE status = 'in_progress')     AS in_progress,
+			COUNT(*) FILTER (WHERE status = 'closed')          AS closed,
+			COUNT(*) FILTER (WHERE category = 'bug')           AS bug,
+			COUNT(*) FILTER (WHERE category = 'idea')          AS idea,
+			COUNT(*) FILTER (WHERE category = 'problem')       AS problem,
+			COUNT(*) FILTER (WHERE category = 'feedback')      AS feedback
+		FROM issue
+	`).Scan(
+		&stats.Total,
+		&stats.Open,
+		&stats.InProgress,
+		&stats.Closed,
+		&stats.Bug,
+		&stats.Idea,
+		&stats.Problem,
+		&stats.Feedback,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.issue.GetStats", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	logger.Info(ctx, "repo.issue.GetStats", "duration", time.Since(start))
+	return stats, nil
 }

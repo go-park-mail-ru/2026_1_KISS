@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue
 
 build:
 	go build -o gateway ./cmd/gateway
@@ -50,6 +50,9 @@ run-runner:
 
 run-storage:
 	go run ./cmd/storage
+
+run-issue:
+	go run ./cmd/issue
 
 proto-tools:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
