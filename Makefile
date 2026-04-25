@@ -68,6 +68,9 @@ proto: proto-tools
 	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
 		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
 		api/proto/storage/storage.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+           --go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+           api/proto/issue/issue.proto
 
 fmt:
 	go fmt ./...

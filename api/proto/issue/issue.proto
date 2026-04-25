@@ -1,0 +1,79 @@
+syntax = "proto3";
+package issue;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/issue";
+
+service IssueService {
+  rpc GetByID(GetIssueRequest) returns (IssueResponse);
+  rpc GetAll(GetAllIssuesRequest) returns (GetAllIssuesResponse);
+  rpc Create(CreateIssueRequest) returns (IssueResponse);
+  rpc Update(UpdateIssueRequest) returns (IssueResponse);
+  rpc Delete(DeleteIssueRequest) returns (DeleteIssueResponse);
+
+  // Админские методы
+  rpc AdminGetAllIssues(AdminGetAllIssuesRequest) returns (AdminGetAllIssuesResponse);
+}
+
+message IssueInfo {
+  int64 id = 1;
+  string category = 2;
+  string status = 3;
+  string content = 4;
+  int64 user_id = 5;
+}
+
+message GetIssueRequest {
+  int64 id = 1;
+}
+
+message GetAllIssuesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string category = 3;
+  string status = 4;
+  int64 user_id = 5;
+}
+
+message CreateIssueRequest {
+  string category = 1;
+  string content = 2;
+  int64 user_id = 3;
+}
+
+message UpdateIssueRequest {
+  int64 id = 1;
+  string category = 2;
+  string status = 3;
+  string content = 4;
+}
+
+message DeleteIssueRequest {
+  int64 id = 1;
+}
+
+message IssueResponse {
+  IssueInfo issue = 1;
+}
+
+message GetAllIssuesResponse {
+  repeated IssueInfo issues = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message DeleteIssueResponse {}
+
+// Админские методы
+message AdminGetAllIssuesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string category = 3;
+  string status = 4;
+}
+
+message AdminGetAllIssuesResponse {
+  repeated IssueInfo issues = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
