@@ -33,7 +33,7 @@ type IssueFilter struct {
 	ID        int64         `form:"id"`
 	Category  IssueCategory `form:"category"`
 	Status    IssueStatus   `form:"status"`
-	Content   string        `form:"content"`
+	Content   string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	UserID    int64 `form:"user_ids"`
