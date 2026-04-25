@@ -124,19 +124,19 @@ type issueCategoryStats struct {
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
-func (h *IssueHandler) paginationParams(r *http.Request) (limit, offset int) {
-	limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
-	if limit <= 0 {
-		limit = 20
+func (h *IssueHandler) paginationParams(r *http.Request) (limit, offset int32) {
+	l, _ := strconv.ParseInt(r.URL.Query().Get("limit"), 10, 32)
+	if l <= 0 {
+		l = 20
 	}
-	if limit > 100 {
-		limit = 100
+	if l > 100 {
+		l = 100
 	}
-	offset, _ = strconv.Atoi(r.URL.Query().Get("offset"))
-	if offset < 0 {
-		offset = 0
+	o, _ := strconv.ParseInt(r.URL.Query().Get("offset"), 10, 32)
+	if o < 0 {
+		o = 0
 	}
-	return
+	return int32(l), int32(o)
 }
 
 func protoIssueToResponse(issue *pb.IssueInfo, msgs []*pb.IssueMessageInfo) issueResponse {
@@ -218,8 +218,8 @@ func (h *IssueHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
 
 	resp, err := h.client.GetAll(r.Context(), &pb.GetAllIssuesRequest{
-		Limit:    int32(limit),
-		Offset:   int32(offset),
+		Limit:    limit,
+		Offset:   offset,
 		Category: category,
 		Status:   status,
 		UserId:   user.ID,
@@ -395,8 +395,8 @@ func (h *IssueHandler) AdminGetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.client.AdminGetAllIssues(r.Context(), &pb.AdminGetAllIssuesRequest{
-		Limit:    int32(limit),
-		Offset:   int32(offset),
+		Limit:    limit,
+		Offset:   offset,
 		Category: category,
 		Status:   statusFilter,
 		UserId:   userID,

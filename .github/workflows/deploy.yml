@@ -70,8 +70,8 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          timeout: 10m
-          command_timeout: 10m
+          timeout: 30m
+          command_timeout: 30m
           script: |
             set -e
             cd /home/ubuntu/2026_1_KISS
