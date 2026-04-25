@@ -11,6 +11,7 @@ import (
 
 	redisv9 "github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	authgrpc "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/grpc"
 	authpg "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/postgres"
@@ -18,10 +19,10 @@ import (
 	authusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
+	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
 type App struct {
@@ -29,6 +30,7 @@ type App struct {
 	listener   net.Listener
 	db         *sql.DB
 	rdb        *redisv9.Client
+	storConn   *grpc.ClientConn
 	metricsSrv *http.Server
 }
 
@@ -53,8 +55,13 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 
 	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
 
-	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
-	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
+	storConn, err := grpc.NewClient(cfg.GRPC.StorageAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial storage: %w", err)
+	}
+	storageClient := pbstorage.NewStorageServiceClient(storConn)
+	uploader := authusecase.NewStorageUploader(storageClient)
+	profileUC := authusecase.NewProfileUsecase(userRepo, uploader, cfg.Upload.MaxAvatarSize)
 	eventUC := authusecase.NewEventUsecase(eventRepo, userRepo)
 	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
 
@@ -79,6 +86,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		listener:   lis,
 		db:         db,
 		rdb:        rdb,
+		storConn:   storConn,
 		metricsSrv: metricsSrv,
 	}, nil
 }
@@ -98,5 +106,8 @@ func (a *App) Shutdown(_ context.Context) {
 		if err := a.rdb.Close(); err != nil {
 			slog.Error("redis close error", "error", err)
 		}
+	}
+	if a.storConn != nil {
+		a.storConn.Close()
 	}
 }

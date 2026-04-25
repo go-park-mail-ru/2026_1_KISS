@@ -10,6 +10,11 @@ service StorageService {
 
   rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
   rpc AdminListFiles(AdminListFilesRequest) returns (ListFilesResponse);
+  rpc DeleteFileByURL(DeleteFileByURLRequest) returns (DeleteFileResponse);
+}
+
+message DeleteFileByURLRequest {
+  string url = 1;
 }
 
 message UploadFileChunk {

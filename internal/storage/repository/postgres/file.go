@@ -112,6 +112,21 @@ func (r *FileRepo) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+func (r *FileRepo) DeleteByURL(ctx context.Context, url string) (string, error) {
+	logger.Info(ctx, "repo.file.DeleteByURL", "url", url)
+
+	var storageKey string
+	err := r.db.QueryRowContext(ctx, `DELETE FROM files WHERE url = $1 RETURNING storage_key`, url).Scan(&storageKey)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		logger.Error(ctx, "repo.file.DeleteByURL", "error", err)
+		return "", fmt.Errorf("delete file by url: %w", err)
+	}
+	return storageKey, nil
+}
+
 func (r *FileRepo) GetStats(ctx context.Context) (*domain.StorageStats, error) {
 	logger.Info(ctx, "repo.file.GetStats")
 

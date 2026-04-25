@@ -69,6 +69,21 @@ func (mr *MockFileRepositoryMockRecorder) Delete(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockFileRepository)(nil).Delete), ctx, id)
 }
 
+// DeleteByURL mocks base method.
+func (m *MockFileRepository) DeleteByURL(ctx context.Context, url string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteByURL", ctx, url)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteByURL indicates an expected call of DeleteByURL.
+func (mr *MockFileRepositoryMockRecorder) DeleteByURL(ctx, url any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByURL", reflect.TypeOf((*MockFileRepository)(nil).DeleteByURL), ctx, url)
+}
+
 // GetByID mocks base method.
 func (m *MockFileRepository) GetByID(ctx context.Context, id string) (*domain.File, error) {
 	m.ctrl.T.Helper()
