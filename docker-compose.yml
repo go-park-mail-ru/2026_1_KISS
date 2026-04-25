@@ -42,6 +42,8 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
+      storage:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9001 || exit 1"]
       interval: 5s
@@ -54,9 +56,7 @@ services:
       GRPC_PORT: "9001"
       METRICS_PORT: "9090"
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
-      UPLOAD_DIR: /app/uploads
-    volumes:
-      - uploads_data:/app/uploads
+      STORAGE_GRPC_ADDR: "storage:9004"
     networks:
       - app-network
 

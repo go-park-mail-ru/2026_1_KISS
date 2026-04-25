@@ -82,6 +82,26 @@ func (mr *MockStorageServiceClientMockRecorder) DeleteFile(ctx, in any, opts ...
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFile", reflect.TypeOf((*MockStorageServiceClient)(nil).DeleteFile), varargs...)
 }
 
+// DeleteFileByURL mocks base method.
+func (m *MockStorageServiceClient) DeleteFileByURL(ctx context.Context, in *storage.DeleteFileByURLRequest, opts ...grpc.CallOption) (*storage.DeleteFileResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteFileByURL", varargs...)
+	ret0, _ := ret[0].(*storage.DeleteFileResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteFileByURL indicates an expected call of DeleteFileByURL.
+func (mr *MockStorageServiceClientMockRecorder) DeleteFileByURL(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileByURL", reflect.TypeOf((*MockStorageServiceClient)(nil).DeleteFileByURL), varargs...)
+}
+
 // GetFile mocks base method.
 func (m *MockStorageServiceClient) GetFile(ctx context.Context, in *storage.GetFileRequest, opts ...grpc.CallOption) (*storage.FileResponse, error) {
 	m.ctrl.T.Helper()

@@ -137,6 +137,13 @@ func (s *Server) AdminListFiles(ctx context.Context, req *pb.AdminListFilesReque
 	return &pb.ListFilesResponse{Files: pbFiles, Total: int32(total)}, nil //nolint:gosec
 }
 
+func (s *Server) DeleteFileByURL(ctx context.Context, req *pb.DeleteFileByURLRequest) (*pb.DeleteFileResponse, error) {
+	if err := s.uc.DeleteFileByURL(ctx, req.GetUrl()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.DeleteFileResponse{}, nil
+}
+
 func fileToProto(f *domain.File) *pb.FileInfo {
 	if f == nil {
 		return nil

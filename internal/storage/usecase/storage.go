@@ -137,6 +137,23 @@ func (uc *StorageUsecase) DeleteFile(ctx context.Context, fileID string, userID 
 	return nil
 }
 
+func (uc *StorageUsecase) DeleteFileByURL(ctx context.Context, url string) error {
+	logger.Info(ctx, "usecase.storage.DeleteFileByURL", "url", url)
+
+	if url == "" {
+		return nil
+	}
+
+	storageKey, err := uc.fileRepo.DeleteByURL(ctx, url)
+	if err != nil {
+		return err
+	}
+	if storageKey != "" {
+		_ = uc.fileStorage.Delete(url)
+	}
+	return nil
+}
+
 func (uc *StorageUsecase) GetStats(ctx context.Context) (*domain.StorageStats, error) {
 	return uc.fileRepo.GetStats(ctx)
 }
