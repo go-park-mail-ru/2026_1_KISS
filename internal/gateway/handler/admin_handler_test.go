@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
@@ -281,5 +283,286 @@ func TestAdminHandler_GetStats_GRPCError(t *testing.T) {
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("want 500, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_UpdateUser_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminUpdateUser(gomock.Any(), gomock.Any()).
+		Return(&pbauth.UserResponse{User: &pbauth.UserInfo{Id: 2, Username: "new"}}, nil)
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2",
+		bytes.NewReader([]byte(`{"username":"new","email":"new@x.io"}`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.UpdateUser(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_UpdateUser_InvalidID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil)
+	req := httptest.NewRequest("PUT", "/admin/users/abc", bytes.NewReader([]byte(`{}`)))
+	req.SetPathValue("id", "abc")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.UpdateUser(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_UpdateUser_BadBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2", bytes.NewReader([]byte(`not json`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.UpdateUser(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_UpdateUser_GRPCError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminUpdateUser(gomock.Any(), gomock.Any()).
+		Return(nil, status.Error(codes.AlreadyExists, "dup"))
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2",
+		bytes.NewReader([]byte(`{"username":"new"}`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.UpdateUser(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("want 409, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_ResetPassword_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminResetPassword(gomock.Any(), gomock.Any()).
+		Return(&pbauth.AdminResetPasswordResponse{}, nil)
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2/password",
+		bytes.NewReader([]byte(`{"password":"newpass"}`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ResetPassword(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_ResetPassword_InvalidID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil)
+	req := httptest.NewRequest("PUT", "/admin/users/abc/password", bytes.NewReader([]byte(`{}`)))
+	req.SetPathValue("id", "abc")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ResetPassword(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_ResetPassword_BadBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2/password", bytes.NewReader([]byte(`{`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ResetPassword(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_ResetPassword_GRPCError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminResetPassword(gomock.Any(), gomock.Any()).
+		Return(nil, status.Error(codes.NotFound, "missing"))
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2/password",
+		bytes.NewReader([]byte(`{"password":"x"}`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ResetPassword(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SetPlan_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminSetPlan(gomock.Any(), gomock.Any()).
+		Return(&pbauth.AdminSetPlanResponse{}, nil)
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2/plan",
+		bytes.NewReader([]byte(`{"plan":"pro"}`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SetPlan(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SetPlan_InvalidID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil)
+	req := httptest.NewRequest("PUT", "/admin/users/x/plan", bytes.NewReader([]byte(`{}`)))
+	req.SetPathValue("id", "x")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SetPlan(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SetPlan_BadBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2/plan", bytes.NewReader([]byte(`{`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SetPlan(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SetPlan_GRPCError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminSetPlan(gomock.Any(), gomock.Any()).
+		Return(nil, status.Error(codes.InvalidArgument, "bad plan"))
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("PUT", "/admin/users/2/plan",
+		bytes.NewReader([]byte(`{"plan":"weird"}`)))
+	req.SetPathValue("id", "2")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SetPlan(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_GetActivityStats_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminGetActivityStats(gomock.Any(), gomock.Any()).
+		Return(&pbauth.AdminGetActivityStatsResponse{
+			Dau: []*pbauth.DauEntry{{Date: "2025-01-01", Count: 5}},
+			Mau: []*pbauth.MauEntry{{Month: "2025-01", Count: 50}},
+		}, nil)
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("GET", "/admin/stats/activity?dau_days=7&mau_months=3", nil)
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.GetActivityStats(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_GetActivityStats_GRPCError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	authClient.EXPECT().
+		AdminGetActivityStats(gomock.Any(), gomock.Any()).
+		Return(nil, status.Error(codes.PermissionDenied, "no"))
+
+	h := NewAdminHandler(authClient, nil)
+	req := httptest.NewRequest("GET", "/admin/stats/activity", nil)
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.GetActivityStats(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_RegisterRoutes(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), mocks.NewMockNotebookServiceClient(ctrl))
+	mux := http.NewServeMux()
+	noop := func(next http.Handler) http.Handler { return next }
+	var noopMw middleware.Middleware = noop
+	h.RegisterRoutes(mux, noopMw, noopMw)
+
+	// Каждый зарегистрированный роут должен резолвиться (и попадать в нужный хендлер,
+	// у которого без user в контексте упадёт panic — поэтому сразу проверяем подсунутый user).
+	cases := []struct {
+		method, path string
+	}{
+		{"GET", "/api/v1/admin/users"},
+		{"POST", "/api/v1/admin/users/1/ban"},
+		{"POST", "/api/v1/admin/users/1/unban"},
+		{"PUT", "/api/v1/admin/users/1"},
+		{"PUT", "/api/v1/admin/users/1/password"},
+		{"PUT", "/api/v1/admin/users/1/plan"},
+		{"GET", "/api/v1/admin/notebooks"},
+		{"DELETE", "/api/v1/admin/notebooks/1"},
+		{"GET", "/api/v1/admin/stats"},
+		{"GET", "/api/v1/admin/stats/activity"},
+	}
+	for _, tc := range cases {
+		req := httptest.NewRequest(tc.method, tc.path, bytes.NewReader([]byte(`{}`)))
+		req = withUser(req, 1)
+		rec := httptest.NewRecorder()
+		// gomock.NewController с .EXPECT() не задаём — большинство grpc-вызовов вернут
+		// nil, и тест может упасть. Этот тест проверяет ТОЛЬКО что mux находит handler.
+		_, pattern := mux.Handler(req)
+		if pattern == "" {
+			t.Errorf("no route registered for %s %s", tc.method, tc.path)
+		}
+		_ = rec
 	}
 }
