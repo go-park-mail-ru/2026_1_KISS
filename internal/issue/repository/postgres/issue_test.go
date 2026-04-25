@@ -20,7 +20,7 @@ func TestIssueRepo_GetByID(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 		now := time.Now()
 
 		mock.ExpectQuery(`SELECT id, category, status, content, created_at, updated_at, user_id FROM issue WHERE id = \$1`).
@@ -52,7 +52,7 @@ func TestIssueRepo_GetByID(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 
 		mock.ExpectQuery(`SELECT id, category, status, content, created_at, updated_at, user_id FROM issue WHERE id = \$1`).
 			WithArgs(int64(999)).
@@ -76,7 +76,7 @@ func TestIssueRepo_Create(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 		now := time.Now()
 		issue := &domain.Issue{
 			Category: domain.IssueCategory("bug"),
@@ -112,7 +112,7 @@ func TestIssueRepo_Update(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 		now := time.Now()
 		issue := &domain.Issue{
 			ID:       7,
@@ -144,7 +144,7 @@ func TestIssueRepo_Update(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 		issue := &domain.Issue{
 			ID:     999,
 			UserID: 100,
@@ -172,7 +172,7 @@ func TestIssueRepo_Delete(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 
 		mock.ExpectExec(`DELETE FROM issue WHERE id = \$1`).
 			WithArgs(int64(7)).
@@ -194,7 +194,7 @@ func TestIssueRepo_Delete(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 
 		mock.ExpectExec(`DELETE FROM issue WHERE id = \$1`).
 			WithArgs(int64(999)).
@@ -218,7 +218,7 @@ func TestIssueRepo_GetAll(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 		now := time.Now()
 		filter := &domain.IssueFilter{
 			ID:        7,
@@ -259,7 +259,7 @@ func TestIssueRepo_GetAll(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 		now := time.Now()
 
 		rows := sqlmock.NewRows([]string{"id", "category", "status", "content", "created_at", "updated_at", "user_id"}).
@@ -287,7 +287,7 @@ func TestIssueRepo_GetAll(t *testing.T) {
 		}
 		defer db.Close()
 
-		repo := &IssueRepo{db: db}
+		repo := &issueRepo{db: db}
 
 		mock.ExpectQuery(`SELECT id, category, status, content, created_at, updated_at, user_id FROM issue WHERE 1=1 ORDER BY id DESC LIMIT \$1 OFFSET \$2`).
 			WithArgs(10, 0).

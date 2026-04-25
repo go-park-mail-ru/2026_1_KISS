@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS issue (
 CREATE INDEX idx_issue_user_id ON issue(user_id);
 CREATE INDEX idx_issue_status ON issue(status);
 CREATE INDEX idx_issue_category ON issue(category);
+CREATE INDEX idx_issue_content_search ON issue USING GIN (to_tsvector('russian', content));
 
 CREATE TRIGGER trg_issue_set_updated_at
     BEFORE UPDATE ON issue
@@ -29,6 +30,7 @@ EXECUTE FUNCTION set_updated_at();
 -- DROP INDEX IF EXISTS idx_issue_user_id;
 -- DROP INDEX IF EXISTS idx_issue_status;
 -- DROP INDEX IF EXISTS idx_issue_category;
+-- DROP INDEX IF EXISTS idx_issue_content_search;
 -- DROP TABLE IF EXISTS issue CASCADE;
 -- DROP TYPE IF EXISTS category_type CASCADE;
 --
