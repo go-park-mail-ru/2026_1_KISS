@@ -20,6 +20,22 @@ type mockUserRepo struct {
 	setVerifiedFn   func(ctx context.Context, userID int64, isVerified bool) error
 }
 
+func (m *mockUserRepo) CountAll(_ context.Context) (int64, error) {
+	return 0, nil
+}
+func (m *mockUserRepo) UpdatePlan(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+func (m *mockUserRepo) UpdateLastActive(_ context.Context, _ int64, _ time.Time) error {
+	return nil
+}
+func (m *mockUserRepo) IncrementTotalTime(_ context.Context, _ int64, _ int64) error {
+	return nil
+}
+func (m *mockUserRepo) AdminUpdateUser(_ context.Context, _ int64, _, _ string) error {
+	return nil
+}
+
 func (m *mockUserRepo) Create(ctx context.Context, user *domain.User) (int64, error) {
 	if m.createFn != nil {
 		return m.createFn(ctx, user)

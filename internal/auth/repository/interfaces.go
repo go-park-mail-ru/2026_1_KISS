@@ -1,4 +1,3 @@
-
 //go:generate mockgen -destination=../../mocks/auth_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository UserRepository,SessionRepository,VerificationRepository,EventRepository
 
 package repository

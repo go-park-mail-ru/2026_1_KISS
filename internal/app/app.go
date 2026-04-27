@@ -20,7 +20,6 @@ import (
 	nbusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
@@ -72,9 +71,6 @@ func New(cfg *config.Config) (*App, error) {
 
 	notebookUC := nbusecase.New(notebookRepo, blockRepo, permRepo)
 
-	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
-	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
-
 	authHandler := authhttp.New(authUC, cfg.Mail.AppURL)
 	healthHandler := health.New(db)
 
@@ -98,7 +94,6 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler.RegisterRoutes(mux)
 
 	_ = notebookUC
-	_ = profileUC
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 
