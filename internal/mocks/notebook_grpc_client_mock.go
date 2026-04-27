@@ -82,6 +82,26 @@ func (mr *MockNotebookServiceClientMockRecorder) AdminDeleteNotebook(ctx, in any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminDeleteNotebook", reflect.TypeOf((*MockNotebookServiceClient)(nil).AdminDeleteNotebook), varargs...)
 }
 
+// AdminGetNotebookCount mocks base method.
+func (m *MockNotebookServiceClient) AdminGetNotebookCount(ctx context.Context, in *notebook.AdminGetNotebookCountRequest, opts ...grpc.CallOption) (*notebook.AdminGetNotebookCountResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminGetNotebookCount", varargs...)
+	ret0, _ := ret[0].(*notebook.AdminGetNotebookCountResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminGetNotebookCount indicates an expected call of AdminGetNotebookCount.
+func (mr *MockNotebookServiceClientMockRecorder) AdminGetNotebookCount(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminGetNotebookCount", reflect.TypeOf((*MockNotebookServiceClient)(nil).AdminGetNotebookCount), varargs...)
+}
+
 // AdminListNotebooks mocks base method.
 func (m *MockNotebookServiceClient) AdminListNotebooks(ctx context.Context, in *notebook.AdminListNotebooksRequest, opts ...grpc.CallOption) (*notebook.AdminListNotebooksResponse, error) {
 	m.ctrl.T.Helper()
@@ -100,6 +120,26 @@ func (mr *MockNotebookServiceClientMockRecorder) AdminListNotebooks(ctx, in any,
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminListNotebooks", reflect.TypeOf((*MockNotebookServiceClient)(nil).AdminListNotebooks), varargs...)
+}
+
+// AdminSetUserNotebooksPrivate mocks base method.
+func (m *MockNotebookServiceClient) AdminSetUserNotebooksPrivate(ctx context.Context, in *notebook.AdminSetUserNotebooksPrivateRequest, opts ...grpc.CallOption) (*notebook.AdminSetUserNotebooksPrivateResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminSetUserNotebooksPrivate", varargs...)
+	ret0, _ := ret[0].(*notebook.AdminSetUserNotebooksPrivateResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminSetUserNotebooksPrivate indicates an expected call of AdminSetUserNotebooksPrivate.
+func (mr *MockNotebookServiceClientMockRecorder) AdminSetUserNotebooksPrivate(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminSetUserNotebooksPrivate", reflect.TypeOf((*MockNotebookServiceClient)(nil).AdminSetUserNotebooksPrivate), varargs...)
 }
 
 // Create mocks base method.
@@ -300,6 +340,26 @@ func (mr *MockNotebookServiceClientMockRecorder) RevokePermission(ctx, in any, o
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokePermission", reflect.TypeOf((*MockNotebookServiceClient)(nil).RevokePermission), varargs...)
+}
+
+// SubscribeNotebook mocks base method.
+func (m *MockNotebookServiceClient) SubscribeNotebook(ctx context.Context, in *notebook.SubscribeNotebookRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[notebook.NotebookEvent], error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SubscribeNotebook", varargs...)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[notebook.NotebookEvent])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeNotebook indicates an expected call of SubscribeNotebook.
+func (mr *MockNotebookServiceClientMockRecorder) SubscribeNotebook(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeNotebook", reflect.TypeOf((*MockNotebookServiceClient)(nil).SubscribeNotebook), varargs...)
 }
 
 // Update mocks base method.

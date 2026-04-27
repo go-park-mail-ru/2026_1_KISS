@@ -12,3 +12,13 @@ type UserEvent struct {
 	Metadata  json.RawMessage
 	CreatedAt time.Time
 }
+
+type DayCount struct {
+	Date  time.Time
+	Count int64
+}
+
+type MonthCount struct {
+	Month time.Time
+	Count int64
+}

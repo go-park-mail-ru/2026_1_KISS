@@ -1,4 +1,6 @@
+
 //go:generate mockgen -destination=../../mocks/auth_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository UserRepository,SessionRepository,VerificationRepository,EventRepository
+
 package repository
 
 import (
@@ -20,6 +22,11 @@ type UserRepository interface {
 	UpdateEmail(ctx context.Context, userID int64, email string) error
 	ListAll(ctx context.Context, limit, offset int, search string) ([]domain.User, int, error)
 	SetBanned(ctx context.Context, userID int64, banned bool) error
+	CountAll(ctx context.Context) (int64, error)
+	UpdatePlan(ctx context.Context, userID int64, plan string) error
+	UpdateLastActive(ctx context.Context, userID int64, t time.Time) error
+	IncrementTotalTime(ctx context.Context, userID int64, seconds int64) error
+	AdminUpdateUser(ctx context.Context, userID int64, username, email string) error
 }
 
 type VerificationRepository interface {
@@ -37,4 +44,6 @@ type SessionRepository interface {
 type EventRepository interface {
 	Create(ctx context.Context, event *domain.UserEvent) error
 	CountActiveUsers(ctx context.Context, since time.Time) (int64, error)
+	CountActiveUsersByDay(ctx context.Context, since time.Time) ([]domain.DayCount, error)
+	CountActiveUsersByMonth(ctx context.Context, since time.Time) ([]domain.MonthCount, error)
 }

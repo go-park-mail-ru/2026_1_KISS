@@ -257,6 +257,12 @@ func (uc *AuthUsecase) ConfirmEmail(ctx context.Context, token string) error {
 
 	return uc.verificationRepo.Delete(ctx, vt.ID)
 }
+
+func (uc *AuthUsecase) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {
+	logger.Info(ctx, "usecase.auth.GetUserByID", "user_id", userID)
+	return uc.userRepo.GetByID(ctx, userID)
+}
+
 func (uc *AuthUsecase) GetUserByIdentifier(ctx context.Context, identifier string) (*domain.User, error) {
 	logger.Info(ctx, "usecase.auth.GetUserByIdentifier", "identifier", identifier)
 	if strings.Contains(identifier, "@") {

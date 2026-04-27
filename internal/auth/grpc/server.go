@@ -70,8 +70,15 @@ func (s *Server) ValidateSession(ctx context.Context, req *pb.ValidateSessionReq
 	return &pb.ValidateSessionResponse{User: userToProto(user)}, nil
 }
 
-func (s *Server) GetUserByID(_ context.Context, _ *pb.GetUserByIDRequest) (*pb.UserResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "use ValidateSession instead")
+func (s *Server) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.UserResponse, error) {
+	if req.GetUserId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	user, err := s.authUC.GetUserByID(ctx, req.GetUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.UserResponse{User: userToProto(user)}, nil
 }
 
 func (s *Server) GetUserByIdentifier(ctx context.Context, req *pb.GetUserByIdentifierRequest) (*pb.UserResponse, error) {
@@ -199,19 +206,71 @@ func (s *Server) AdminGetStats(ctx context.Context, req *pb.AdminGetStatsRequest
 	}, nil
 }
 
+func (s *Server) AdminUpdateUser(ctx context.Context, req *pb.AdminUpdateUserRequest) (*pb.UserResponse, error) {
+	user, err := s.adminUC.AdminUpdateUser(ctx, req.GetAdminUserId(), req.GetTargetUserId(), req.GetUsername(), req.GetEmail())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.UserResponse{User: userToProto(user)}, nil
+}
+
+func (s *Server) AdminResetPassword(ctx context.Context, req *pb.AdminResetPasswordRequest) (*pb.AdminResetPasswordResponse, error) {
+	if err := s.adminUC.AdminResetPassword(ctx, req.GetAdminUserId(), req.GetTargetUserId(), req.GetNewPassword()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminResetPasswordResponse{}, nil
+}
+
+func (s *Server) AdminSetPlan(ctx context.Context, req *pb.AdminSetPlanRequest) (*pb.AdminSetPlanResponse, error) {
+	if err := s.adminUC.AdminSetPlan(ctx, req.GetAdminUserId(), req.GetTargetUserId(), req.GetPlan()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminSetPlanResponse{}, nil
+}
+
+func (s *Server) AdminGetActivityStats(ctx context.Context, req *pb.AdminGetActivityStatsRequest) (*pb.AdminGetActivityStatsResponse, error) {
+	dauDays := int(req.GetDauDays())
+	if dauDays <= 0 {
+		dauDays = 30
+	}
+	mauMonths := int(req.GetMauMonths())
+	if mauMonths <= 0 {
+		mauMonths = 12
+	}
+	dau, mau, err := s.adminUC.GetActivityStats(ctx, req.GetAdminUserId(), dauDays, mauMonths)
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	pbDau := make([]*pb.DauEntry, len(dau))
+	for i, d := range dau {
+		pbDau[i] = &pb.DauEntry{Date: d.Date.Format("2006-01-02"), Count: d.Count}
+	}
+	pbMau := make([]*pb.MauEntry, len(mau))
+	for i, m := range mau {
+		pbMau[i] = &pb.MauEntry{Month: m.Month.Format("2006-01"), Count: m.Count}
+	}
+	return &pb.AdminGetActivityStatsResponse{Dau: pbDau, Mau: pbMau}, nil
+}
+
 func userToProto(u *domain.User) *pb.UserInfo {
 	if u == nil {
 		return nil
 	}
-	return &pb.UserInfo{
-		Id:          u.ID,
-		Username:    u.Username,
-		Email:       u.Email,
-		AvatarUrl:   u.AvatarURL,
-		Status:      u.Status,
-		Description: u.Description,
-		CreatedAt:   u.CreatedAt.Unix(),
-		UpdatedAt:   u.UpdatedAt.Unix(),
-		IsAdmin:     u.IsAdmin,
+	info := &pb.UserInfo{
+		Id:               u.ID,
+		Username:         u.Username,
+		Email:            u.Email,
+		AvatarUrl:        u.AvatarURL,
+		Status:           u.Status,
+		Description:      u.Description,
+		CreatedAt:        u.CreatedAt.Unix(),
+		UpdatedAt:        u.UpdatedAt.Unix(),
+		IsAdmin:          u.IsAdmin,
+		Plan:             u.Plan,
+		TotalTimeSeconds: u.TotalTimeSeconds,
 	}
+	if u.LastActiveAt != nil {
+		info.LastActiveAt = u.LastActiveAt.Unix()
+	}
+	return info
 }

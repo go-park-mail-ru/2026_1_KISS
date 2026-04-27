@@ -42,6 +42,35 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AdminUpdateUser mocks base method.
+func (m *MockUserRepository) AdminUpdateUser(ctx context.Context, userID int64, username, email string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AdminUpdateUser", ctx, userID, username, email)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AdminUpdateUser indicates an expected call of AdminUpdateUser.
+func (mr *MockUserRepositoryMockRecorder) AdminUpdateUser(ctx, userID, username, email any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminUpdateUser", reflect.TypeOf((*MockUserRepository)(nil).AdminUpdateUser), ctx, userID, username, email)
+}
+
+// CountAll mocks base method.
+func (m *MockUserRepository) CountAll(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountAll", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountAll indicates an expected call of CountAll.
+func (mr *MockUserRepositoryMockRecorder) CountAll(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountAll", reflect.TypeOf((*MockUserRepository)(nil).CountAll), ctx)
+}
+
 // Create mocks base method.
 func (m *MockUserRepository) Create(ctx context.Context, user *domain.User) (int64, error) {
 	m.ctrl.T.Helper()
@@ -100,6 +129,20 @@ func (m *MockUserRepository) GetByUsername(ctx context.Context, username string)
 func (mr *MockUserRepositoryMockRecorder) GetByUsername(ctx, username any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUsername", reflect.TypeOf((*MockUserRepository)(nil).GetByUsername), ctx, username)
+}
+
+// IncrementTotalTime mocks base method.
+func (m *MockUserRepository) IncrementTotalTime(ctx context.Context, userID, seconds int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementTotalTime", ctx, userID, seconds)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementTotalTime indicates an expected call of IncrementTotalTime.
+func (mr *MockUserRepositoryMockRecorder) IncrementTotalTime(ctx, userID, seconds any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementTotalTime", reflect.TypeOf((*MockUserRepository)(nil).IncrementTotalTime), ctx, userID, seconds)
 }
 
 // ListAll mocks base method.
@@ -174,6 +217,20 @@ func (mr *MockUserRepositoryMockRecorder) UpdateEmail(ctx, userID, email any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEmail", reflect.TypeOf((*MockUserRepository)(nil).UpdateEmail), ctx, userID, email)
 }
 
+// UpdateLastActive mocks base method.
+func (m *MockUserRepository) UpdateLastActive(ctx context.Context, userID int64, t time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLastActive", ctx, userID, t)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLastActive indicates an expected call of UpdateLastActive.
+func (mr *MockUserRepositoryMockRecorder) UpdateLastActive(ctx, userID, t any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLastActive", reflect.TypeOf((*MockUserRepository)(nil).UpdateLastActive), ctx, userID, t)
+}
+
 // UpdatePassword mocks base method.
 func (m *MockUserRepository) UpdatePassword(ctx context.Context, userID int64, passwordHash string) error {
 	m.ctrl.T.Helper()
@@ -186,6 +243,20 @@ func (m *MockUserRepository) UpdatePassword(ctx context.Context, userID int64, p
 func (mr *MockUserRepositoryMockRecorder) UpdatePassword(ctx, userID, passwordHash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePassword", reflect.TypeOf((*MockUserRepository)(nil).UpdatePassword), ctx, userID, passwordHash)
+}
+
+// UpdatePlan mocks base method.
+func (m *MockUserRepository) UpdatePlan(ctx context.Context, userID int64, plan string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePlan", ctx, userID, plan)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePlan indicates an expected call of UpdatePlan.
+func (mr *MockUserRepositoryMockRecorder) UpdatePlan(ctx, userID, plan any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePlan", reflect.TypeOf((*MockUserRepository)(nil).UpdatePlan), ctx, userID, plan)
 }
 
 // UpdateProfile mocks base method.
@@ -373,6 +444,36 @@ func (m *MockEventRepository) CountActiveUsers(ctx context.Context, since time.T
 func (mr *MockEventRepositoryMockRecorder) CountActiveUsers(ctx, since any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountActiveUsers", reflect.TypeOf((*MockEventRepository)(nil).CountActiveUsers), ctx, since)
+}
+
+// CountActiveUsersByDay mocks base method.
+func (m *MockEventRepository) CountActiveUsersByDay(ctx context.Context, since time.Time) ([]domain.DayCount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountActiveUsersByDay", ctx, since)
+	ret0, _ := ret[0].([]domain.DayCount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountActiveUsersByDay indicates an expected call of CountActiveUsersByDay.
+func (mr *MockEventRepositoryMockRecorder) CountActiveUsersByDay(ctx, since any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountActiveUsersByDay", reflect.TypeOf((*MockEventRepository)(nil).CountActiveUsersByDay), ctx, since)
+}
+
+// CountActiveUsersByMonth mocks base method.
+func (m *MockEventRepository) CountActiveUsersByMonth(ctx context.Context, since time.Time) ([]domain.MonthCount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountActiveUsersByMonth", ctx, since)
+	ret0, _ := ret[0].([]domain.MonthCount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountActiveUsersByMonth indicates an expected call of CountActiveUsersByMonth.
+func (mr *MockEventRepositoryMockRecorder) CountActiveUsersByMonth(ctx, since any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountActiveUsersByMonth", reflect.TypeOf((*MockEventRepository)(nil).CountActiveUsersByMonth), ctx, since)
 }
 
 // Create mocks base method.

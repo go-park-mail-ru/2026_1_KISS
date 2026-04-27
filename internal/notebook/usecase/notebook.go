@@ -3,13 +3,24 @@ package usecase
 import (
 	"context"
 	"errors"
+	"time"
 	"unicode/utf8"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
+	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 )
+
+// Publisher is the interface for publishing notebook events to connected clients.
+type Publisher interface {
+	Publish(notebookID int64, event *pb.NotebookEvent)
+}
+
+type noopPublisher struct{}
+
+func (noopPublisher) Publish(_ int64, _ *pb.NotebookEvent) {}
 
 type NotebookService interface {
 	Create(ctx context.Context, userID int64, title string) (*domain.Notebook, error)
@@ -28,19 +39,26 @@ type NotebookService interface {
 	RevokePermission(ctx context.Context, requesterID, notebookID, targetUserID int64) error
 	ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error)
 	ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
+	SetAllPrivateByOwner(ctx context.Context, ownerID int64) error
 }
 
 type notebookService struct {
 	notebookRepo repository.NotebookRepository
 	blockRepo    repository.BlockRepository
 	permRepo     repository.PermissionRepository
+	publisher    Publisher
 }
 
-func New(nr repository.NotebookRepository, br repository.BlockRepository, pr repository.PermissionRepository) NotebookService {
+func New(nr repository.NotebookRepository, br repository.BlockRepository, pr repository.PermissionRepository, pubs ...Publisher) NotebookService {
+	var pub Publisher = noopPublisher{}
+	if len(pubs) > 0 && pubs[0] != nil {
+		pub = pubs[0]
+	}
 	return &notebookService{
 		notebookRepo: nr,
 		blockRepo:    br,
 		permRepo:     pr,
+		publisher:    pub,
 	}
 }
 
@@ -162,6 +180,12 @@ func (s *notebookService) Update(ctx context.Context, userID, notebookID int64, 
 		return nil, err
 	}
 	logger.Info(ctx, "usecase.notebook.Update", "notebook_id", nb.ID)
+	s.publisher.Publish(nb.ID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_NOTEBOOK_UPDATED,
+		NotebookId: nb.ID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+	})
 	return nb, nil
 }
 
@@ -194,6 +218,13 @@ func (s *notebookService) AddBlock(ctx context.Context, userID, notebookID int64
 	}
 	block.ID = id
 	logger.Info(ctx, "usecase.notebook.AddBlock", "block_id", block.ID)
+	s.publisher.Publish(notebookID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_BLOCK_ADDED,
+		NotebookId: notebookID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+		Payload:    &pb.NotebookEvent_Block{Block: blockToProto(block)},
+	})
 	return block, nil
 }
 
@@ -230,6 +261,13 @@ func (s *notebookService) UpdateBlock(ctx context.Context, userID, notebookID, b
 		return nil, err
 	}
 	logger.Info(ctx, "usecase.notebook.UpdateBlock", "block_id", block.ID)
+	s.publisher.Publish(notebookID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_BLOCK_UPDATED,
+		NotebookId: notebookID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+		Payload:    &pb.NotebookEvent_Block{Block: blockToProto(block)},
+	})
 	return block, nil
 }
 
@@ -259,6 +297,13 @@ func (s *notebookService) DeleteBlock(ctx context.Context, userID, notebookID, b
 		return err
 	}
 	logger.Info(ctx, "usecase.notebook.DeleteBlock", "block_id", blockID, "status", "ok")
+	s.publisher.Publish(notebookID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_BLOCK_DELETED,
+		NotebookId: notebookID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+		Payload:    &pb.NotebookEvent_DeletedBlockId{DeletedBlockId: blockID},
+	})
 	return nil
 }
 
@@ -373,4 +418,21 @@ func (s *notebookService) ListSharedWithUser(ctx context.Context, userID int64, 
 	}
 	logger.Info(ctx, "usecase.notebook.ListSharedWithUser", "total", total)
 	return notebooks, total, nil
+}
+
+func blockToProto(b *domain.Block) *pb.BlockInfo {
+	return &pb.BlockInfo{
+		Id:         b.ID,
+		NotebookId: b.NotebookID,
+		Type:       b.Type,
+		Language:   b.Language,
+		Content:    b.Content,
+		Position:   int32(b.Position), //nolint:gosec
+		CreatedAt:  b.CreatedAt.Unix(),
+		UpdatedAt:  b.UpdatedAt.Unix(),
+	}
+}
+
+func (s *notebookService) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
+	return s.notebookRepo.SetAllPrivateByOwner(ctx, ownerID)
 }

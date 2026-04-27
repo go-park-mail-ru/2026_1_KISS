@@ -35,6 +35,11 @@ message StopSessionRequest {
 
 message StopSessionResponse {}
 
+message OutputItem {
+  string mime_type = 1;
+  string data = 2;
+}
+
 message BlockExecutionResult {
   int64 block_id = 1;
   int32 position = 2;
@@ -44,4 +49,5 @@ message BlockExecutionResult {
   string error = 6;
   int64 executed_at = 7;
   int64 duration_ns = 8;
+  repeated OutputItem outputs = 9;
 }

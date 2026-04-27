@@ -2,22 +2,44 @@ package grpc
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 )
+
+// EventHub is the subset of hub.Hub used by the gRPC server.
+type EventHub interface {
+	Subscribe(notebookID int64, connID string, bufSize int) chan *pb.NotebookEvent
+	Unsubscribe(notebookID int64, connID string)
+}
+
+type noopHub struct{}
+
+func (noopHub) Subscribe(_ int64, _ string, _ int) chan *pb.NotebookEvent {
+	return make(chan *pb.NotebookEvent)
+}
+func (noopHub) Unsubscribe(_ int64, _ string) {}
 
 type Server struct {
 	pb.UnimplementedNotebookServiceServer
 	notebookUC usecase.NotebookService
 	blockRepo  repository.BlockRepository
+	hub        EventHub
 }
 
-func NewServer(notebookUC usecase.NotebookService, blockRepo repository.BlockRepository) *Server {
-	return &Server{notebookUC: notebookUC, blockRepo: blockRepo}
+func NewServer(notebookUC usecase.NotebookService, blockRepo repository.BlockRepository, hubs ...EventHub) *Server {
+	var hub EventHub = noopHub{}
+	if len(hubs) > 0 && hubs[0] != nil {
+		hub = hubs[0]
+	}
+	return &Server{notebookUC: notebookUC, blockRepo: blockRepo, hub: hub}
 }
 
 func (s *Server) Create(ctx context.Context, req *pb.CreateNotebookRequest) (*pb.NotebookResponse, error) {
@@ -142,6 +164,21 @@ func (s *Server) AdminDeleteNotebook(ctx context.Context, req *pb.AdminDeleteNot
 	return &pb.DeleteNotebookResponse{}, nil
 }
 
+func (s *Server) AdminSetUserNotebooksPrivate(ctx context.Context, req *pb.AdminSetUserNotebooksPrivateRequest) (*pb.AdminSetUserNotebooksPrivateResponse, error) {
+	if err := s.notebookUC.SetAllPrivateByOwner(ctx, req.GetOwnerId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminSetUserNotebooksPrivateResponse{}, nil
+}
+
+func (s *Server) AdminGetNotebookCount(ctx context.Context, _ *pb.AdminGetNotebookCountRequest) (*pb.AdminGetNotebookCountResponse, error) {
+	count, err := s.notebookUC.CountAll(ctx, "")
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AdminGetNotebookCountResponse{Total: int64(count)}, nil
+}
+
 func (s *Server) GrantPermission(ctx context.Context, req *pb.GrantPermissionRequest) (*pb.GrantPermissionResponse, error) {
 	err := s.notebookUC.GrantPermission(ctx, req.GetRequesterId(), req.GetNotebookId(), req.GetTargetUserId(), req.GetLevel())
 	if err != nil {
@@ -191,6 +228,62 @@ func (s *Server) ListSharedWithUser(ctx context.Context, req *pb.ListSharedWithU
 	}, nil
 }
 
+func (s *Server) SubscribeNotebook(req *pb.SubscribeNotebookRequest, stream pb.NotebookService_SubscribeNotebookServer) error {
+	notebookID := req.GetNotebookId()
+	userID := req.GetUserId()
+	connID := uuid.NewString()
+	startedAt := time.Now()
+
+	ch := s.hub.Subscribe(notebookID, connID, 64)
+	defer s.hub.Unsubscribe(notebookID, connID)
+
+	ctx := stream.Context()
+	logger.Info(ctx, "grpc.SubscribeNotebook", "stage", "open", "user_id", userID, "notebook_id", notebookID, "conn_id", connID)
+
+	var sent int
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info(ctx, "grpc.SubscribeNotebook",
+				"stage", "close",
+				"reason", "context_done",
+				"user_id", userID,
+				"notebook_id", notebookID,
+				"conn_id", connID,
+				"events_sent", sent,
+				"duration", time.Since(startedAt).String(),
+			)
+			return nil
+		case event, ok := <-ch:
+			if !ok {
+				logger.Info(ctx, "grpc.SubscribeNotebook",
+					"stage", "close",
+					"reason", "channel_closed",
+					"user_id", userID,
+					"notebook_id", notebookID,
+					"conn_id", connID,
+					"events_sent", sent,
+					"duration", time.Since(startedAt).String(),
+				)
+				return nil
+			}
+			if err := stream.Send(event); err != nil {
+				logger.Error(ctx, "grpc.SubscribeNotebook",
+					"stage", "send_failed",
+					"error", err,
+					"user_id", userID,
+					"notebook_id", notebookID,
+					"conn_id", connID,
+					"events_sent", sent,
+					"duration", time.Since(startedAt).String(),
+				)
+				return err
+			}
+			sent++
+		}
+	}
+}
+
 func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 	if nb == nil {
 		return nil
@@ -198,6 +291,7 @@ func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 	info := &pb.NotebookInfo{
 		Id:        nb.ID,
 		OwnerId:   nb.OwnerID,
+		OwnerName: nb.OwnerUsername,
 		Title:     nb.Title,
 		IsPublic:  nb.IsPublic,
 		CreatedAt: nb.CreatedAt.Unix(),

@@ -31,6 +31,8 @@ type GRPCConfig struct {
 	AuthAddr     string
 	NotebookAddr string
 	RunnerAddr   string
+	StorageAddr  string
+	IssueAddr    string
 }
 
 type RateLimitConfig struct {
@@ -38,10 +40,12 @@ type RateLimitConfig struct {
 	Window      time.Duration
 }
 
-// UploadConfig holds file upload settings.
 type UploadConfig struct {
-	Dir     string
-	MaxSize int64
+	Dir             string
+	MaxSize         int64
+	MaxAvatarSize   int64
+	MaxDatasetSize  int64
+	MaxFeedbackSize int64
 }
 
 type ServerConfig struct {
@@ -141,8 +145,11 @@ func Load() *Config {
 			ExecutionTimeout:    getEnvDuration("RUNNER_EXECUTION_TIMEOUT", 120*time.Second),
 		},
 		Upload: UploadConfig{
-			Dir:     getEnv("UPLOAD_DIR", "/app/uploads"),
-			MaxSize: getEnvInt64("UPLOAD_MAX_SIZE", 2*1024*1024),
+			Dir:             getEnv("UPLOAD_DIR", "/app/uploads"),
+			MaxSize:         getEnvInt64("UPLOAD_MAX_SIZE", 10*1024*1024),
+			MaxAvatarSize:   getEnvInt64("UPLOAD_MAX_AVATAR_SIZE", 2*1024*1024),
+			MaxDatasetSize:  getEnvInt64("UPLOAD_MAX_DATASET_SIZE", 50*1024*1024),
+			MaxFeedbackSize: getEnvInt64("UPLOAD_MAX_FEEDBACK_SIZE", 10*1024*1024),
 		},
 		Mail: MailConfig{
 			From:     getEnv("MAIL_FROM", "no-reply@kisscolab.ru"),
@@ -158,6 +165,8 @@ func Load() *Config {
 			AuthAddr:     getEnv("AUTH_GRPC_ADDR", "localhost:9001"),
 			NotebookAddr: getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
 			RunnerAddr:   getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
+			StorageAddr:  getEnv("STORAGE_GRPC_ADDR", "localhost:9004"),
+			IssueAddr:    getEnv("ISSUE_GRPC_ADDR", "localhost:9005"),
 		},
 		Metrics: MetricsConfig{
 			Port: getEnv("METRICS_PORT", "9090"),

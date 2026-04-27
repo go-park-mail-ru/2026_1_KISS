@@ -21,22 +21,28 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
+//go:generate mockgen -destination=../../../internal/mocks/file_uploader_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase FileUploader
+
+type FileUploader interface {
+	Upload(ctx context.Context, ownerID int64, category, filename string, data io.Reader, size int64) (string, error)
+	Delete(ctx context.Context, url string) error
+}
+
 type ProfileUsecase struct {
 	userRepo    repository.UserRepository
-	fileStorage filestorage.FileStorage
+	uploader    FileUploader
 	maxFileSize int64
 }
 
-func NewProfileUsecase(userRepo repository.UserRepository, fs filestorage.FileStorage, maxFileSize int64) *ProfileUsecase {
+func NewProfileUsecase(userRepo repository.UserRepository, uploader FileUploader, maxFileSize int64) *ProfileUsecase {
 	return &ProfileUsecase{
 		userRepo:    userRepo,
-		fileStorage: fs,
+		uploader:    uploader,
 		maxFileSize: maxFileSize,
 	}
 }
@@ -135,7 +141,13 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 	}
 	oldAvatar := user.AvatarURL
 
-	url, err := uc.fileStorage.Save(filename, saveReader)
+	var buf bytes.Buffer
+	size, err := io.Copy(&buf, saveReader)
+	if err != nil {
+		return nil, fmt.Errorf("buffer avatar: %w", err)
+	}
+
+	url, err := uc.uploader.Upload(ctx, userID, "avatars", filename, bytes.NewReader(buf.Bytes()), size)
 	if err != nil {
 		logger.Error(ctx, "usecase.profile.UploadAvatar", "error", err)
 		return nil, fmt.Errorf("save avatar: %w", err)
@@ -143,12 +155,12 @@ func (uc *ProfileUsecase) UploadAvatar(ctx context.Context, userID int64, file i
 
 	if err := uc.userRepo.UpdateAvatarURL(ctx, userID, url); err != nil {
 		logger.Error(ctx, "usecase.profile.UploadAvatar", "error", err)
-		_ = uc.fileStorage.Delete(url)
+		_ = uc.uploader.Delete(ctx, url)
 		return nil, err
 	}
 
 	if oldAvatar != "" {
-		_ = uc.fileStorage.Delete(oldAvatar)
+		_ = uc.uploader.Delete(ctx, oldAvatar)
 	}
 
 	logger.Info(ctx, "usecase.profile.UploadAvatar", "user_id", userID, "status", "ok")

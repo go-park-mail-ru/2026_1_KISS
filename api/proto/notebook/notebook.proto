@@ -17,11 +17,15 @@ service NotebookService {
 
   rpc AdminListNotebooks(AdminListNotebooksRequest) returns (AdminListNotebooksResponse);
   rpc AdminDeleteNotebook(AdminDeleteNotebookRequest) returns (DeleteNotebookResponse);
+  rpc AdminSetUserNotebooksPrivate(AdminSetUserNotebooksPrivateRequest) returns (AdminSetUserNotebooksPrivateResponse);
+  rpc AdminGetNotebookCount(AdminGetNotebookCountRequest) returns (AdminGetNotebookCountResponse);
 
   rpc GrantPermission(GrantPermissionRequest) returns (GrantPermissionResponse);
   rpc RevokePermission(RevokePermissionRequest) returns (RevokePermissionResponse);
   rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
   rpc ListSharedWithUser(ListSharedWithUserRequest) returns (ListNotebooksResponse);
+
+  rpc SubscribeNotebook(SubscribeNotebookRequest) returns (stream NotebookEvent);
 }
 
 message NotebookInfo {
@@ -32,6 +36,7 @@ message NotebookInfo {
   repeated BlockInfo blocks = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
+  string owner_name = 8;
 }
 
 message BlockInfo {
@@ -177,4 +182,38 @@ message ListSharedWithUserRequest {
   int64 user_id = 1;
   int32 limit = 2;
   int32 offset = 3;
+}
+
+message SubscribeNotebookRequest {
+  int64 notebook_id = 1;
+  int64 user_id     = 2;
+}
+
+message NotebookEvent {
+  enum Type {
+    BLOCK_ADDED      = 0;
+    BLOCK_UPDATED    = 1;
+    BLOCK_DELETED    = 2;
+    NOTEBOOK_UPDATED = 3;
+  }
+  Type  type        = 1;
+  int64 notebook_id = 2;
+  int64 actor_id    = 3;
+  oneof payload {
+    BlockInfo block          = 4;
+    int64 deleted_block_id   = 5;
+  }
+  int64 timestamp = 6;
+}
+
+message AdminSetUserNotebooksPrivateRequest {
+  int64 owner_id = 1;
+}
+
+message AdminSetUserNotebooksPrivateResponse {}
+
+message AdminGetNotebookCountRequest {}
+
+message AdminGetNotebookCountResponse {
+  int64 total = 1;
 }

@@ -42,6 +42,26 @@ func (m *MockAuthServiceClient) EXPECT() *MockAuthServiceClientMockRecorder {
 	return m.recorder
 }
 
+// AdminGetActivityStats mocks base method.
+func (m *MockAuthServiceClient) AdminGetActivityStats(ctx context.Context, in *auth.AdminGetActivityStatsRequest, opts ...grpc.CallOption) (*auth.AdminGetActivityStatsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminGetActivityStats", varargs...)
+	ret0, _ := ret[0].(*auth.AdminGetActivityStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminGetActivityStats indicates an expected call of AdminGetActivityStats.
+func (mr *MockAuthServiceClientMockRecorder) AdminGetActivityStats(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminGetActivityStats", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminGetActivityStats), varargs...)
+}
+
 // AdminGetStats mocks base method.
 func (m *MockAuthServiceClient) AdminGetStats(ctx context.Context, in *auth.AdminGetStatsRequest, opts ...grpc.CallOption) (*auth.AdminGetStatsResponse, error) {
 	m.ctrl.T.Helper()
@@ -82,6 +102,26 @@ func (mr *MockAuthServiceClientMockRecorder) AdminListUsers(ctx, in any, opts ..
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminListUsers", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminListUsers), varargs...)
 }
 
+// AdminResetPassword mocks base method.
+func (m *MockAuthServiceClient) AdminResetPassword(ctx context.Context, in *auth.AdminResetPasswordRequest, opts ...grpc.CallOption) (*auth.AdminResetPasswordResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminResetPassword", varargs...)
+	ret0, _ := ret[0].(*auth.AdminResetPasswordResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminResetPassword indicates an expected call of AdminResetPassword.
+func (mr *MockAuthServiceClientMockRecorder) AdminResetPassword(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminResetPassword", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminResetPassword), varargs...)
+}
+
 // AdminSetBan mocks base method.
 func (m *MockAuthServiceClient) AdminSetBan(ctx context.Context, in *auth.AdminSetBanRequest, opts ...grpc.CallOption) (*auth.AdminSetBanResponse, error) {
 	m.ctrl.T.Helper()
@@ -100,6 +140,46 @@ func (mr *MockAuthServiceClientMockRecorder) AdminSetBan(ctx, in any, opts ...an
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminSetBan", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminSetBan), varargs...)
+}
+
+// AdminSetPlan mocks base method.
+func (m *MockAuthServiceClient) AdminSetPlan(ctx context.Context, in *auth.AdminSetPlanRequest, opts ...grpc.CallOption) (*auth.AdminSetPlanResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminSetPlan", varargs...)
+	ret0, _ := ret[0].(*auth.AdminSetPlanResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminSetPlan indicates an expected call of AdminSetPlan.
+func (mr *MockAuthServiceClientMockRecorder) AdminSetPlan(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminSetPlan", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminSetPlan), varargs...)
+}
+
+// AdminUpdateUser mocks base method.
+func (m *MockAuthServiceClient) AdminUpdateUser(ctx context.Context, in *auth.AdminUpdateUserRequest, opts ...grpc.CallOption) (*auth.UserResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AdminUpdateUser", varargs...)
+	ret0, _ := ret[0].(*auth.UserResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AdminUpdateUser indicates an expected call of AdminUpdateUser.
+func (mr *MockAuthServiceClientMockRecorder) AdminUpdateUser(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminUpdateUser", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminUpdateUser), varargs...)
 }
 
 // ChangeEmail mocks base method.

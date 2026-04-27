@@ -1,0 +1,126 @@
+syntax = "proto3";
+package issue;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/issue";
+
+service IssueService {
+  rpc GetByID(GetIssueRequest) returns (IssueResponse);
+  rpc GetAll(GetAllIssuesRequest) returns (GetAllIssuesResponse);
+  rpc Create(CreateIssueRequest) returns (IssueResponse);
+  rpc Update(UpdateIssueRequest) returns (IssueResponse);
+  rpc Delete(DeleteIssueRequest) returns (DeleteIssueResponse);
+
+  rpc AdminGetAllIssues(AdminGetAllIssuesRequest) returns (AdminGetAllIssuesResponse);
+  rpc AdminUpdateStatus(AdminUpdateIssueStatusRequest) returns (IssueResponse);
+
+  rpc AddMessage(AddIssueMessageRequest) returns (AddIssueMessageResponse);
+  rpc GetStats(GetIssueStatsRequest) returns (IssueStatsResponse);
+}
+
+message IssueInfo {
+  int64 id = 1;
+  string category = 2;
+  string status = 3;
+  string content = 4;
+  int64 user_id = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message IssueMessageInfo {
+  int64 id = 1;
+  int64 issue_id = 2;
+  int64 user_id = 3;
+  bool is_admin = 4;
+  string content = 5;
+  int64 created_at = 6;
+}
+
+message GetIssueRequest {
+  int64 id = 1;
+}
+
+message GetAllIssuesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string category = 3;
+  string status = 4;
+  int64 user_id = 5;
+}
+
+message CreateIssueRequest {
+  string category = 1;
+  string content = 2;
+  int64 user_id = 3;
+}
+
+message UpdateIssueRequest {
+  int64 id = 1;
+  string category = 2;
+  string status = 3;
+  string content = 4;
+  int64 user_id = 5;
+}
+
+message DeleteIssueRequest {
+  int64 id = 1;
+  int64 user_id = 2;
+}
+
+message IssueResponse {
+  IssueInfo issue = 1;
+  repeated IssueMessageInfo messages = 2;
+}
+
+message GetAllIssuesResponse {
+  repeated IssueInfo issues = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message DeleteIssueResponse {}
+
+message AdminGetAllIssuesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string category = 3;
+  string status = 4;
+  int64 user_id = 5;
+  string content = 6;
+}
+
+message AdminGetAllIssuesResponse {
+  repeated IssueInfo issues = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message AdminUpdateIssueStatusRequest {
+  int64 id = 1;
+  string status = 2;
+}
+
+message AddIssueMessageRequest {
+  int64 issue_id = 1;
+  int64 user_id = 2;
+  bool is_admin = 3;
+  string content = 4;
+}
+
+message AddIssueMessageResponse {
+  IssueMessageInfo message = 1;
+}
+
+message GetIssueStatsRequest {}
+
+message IssueStatsResponse {
+  int64 total = 1;
+  int64 open = 2;
+  int64 in_progress = 3;
+  int64 closed = 4;
+  int64 bug = 5;
+  int64 idea = 6;
+  int64 problem = 7;
+  int64 feedback = 8;
+}

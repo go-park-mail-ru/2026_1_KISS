@@ -200,9 +200,10 @@ func (r *NotebookRepo) CountAll(ctx context.Context, search string) (int, error)
 func (r *NotebookRepo) GetSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, error) {
 	start := time.Now()
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT n.id, n.owner_id, n.title, n.is_public, n.created_at, n.updated_at
+		`SELECT n.id, n.owner_id, u.username, n.title, n.is_public, n.created_at, n.updated_at
 		 FROM notebooks n
 		 JOIN file_permissions fp ON fp.notebook_id = n.id
+		 JOIN users u ON u.id = n.owner_id
 		 WHERE fp.user_id = $1
 		 ORDER BY n.created_at DESC
 		 LIMIT $2 OFFSET $3`,
@@ -217,7 +218,7 @@ func (r *NotebookRepo) GetSharedWithUser(ctx context.Context, userID int64, limi
 	var notebooks []domain.Notebook
 	for rows.Next() {
 		var nb domain.Notebook
-		if err := rows.Scan(&nb.ID, &nb.OwnerID, &nb.Title, &nb.IsPublic, &nb.CreatedAt, &nb.UpdatedAt); err != nil {
+		if err := rows.Scan(&nb.ID, &nb.OwnerID, &nb.OwnerUsername, &nb.Title, &nb.IsPublic, &nb.CreatedAt, &nb.UpdatedAt); err != nil {
 			logger.Error(ctx, "repo.notebooks.GetSharedWithUser", "error", err, "duration", time.Since(start), "user_id", userID)
 			return nil, err
 		}
@@ -244,4 +245,18 @@ func (r *NotebookRepo) CountSharedWithUser(ctx context.Context, userID int64) (i
 	}
 	logger.Info(ctx, "repo.notebooks.CountSharedWithUser", "duration", time.Since(start), "user_id", userID, "count", count)
 	return count, nil
+}
+
+func (r *NotebookRepo) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
+	start := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE notebooks SET is_public = false WHERE owner_id = $1 AND is_public = true`,
+		ownerID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.notebooks.SetAllPrivateByOwner", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return err
+	}
+	logger.Info(ctx, "repo.notebooks.SetAllPrivateByOwner", "duration", time.Since(start), "owner_id", ownerID)
+	return nil
 }

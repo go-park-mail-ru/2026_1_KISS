@@ -5,16 +5,15 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
-// LocalStorage stores files on the local filesystem.
 type LocalStorage struct {
 	uploadDir string
 	urlPrefix string
 }
 
-// NewLocalStorage creates a new LocalStorage instance.
 func NewLocalStorage(uploadDir, urlPrefix string) *LocalStorage {
 	return &LocalStorage{
 		uploadDir: uploadDir,
@@ -22,17 +21,30 @@ func NewLocalStorage(uploadDir, urlPrefix string) *LocalStorage {
 	}
 }
 
-// Save writes data to uploadDir/filename and returns the public URL path.
-func (s *LocalStorage) Save(filename string, data io.Reader) (string, error) {
-	if strings.Contains(filename, "..") || strings.ContainsRune(filename, '/') || strings.ContainsRune(filename, '\\') {
-		return "", fmt.Errorf("invalid filename")
+func validateFilename(filename string) error {
+	if filename == "" || strings.Contains(filename, "..") || strings.ContainsRune(filename, '\\') {
+		return fmt.Errorf("invalid filename")
 	}
 
-	if err := os.MkdirAll(s.uploadDir, 0o755); err != nil {
-		return "", fmt.Errorf("create upload dir: %w", err)
+	parts := strings.Split(filename, "/")
+	if len(parts) > 2 || slices.Contains(parts, "") {
+		return fmt.Errorf("invalid filename")
+	}
+	return nil
+}
+
+func (s *LocalStorage) Save(filename string, data io.Reader) (string, error) {
+	if err := validateFilename(filename); err != nil {
+		return "", err
 	}
 
 	dst := filepath.Join(s.uploadDir, filename)
+	dir := filepath.Dir(dst)
+
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", fmt.Errorf("create upload dir: %w", err)
+	}
+
 	f, err := os.Create(dst)
 	if err != nil {
 		return "", fmt.Errorf("create file: %w", err)
@@ -47,14 +59,18 @@ func (s *LocalStorage) Save(filename string, data io.Reader) (string, error) {
 	return s.urlPrefix + filename, nil
 }
 
-// Delete removes a file by its URL path. Ignores "file not found" errors.
 func (s *LocalStorage) Delete(path string) error {
 	if path == "" {
 		return nil
 	}
 
 	filename := strings.TrimPrefix(path, s.urlPrefix)
-	if filename == "" || strings.Contains(filename, "..") || strings.ContainsRune(filename, '/') {
+	if filename == "" || strings.Contains(filename, "..") || strings.ContainsRune(filename, '\\') {
+		return nil
+	}
+
+	parts := strings.Split(filename, "/")
+	if len(parts) > 2 || slices.Contains(parts, "") {
 		return nil
 	}
 

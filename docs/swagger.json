@@ -19,6 +19,7 @@
     { "name": "permissions" },
     { "name": "runner" },
     { "name": "events" },
+    { "name": "issues" },
     { "name": "admin" },
     { "name": "health" }
   ],
@@ -673,6 +674,291 @@
         }
       }
     },
+    "/api/v1/issues": {
+      "post": {
+        "tags": ["issues"],
+        "summary": "Create an issue (feedback)",
+        "description": "Authenticated user submits a feedback issue. Category and content are required. Files are optional (images/docs, max 10 MB each, up to 5 files). The issue is created with status `open` and linked to the current user.",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateIssueRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Issue created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "get": {
+        "tags": ["issues"],
+        "summary": "List own issues",
+        "description": "Returns a paginated list of issues created by the current user. Other users' issues are not included.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit",  "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": { "type": "string", "enum": ["open", "in_progress", "closed"] }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category",
+            "schema": { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of own issues",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/issues/{id}": {
+      "get": {
+        "tags": ["issues"],
+        "summary": "Get issue details",
+        "description": "Returns full details of one issue including the chat thread. Only the owner of the issue can access it.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "responses": {
+          "200": {
+            "description": "Issue details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["issues"],
+        "summary": "Delete own issue",
+        "description": "Permanently deletes the issue and its chat thread. Only the issue owner can do this.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "responses": {
+          "200": {
+            "description": "Issue deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/issues/{id}/messages": {
+      "post": {
+        "tags": ["issues"],
+        "summary": "Send a message in own issue chat",
+        "description": "Appends a new message to the chat thread of the user's own issue. Only the issue owner can post here. Returns the created message.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message created; returns the new chat message",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueMessageResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/issues": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all issues (admin only)",
+        "description": "Returns a paginated list of all issues from all users. Supports filtering by status, category, user ID, and full-text search over content.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit",   "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset",  "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "userid",  "in": "query", "description": "Filter by user ID", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "q",       "in": "query", "description": "Full-text search over issue content", "schema": { "type": "string" } },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": { "type": "string", "enum": ["open", "in_progress", "closed"] }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category",
+            "schema": { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of all issues",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminIssueListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/stats": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Issue statistics (admin only)",
+        "description": "Returns aggregate counts of issues broken down by status and category. Intended for the admin analytics page.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Issue statistics",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueStatsResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/{id}": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Get issue details (admin only)",
+        "description": "Returns full details of any issue including owner username and the full chat thread.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "responses": {
+          "200": {
+            "description": "Issue details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminIssueDetailResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/{id}/status": {
+      "patch": {
+        "tags": ["admin"],
+        "summary": "Update issue status (admin only)",
+        "description": "Transitions an issue to a new status. The change is idempotent — setting the same status again succeeds without side effects. The admin's user ID and timestamp are recorded.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PatchIssueStatusRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated; returns updated issue",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminIssueDetailResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/{id}/response": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Send admin chat message on an issue (admin only)",
+        "description": "Appends a new message to the issue chat thread on behalf of the admin. Multiple messages accumulate — the thread is visible to both the issue author and admins. Returns the created message.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminIssueResponseRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message created; returns the new chat message",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueMessageResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "tags": ["admin"],
@@ -876,6 +1162,12 @@
       },
       "RunnerNotebookID": {
         "name": "notebook_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "IssueID": {
+        "name": "id",
         "in": "path",
         "required": true,
         "schema": { "type": "integer", "format": "int64" }
@@ -1238,6 +1530,163 @@
         "type": "object",
         "properties": {
           "data": { "$ref": "#/components/schemas/AdminStatsResponse" }
+        }
+      },
+      "CreateIssueRequest": {
+        "type": "object",
+        "required": ["category", "content"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["bug", "idea", "problem", "feedback"],
+            "description": "Type of issue as shown in the UI: Bug / Idea / Problem / Feedback"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Issue description"
+          }
+        }
+      },
+      "IssueMessage": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "integer", "format": "int64" },
+          "issue_id":   { "type": "integer", "format": "int64" },
+          "user_id":    { "type": "integer", "format": "int64" },
+          "username":   { "type": "string" },
+          "is_admin":   { "type": "boolean", "description": "True if the message was sent by an admin/support" },
+          "content":    { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataIssueMessageResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueMessage" }
+        }
+      },
+      "IssueResponse": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "integer", "format": "int64" },
+          "user_id":    { "type": "integer", "format": "int64" },
+          "category":   { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] },
+          "status":     { "type": "string", "enum": ["open", "in_progress", "closed"] },
+          "content":    { "type": "string" },
+          "messages":   { "type": "array", "items": { "$ref": "#/components/schemas/IssueMessage" }, "description": "Chat thread; populated only in detail view" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataIssueResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueResponse" }
+        }
+      },
+      "IssueListResponse": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IssueResponse" }
+          },
+          "total":  { "type": "integer" },
+          "limit":  { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "DataIssueListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueListResponse" }
+        }
+      },
+      "AdminIssueDetail": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "integer", "format": "int64" },
+          "user_id":    { "type": "integer", "format": "int64" },
+          "username":   { "type": "string", "description": "Username of the issue author" },
+          "category":   { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] },
+          "status":     { "type": "string", "enum": ["open", "in_progress", "closed"] },
+          "content":    { "type": "string" },
+          "messages":   { "type": "array", "items": { "$ref": "#/components/schemas/IssueMessage" }, "description": "Chat thread between user and admin" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataAdminIssueDetailResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminIssueDetail" }
+        }
+      },
+      "AdminIssueListResponse": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminIssueDetail" }
+          },
+          "total":  { "type": "integer" },
+          "limit":  { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "DataAdminIssueListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminIssueListResponse" }
+        }
+      },
+      "PatchIssueStatusRequest": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["open", "in_progress", "closed"]
+          }
+        }
+      },
+      "AdminIssueResponseRequest": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Chat message text from the admin"
+          }
+        }
+      },
+      "IssueCategoryStats": {
+        "type": "object",
+        "properties": {
+          "bug":      { "type": "integer" },
+          "idea":     { "type": "integer" },
+          "problem":  { "type": "integer" },
+          "feedback": { "type": "integer" }
+        }
+      },
+      "IssueStatsResponse": {
+        "type": "object",
+        "properties": {
+          "total":       { "type": "integer", "description": "Total issue count" },
+          "open":        { "type": "integer" },
+          "in_progress": { "type": "integer" },
+          "closed":      { "type": "integer" },
+          "by_category": { "$ref": "#/components/schemas/IssueCategoryStats" }
+        }
+      },
+      "DataIssueStatsResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueStatsResponse" }
         }
       }
     }

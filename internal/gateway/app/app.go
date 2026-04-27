@@ -18,16 +18,20 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	_ "github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
+	pbissue "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/issue"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pbrunner "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
+	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
 type App struct {
-	srv      *http.Server
-	authConn *grpc.ClientConn
-	nbConn   *grpc.ClientConn
-	runConn  *grpc.ClientConn
-	cancelMw context.CancelFunc
+	srv       *http.Server
+	authConn  *grpc.ClientConn
+	nbConn    *grpc.ClientConn
+	runConn   *grpc.ClientConn
+	storConn  *grpc.ClientConn
+	issueConn *grpc.ClientConn
+	cancelMw  context.CancelFunc
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -46,18 +50,37 @@ func New(cfg *config.Config) (*App, error) {
 		nbConn.Close()
 		return nil, fmt.Errorf("dial runner: %w", err)
 	}
-
+	storConn, err := grpc.NewClient(cfg.GRPC.StorageAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		authConn.Close()
+		nbConn.Close()
+		runConn.Close()
+		return nil, fmt.Errorf("dial storage: %w", err)
+	}
+	issueConn, err := grpc.NewClient(cfg.GRPC.IssueAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		authConn.Close()
+		nbConn.Close()
+		runConn.Close()
+		storConn.Close()
+		return nil, fmt.Errorf("dial storage: %w", err)
+	}
 	authClient := pbauth.NewAuthServiceClient(authConn)
 	nbClient := pbnotebook.NewNotebookServiceClient(nbConn)
 	runClient := pbrunner.NewRunnerServiceClient(runConn)
+	storageClient := pbstorage.NewStorageServiceClient(storConn)
+	issueClient := pbissue.NewIssueServiceClient(issueConn)
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
 	notebookHandler := handler.NewNotebookHandler(nbClient, authClient)
 	runnerHandler := handler.NewRunnerHandler(runClient)
+	fileHandler := handler.NewFileHandler(storageClient, cfg.Upload.MaxSize)
 	healthHandler := handler.NewHealthHandler()
 	eventHandler := handler.NewEventHandler(authClient)
-	adminHandler := handler.NewAdminHandler(authClient, nbClient)
+	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient)
+	wsHandler := handler.NewWSHandler(authClient, nbClient)
+	issueHandler := handler.NewIssueHandler(issueClient, authClient)
 
 	mux := http.NewServeMux()
 	authMw := gwmw.Auth(authClient)
@@ -67,9 +90,12 @@ func New(cfg *config.Config) (*App, error) {
 	notebookHandler.RegisterRoutes(mux, authMw)
 	runnerHandler.RegisterRoutes(mux, authMw)
 	profileHandler.RegisterRoutes(mux, authMw)
+	fileHandler.RegisterRoutes(mux, authMw)
 	healthHandler.RegisterRoutes(mux)
 	eventHandler.RegisterRoutes(mux, authMw)
 	adminHandler.RegisterRoutes(mux, authMw, adminMw)
+	wsHandler.RegisterRoutes(mux)
+	issueHandler.RegisterRoutes(mux, authMw, adminMw)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())
@@ -105,11 +131,13 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	return &App{
-		srv:      srv,
-		authConn: authConn,
-		nbConn:   nbConn,
-		runConn:  runConn,
-		cancelMw: cancelMw,
+		srv:       srv,
+		authConn:  authConn,
+		nbConn:    nbConn,
+		runConn:   runConn,
+		storConn:  storConn,
+		issueConn: issueConn,
+		cancelMw:  cancelMw,
 	}, nil
 }
 
@@ -126,4 +154,6 @@ func (a *App) Shutdown(ctx context.Context) {
 	a.authConn.Close()
 	a.nbConn.Close()
 	a.runConn.Close()
+	a.storConn.Close()
+	a.issueConn.Close()
 }
