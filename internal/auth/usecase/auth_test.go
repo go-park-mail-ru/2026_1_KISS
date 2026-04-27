@@ -13,11 +13,11 @@ import (
 )
 
 type mockUserRepo struct {
-	createFn         func(ctx context.Context, user *domain.User) (int64, error)
-	getByIDFn        func(ctx context.Context, id int64) (*domain.User, error)
-	getByEmailFn     func(ctx context.Context, email string) (*domain.User, error)
-	getByUsernameFn  func(ctx context.Context, username string) (*domain.User, error)
-	updateVerifiedFn func(ctx context.Context, userID int64) error
+	createFn        func(ctx context.Context, user *domain.User) (int64, error)
+	getByIDFn       func(ctx context.Context, id int64) (*domain.User, error)
+	getByEmailFn    func(ctx context.Context, email string) (*domain.User, error)
+	getByUsernameFn func(ctx context.Context, username string) (*domain.User, error)
+	setVerifiedFn   func(ctx context.Context, userID int64, isVerified bool) error
 }
 
 func (m *mockUserRepo) Create(ctx context.Context, user *domain.User) (int64, error) {
@@ -44,12 +44,13 @@ func (m *mockUserRepo) GetByUsername(ctx context.Context, username string) (*dom
 	}
 	return nil, nil
 }
-func (m *mockUserRepo) UpdateVerified(ctx context.Context, userID int64) error {
-	if m.updateVerifiedFn != nil {
-		return m.updateVerifiedFn(ctx, userID)
+func (m *mockUserRepo) SetVerified(ctx context.Context, userID int64, isVerified bool) error {
+	if m.setVerifiedFn != nil {
+		return m.setVerifiedFn(ctx, userID, isVerified)
 	}
 	return nil
 }
+
 func (m *mockUserRepo) UpdateAvatarURL(_ context.Context, _ int64, _ string) error { return nil }
 func (m *mockUserRepo) UpdateProfile(_ context.Context, _ *domain.User) error      { return nil }
 func (m *mockUserRepo) UpdatePassword(_ context.Context, _ int64, _ string) error  { return nil }
@@ -375,7 +376,7 @@ func TestConfirmEmail_Success(t *testing.T) {
 		},
 	}
 	userRepo := &mockUserRepo{
-		updateVerifiedFn: func(ctx context.Context, userID int64) error { return nil },
+		setVerifiedFn: func(ctx context.Context, userID int64, isVerified bool) error { return nil },
 	}
 	uc := newUsecase(userRepo, &mockSessionRepo{}, verificationRepo)
 

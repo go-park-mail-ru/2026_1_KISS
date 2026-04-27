@@ -75,7 +75,7 @@ func New(cfg *config.Config) (*App, error) {
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
 	profileUC := authusecase.NewProfileUsecase(userRepo, fs, cfg.Upload.MaxSize)
 
-	authHandler := authhttp.New(authUC)
+	authHandler := authhttp.New(authUC, cfg.Mail.AppURL)
 	healthHandler := health.New(db)
 
 	runnerManager, err := container.NewManager(cfg.Runner)

@@ -251,7 +251,7 @@ func (uc *AuthUsecase) ConfirmEmail(ctx context.Context, token string) error {
 		return domain.ErrInvalidInput
 	}
 
-	if err := uc.userRepo.UpdateVerified(ctx, vt.UserID); err != nil {
+	if err := uc.userRepo.SetVerified(ctx, vt.UserID, true); err != nil {
 		return err
 	}
 

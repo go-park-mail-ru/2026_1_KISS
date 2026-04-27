@@ -13,6 +13,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
 
+const testAppURL = "https://kisscolab.ru"
+
 type mockAuthUsecase struct {
 	registerFn        func(ctx context.Context, username, email, password string) (*domain.User, error)
 	loginFn           func(ctx context.Context, email, password string) (*domain.Session, *domain.User, error)
@@ -56,6 +58,10 @@ func (m *mockAuthUsecase) ConfirmEmail(ctx context.Context, token string) error 
 	return nil
 }
 
+func newHandler(uc *mockAuthUsecase) *authhttp.AuthHandler {
+	return authhttp.New(uc, testAppURL)
+}
+
 func TestRegister(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -88,7 +94,7 @@ func TestRegister(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := authhttp.New(&mockAuthUsecase{registerFn: tc.mockFn})
+			h := newHandler(&mockAuthUsecase{registerFn: tc.mockFn})
 			req := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
@@ -135,7 +141,7 @@ func TestLogin(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := authhttp.New(&mockAuthUsecase{loginFn: tc.mockFn})
+			h := newHandler(&mockAuthUsecase{loginFn: tc.mockFn})
 			req := httptest.NewRequest("POST", "/api/v1/auth/login", strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
@@ -160,7 +166,7 @@ func TestLogin(t *testing.T) {
 
 func TestLogout(t *testing.T) {
 	t.Run("with cookie", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{
+		h := newHandler(&mockAuthUsecase{
 			logoutFn: func(ctx context.Context, sessionID string) error { return nil },
 		})
 		req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
@@ -173,7 +179,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("without cookie", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{})
+		h := newHandler(&mockAuthUsecase{})
 		req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
 		rec := httptest.NewRecorder()
 		h.Logout(rec, req)
@@ -185,7 +191,7 @@ func TestLogout(t *testing.T) {
 
 func TestMe(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{
+		h := newHandler(&mockAuthUsecase{
 			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
 				return &domain.User{ID: 1, Username: "test", CreatedAt: time.Now()}, nil
 			},
@@ -200,7 +206,7 @@ func TestMe(t *testing.T) {
 	})
 
 	t.Run("no cookie", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{})
+		h := newHandler(&mockAuthUsecase{})
 		req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 		rec := httptest.NewRecorder()
 		h.Me(rec, req)
@@ -210,7 +216,7 @@ func TestMe(t *testing.T) {
 	})
 
 	t.Run("invalid session", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{
+		h := newHandler(&mockAuthUsecase{
 			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
 				return nil, domain.ErrUnauthorized
 			},
@@ -225,7 +231,7 @@ func TestMe(t *testing.T) {
 	})
 
 	t.Run("expired session", func(t *testing.T) {
-		h := authhttp.New(&mockAuthUsecase{
+		h := newHandler(&mockAuthUsecase{
 			validateSessionFn: func(ctx context.Context, sessionID string) (*domain.User, error) {
 				return nil, domain.ErrSessionExpired
 			},
@@ -244,13 +250,13 @@ func TestMe(t *testing.T) {
 }
 
 func TestRegisterRoutes_Auth(t *testing.T) {
-	h := authhttp.New(&mockAuthUsecase{})
+	h := newHandler(&mockAuthUsecase{})
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 }
 
 func TestRegister_NotFound(t *testing.T) {
-	h := authhttp.New(&mockAuthUsecase{
+	h := newHandler(&mockAuthUsecase{
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, domain.ErrNotFound
 		},
@@ -265,7 +271,7 @@ func TestRegister_NotFound(t *testing.T) {
 }
 
 func TestRegister_InvalidInput(t *testing.T) {
-	h := authhttp.New(&mockAuthUsecase{
+	h := newHandler(&mockAuthUsecase{
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, domain.ErrInvalidInput
 		},
@@ -280,7 +286,7 @@ func TestRegister_InvalidInput(t *testing.T) {
 }
 
 func TestRegister_Forbidden(t *testing.T) {
-	h := authhttp.New(&mockAuthUsecase{
+	h := newHandler(&mockAuthUsecase{
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, domain.ErrForbidden
 		},
@@ -295,7 +301,7 @@ func TestRegister_Forbidden(t *testing.T) {
 }
 
 func TestRegister_InternalError(t *testing.T) {
-	h := authhttp.New(&mockAuthUsecase{
+	h := newHandler(&mockAuthUsecase{
 		registerFn: func(ctx context.Context, username, email, password string) (*domain.User, error) {
 			return nil, errors.New("unexpected")
 		},

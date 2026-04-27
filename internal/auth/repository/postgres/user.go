@@ -289,10 +289,10 @@ func isUniqueViolation(err error) bool {
 	return false
 }
 
-func (r *UserRepo) UpdateVerified(ctx context.Context, userID int64) error {
+func (r *UserRepo) SetVerified(ctx context.Context, userID int64, isVerified bool) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE users SET is_verified = true WHERE id = $1`,
-		userID,
+		`UPDATE users SET is_verified = $1 WHERE id = $2`,
+		isVerified, userID,
 	)
 	return err
 }

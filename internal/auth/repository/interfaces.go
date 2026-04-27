@@ -13,7 +13,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByUsername(ctx context.Context, username string) (*domain.User, error)
-	UpdateVerified(ctx context.Context, userID int64) error
+	SetVerified(ctx context.Context, userID int64, isVerified bool) error
 	UpdateAvatarURL(ctx context.Context, userID int64, avatarURL string) error
 	UpdateProfile(ctx context.Context, user *domain.User) error
 	UpdatePassword(ctx context.Context, userID int64, passwordHash string) error

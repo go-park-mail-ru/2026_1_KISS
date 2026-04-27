@@ -22,10 +22,11 @@ type authUsecase interface {
 
 type AuthHandler struct {
 	usecase authUsecase
+	appURL  string
 }
 
-func New(uc authUsecase) *AuthHandler {
-	return &AuthHandler{usecase: uc}
+func New(uc authUsecase, appURL string) *AuthHandler {
+	return &AuthHandler{usecase: uc, appURL: appURL}
 }
 
 func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
@@ -116,16 +117,16 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		http.Redirect(w, r, "https://kisscolab.ru/login?error=invalid_token", http.StatusSeeOther)
+		http.Redirect(w, r, h.appURL+"/login?error=invalid_token", http.StatusSeeOther)
 		return
 	}
 
 	if err := h.usecase.ConfirmEmail(r.Context(), token); err != nil {
-		http.Redirect(w, r, "https://kisscolab.ru/login?error=invalid_token", http.StatusSeeOther)
+		http.Redirect(w, r, h.appURL+"/login?error=invalid_token", http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "https://kisscolab.ru/login?verified=1", http.StatusSeeOther)
+	http.Redirect(w, r, h.appURL+"/login?verified=1", http.StatusSeeOther)
 }
 
 func clearSessionCookie(w http.ResponseWriter) {
