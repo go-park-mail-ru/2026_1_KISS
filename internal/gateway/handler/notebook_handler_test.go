@@ -545,6 +545,56 @@ func TestNotebookHandler_RevokePermission_InvalidUserID(t *testing.T) {
 	}
 }
 
+func TestNotebookHandler_ReorderBlocks_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockNotebookServiceClient(ctrl)
+
+	client.EXPECT().ReorderBlocks(gomock.Any(), gomock.Any()).
+		Return(&pb.ReorderBlocksResponse{}, nil)
+
+	h := NewNotebookHandler(client, nil)
+	body, _ := json.Marshal(reorderBlocksRequest{BlockIDs: []int64{3, 1, 2}})
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/reorder", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("id", "1")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ReorderBlocks(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestNotebookHandler_ReorderBlocks_Unauthorized(t *testing.T) {
+	h := NewNotebookHandler(nil, nil)
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/1/reorder", nil)
+	req.SetPathValue("id", "1")
+	req = req.WithContext(context.Background())
+	rec := httptest.NewRecorder()
+
+	h.ReorderBlocks(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d", rec.Code)
+	}
+}
+
+func TestNotebookHandler_ReorderBlocks_InvalidID(t *testing.T) {
+	h := NewNotebookHandler(nil, nil)
+	req := httptest.NewRequest("PUT", "/api/v1/notebooks/abc/reorder", nil)
+	req.SetPathValue("id", "abc")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ReorderBlocks(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
 func TestNotebookHandler_RevokePermission_GRPCError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockNotebookServiceClient(ctrl)

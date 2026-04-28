@@ -198,7 +198,7 @@ func (r *BlockRepo) SaveOutputs(ctx context.Context, blockID int64, outputs []do
 			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4))
 			valueArgs = append(valueArgs, blockID, o.Position, o.OutputType, o.Content)
 		}
-		query := "INSERT INTO block_outputs (block_id, position, output_type, content) VALUES " + strings.Join(valueStrings, ", ")
+		query := "INSERT INTO block_outputs (block_id, position, output_type, content) VALUES " + strings.Join(valueStrings, ", ") //nolint:gosec // query is built from parameterized placeholders only
 		_, err = tx.ExecContext(ctx, query, valueArgs...)
 		if err != nil {
 			logger.Error(ctx, "repo.blocks.SaveOutputs", "error", err, "duration", time.Since(start), "block_id", blockID)
