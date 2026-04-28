@@ -27,6 +27,9 @@ type BlockRepository interface {
 	GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Block, error)
 	Update(ctx context.Context, block *domain.Block) error
 	Delete(ctx context.Context, blockID int64) error
+	SaveOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error
+	GetOutputsByBlockIDs(ctx context.Context, blockIDs []int64) (map[int64][]domain.BlockOutput, error)
+	ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error
 }
 
 type PermissionRepository interface {
