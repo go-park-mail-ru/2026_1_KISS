@@ -32,6 +32,7 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("POST /api/v1/notebooks/{id}/blocks", authMw(http.HandlerFunc(h.AddBlock)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.UpdateBlock)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.DeleteBlock)))
+	mux.Handle("PUT /api/v1/notebooks/{id}/reorder", authMw(http.HandlerFunc(h.ReorderBlocks)))
 	mux.Handle("GET /api/v1/notebooks/{id}/permissions", authMw(http.HandlerFunc(h.ListPermissions)))
 	mux.Handle("POST /api/v1/notebooks/{id}/permissions/invite", authMw(http.HandlerFunc(h.GrantPermissionByIdentifier)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.GrantPermission)))
@@ -70,13 +71,20 @@ type notebookResponse struct {
 	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
+type blockOutputResponse struct {
+	OutputType string `json:"output_type"`
+	Content    string `json:"content"`
+	Position   int    `json:"position"`
+}
+
 type blockResponse struct {
-	ID        int64     `json:"id"`
-	Type      string    `json:"type"`
-	Language  string    `json:"language"`
-	Content   string    `json:"content"`
-	Position  int       `json:"position"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64                 `json:"id"`
+	Type      string                `json:"type"`
+	Language  string                `json:"language"`
+	Content   string                `json:"content"`
+	Position  int                   `json:"position"`
+	Outputs   []blockOutputResponse `json:"outputs,omitempty"`
+	CreatedAt time.Time             `json:"created_at"`
 }
 
 type notebookListResponse struct {
@@ -336,6 +344,42 @@ func (h *NotebookHandler) DeleteBlock(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, nil)
 }
 
+type reorderBlocksRequest struct {
+	BlockIDs []int64 `json:"block_ids"`
+}
+
+func (h *NotebookHandler) ReorderBlocks(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	var req reorderBlocksRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	_, err = h.client.ReorderBlocks(r.Context(), &pb.ReorderBlocksRequest{
+		UserId:     user.ID,
+		NotebookId: id,
+		BlockIds:   req.BlockIDs,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, nil)
+}
+
 type grantPermissionRequest struct {
 	Level string `json:"level"`
 }
@@ -579,7 +623,7 @@ func protoNotebookToResponse(nb *pb.NotebookInfo) notebookResponse {
 }
 
 func protoBlockToResponse(b *pb.BlockInfo) blockResponse {
-	return blockResponse{
+	resp := blockResponse{
 		ID:        b.GetId(),
 		Type:      b.GetType(),
 		Language:  b.GetLanguage(),
@@ -587,4 +631,15 @@ func protoBlockToResponse(b *pb.BlockInfo) blockResponse {
 		Position:  int(b.GetPosition()),
 		CreatedAt: time.Unix(b.GetCreatedAt(), 0),
 	}
+	if len(b.GetOutputs()) > 0 {
+		resp.Outputs = make([]blockOutputResponse, len(b.GetOutputs()))
+		for i, o := range b.GetOutputs() {
+			resp.Outputs[i] = blockOutputResponse{
+				OutputType: o.GetOutputType(),
+				Content:    o.GetContent(),
+				Position:   int(o.GetPosition()),
+			}
+		}
+	}
+	return resp
 }
