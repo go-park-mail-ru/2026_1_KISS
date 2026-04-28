@@ -141,6 +141,18 @@ func (a *BlockAdapter) Delete(_ context.Context, _ int64) error {
 	return errNotSupported
 }
 
+func (a *BlockAdapter) SaveOutputs(_ context.Context, _ int64, _ []domain.BlockOutput) error {
+	return errNotSupported
+}
+
+func (a *BlockAdapter) GetOutputsByBlockIDs(_ context.Context, _ []int64) (map[int64][]domain.BlockOutput, error) {
+	return nil, errNotSupported
+}
+
+func (a *BlockAdapter) ReorderBlocks(_ context.Context, _ int64, _ []int64) error {
+	return errNotSupported
+}
+
 func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 	if info == nil {
 		return nil
