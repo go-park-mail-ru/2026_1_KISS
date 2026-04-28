@@ -286,6 +286,49 @@ func (mr *MockBlockRepositoryMockRecorder) GetByNotebookID(ctx, notebookID any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByNotebookID", reflect.TypeOf((*MockBlockRepository)(nil).GetByNotebookID), ctx, notebookID)
 }
 
+// GetOutputsByBlockIDs mocks base method.
+func (m *MockBlockRepository) GetOutputsByBlockIDs(ctx context.Context, blockIDs []int64) (map[int64][]domain.BlockOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOutputsByBlockIDs", ctx, blockIDs)
+	ret0, _ := ret[0].(map[int64][]domain.BlockOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOutputsByBlockIDs indicates an expected call of GetOutputsByBlockIDs.
+func (mr *MockBlockRepositoryMockRecorder) GetOutputsByBlockIDs(ctx, blockIDs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutputsByBlockIDs", reflect.TypeOf((*MockBlockRepository)(nil).GetOutputsByBlockIDs), ctx, blockIDs)
+}
+
+// ReorderBlocks mocks base method.
+func (m *MockBlockRepository) ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReorderBlocks", ctx, notebookID, blockIDs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReorderBlocks indicates an expected call of ReorderBlocks.
+func (mr *MockBlockRepositoryMockRecorder) ReorderBlocks(ctx, notebookID, blockIDs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReorderBlocks", reflect.TypeOf((*MockBlockRepository)(nil).ReorderBlocks), ctx, notebookID, blockIDs)
+}
+
+// SaveOutputs mocks base method.
+func (m *MockBlockRepository) SaveOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveOutputs", ctx, blockID, outputs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveOutputs indicates an expected call of SaveOutputs.
+func (mr *MockBlockRepositoryMockRecorder) SaveOutputs(ctx, blockID, outputs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveOutputs", reflect.TypeOf((*MockBlockRepository)(nil).SaveOutputs), ctx, blockID, outputs)
+}
+
 // Update mocks base method.
 func (m *MockBlockRepository) Update(ctx context.Context, block *domain.Block) error {
 	m.ctrl.T.Helper()
