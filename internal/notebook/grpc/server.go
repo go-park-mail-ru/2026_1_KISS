@@ -306,6 +306,29 @@ func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 	return info
 }
 
+func (s *Server) SaveBlockOutputs(ctx context.Context, req *pb.SaveBlockOutputsRequest) (*pb.SaveBlockOutputsResponse, error) {
+	outputs := make([]domain.BlockOutput, len(req.GetOutputs()))
+	for i, o := range req.GetOutputs() {
+		outputs[i] = domain.BlockOutput{
+			BlockID:    req.GetBlockId(),
+			Position:   int(o.GetPosition()),
+			OutputType: o.GetOutputType(),
+			Content:    o.GetContent(),
+		}
+	}
+	if err := s.notebookUC.SaveBlockOutputs(ctx, req.GetBlockId(), outputs); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.SaveBlockOutputsResponse{}, nil
+}
+
+func (s *Server) ReorderBlocks(ctx context.Context, req *pb.ReorderBlocksRequest) (*pb.ReorderBlocksResponse, error) {
+	if err := s.notebookUC.ReorderBlocks(ctx, req.GetUserId(), req.GetNotebookId(), req.GetBlockIds()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.ReorderBlocksResponse{}, nil
+}
+
 func blockToProto(b *domain.Block) *pb.BlockInfo {
 	if b == nil {
 		return nil
@@ -323,6 +346,19 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 	if b.ExecutionCount != nil {
 		v := int32(*b.ExecutionCount) //nolint:gosec // execution count fits int32
 		info.ExecutionCount = &v
+	}
+	if len(b.Outputs) > 0 {
+		info.Outputs = make([]*pb.BlockOutputInfo, len(b.Outputs))
+		for i, o := range b.Outputs {
+			info.Outputs[i] = &pb.BlockOutputInfo{
+				Id:         o.ID,
+				BlockId:    o.BlockID,
+				Position:   int32(o.Position), //nolint:gosec // output position fits int32
+				OutputType: o.OutputType,
+				Content:    o.Content,
+				CreatedAt:  o.CreatedAt.Unix(),
+			}
+		}
 	}
 	return info
 }
