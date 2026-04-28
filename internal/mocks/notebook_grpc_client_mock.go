@@ -322,6 +322,26 @@ func (mr *MockNotebookServiceClientMockRecorder) ListSharedWithUser(ctx, in any,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSharedWithUser", reflect.TypeOf((*MockNotebookServiceClient)(nil).ListSharedWithUser), varargs...)
 }
 
+// ReorderBlocks mocks base method.
+func (m *MockNotebookServiceClient) ReorderBlocks(ctx context.Context, in *notebook.ReorderBlocksRequest, opts ...grpc.CallOption) (*notebook.ReorderBlocksResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ReorderBlocks", varargs...)
+	ret0, _ := ret[0].(*notebook.ReorderBlocksResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReorderBlocks indicates an expected call of ReorderBlocks.
+func (mr *MockNotebookServiceClientMockRecorder) ReorderBlocks(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReorderBlocks", reflect.TypeOf((*MockNotebookServiceClient)(nil).ReorderBlocks), varargs...)
+}
+
 // RevokePermission mocks base method.
 func (m *MockNotebookServiceClient) RevokePermission(ctx context.Context, in *notebook.RevokePermissionRequest, opts ...grpc.CallOption) (*notebook.RevokePermissionResponse, error) {
 	m.ctrl.T.Helper()
@@ -340,6 +360,26 @@ func (mr *MockNotebookServiceClientMockRecorder) RevokePermission(ctx, in any, o
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokePermission", reflect.TypeOf((*MockNotebookServiceClient)(nil).RevokePermission), varargs...)
+}
+
+// SaveBlockOutputs mocks base method.
+func (m *MockNotebookServiceClient) SaveBlockOutputs(ctx context.Context, in *notebook.SaveBlockOutputsRequest, opts ...grpc.CallOption) (*notebook.SaveBlockOutputsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SaveBlockOutputs", varargs...)
+	ret0, _ := ret[0].(*notebook.SaveBlockOutputsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SaveBlockOutputs indicates an expected call of SaveBlockOutputs.
+func (mr *MockNotebookServiceClientMockRecorder) SaveBlockOutputs(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveBlockOutputs", reflect.TypeOf((*MockNotebookServiceClient)(nil).SaveBlockOutputs), varargs...)
 }
 
 // SubscribeNotebook mocks base method.
