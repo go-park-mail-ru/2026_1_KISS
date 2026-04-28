@@ -40,6 +40,8 @@ type NotebookService interface {
 	ListPermissions(ctx context.Context, requesterID, notebookID int64) ([]domain.FilePermission, error)
 	ListSharedWithUser(ctx context.Context, userID int64, limit, offset int) ([]domain.Notebook, int, error)
 	SetAllPrivateByOwner(ctx context.Context, ownerID int64) error
+	SaveBlockOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error
+	ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error
 }
 
 type notebookService struct {
@@ -435,4 +437,58 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 
 func (s *notebookService) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
 	return s.notebookRepo.SetAllPrivateByOwner(ctx, ownerID)
+}
+
+func (s *notebookService) SaveBlockOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error {
+	logger.Info(ctx, "usecase.notebook.SaveBlockOutputs", "block_id", blockID, "count", len(outputs))
+	if err := s.blockRepo.SaveOutputs(ctx, blockID, outputs); err != nil {
+		logger.Error(ctx, "usecase.notebook.SaveBlockOutputs", "error", err)
+		return err
+	}
+	return nil
+}
+
+func (s *notebookService) ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error {
+	logger.Info(ctx, "usecase.notebook.ReorderBlocks", "user_id", userID, "notebook_id", notebookID)
+
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ReorderBlocks", "error", err)
+		return err
+	}
+	if err := s.requireEditorAccess(ctx, nb, userID); err != nil {
+		logger.Error(ctx, "usecase.notebook.ReorderBlocks", "error", err)
+		return err
+	}
+	blocks, err := s.blockRepo.GetByNotebookID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ReorderBlocks", "error", err)
+		return err
+	}
+	if len(blockIDs) != len(blocks) {
+		logger.Error(ctx, "usecase.notebook.ReorderBlocks", "error", domain.ErrInvalidInput)
+		return domain.ErrInvalidInput
+	}
+	existingIDs := make(map[int64]bool, len(blocks))
+	for _, b := range blocks {
+		existingIDs[b.ID] = true
+	}
+	for _, id := range blockIDs {
+		if !existingIDs[id] {
+			logger.Error(ctx, "usecase.notebook.ReorderBlocks", "error", domain.ErrInvalidInput, "unknown_block_id", id)
+			return domain.ErrInvalidInput
+		}
+	}
+	if err := s.blockRepo.ReorderBlocks(ctx, notebookID, blockIDs); err != nil {
+		logger.Error(ctx, "usecase.notebook.ReorderBlocks", "error", err)
+		return err
+	}
+	logger.Info(ctx, "usecase.notebook.ReorderBlocks", "notebook_id", notebookID, "status", "ok")
+	s.publisher.Publish(notebookID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_NOTEBOOK_UPDATED,
+		NotebookId: notebookID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+	})
+	return nil
 }
