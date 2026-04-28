@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/ctxutil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/runner_service"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
@@ -43,6 +45,9 @@ func (s *Server) ExecuteFromPosition(ctx context.Context, req *pb.ExecuteFromPos
 	for i, r := range results {
 		pbResults[i] = executionResultToProto(r)
 	}
+
+	s.saveBlockOutputs(ctx, results)
+
 	return &pb.ExecuteFromPositionResponse{Results: pbResults}, nil
 }
 
@@ -60,6 +65,9 @@ func (s *Server) ExecuteBlock(ctx context.Context, req *pb.ExecuteBlockRequest) 
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
+
+	s.saveBlockOutputs(ctx, []*domain.BlockExecutionResult{result})
+
 	return &pb.ExecuteBlockResponse{Result: executionResultToProto(result)}, nil
 }
 
@@ -84,6 +92,60 @@ func (s *Server) checkNotebookAccess(ctx context.Context, userID, notebookID int
 		NotebookId: notebookID,
 	})
 	return err
+}
+
+func (s *Server) saveBlockOutputs(ctx context.Context, results []*domain.BlockExecutionResult) {
+	for _, r := range results {
+		if r == nil || r.Error != nil {
+			continue
+		}
+		outputs := resultToOutputProtos(r)
+		if len(outputs) == 0 {
+			continue
+		}
+		_, err := s.nbClient.SaveBlockOutputs(ctx, &pbnotebook.SaveBlockOutputsRequest{
+			BlockId: r.BlockID,
+			Outputs: outputs,
+		})
+		if err != nil {
+			logger.Error(ctx, "runner.SaveBlockOutputs", "error", err, "block_id", r.BlockID)
+		}
+	}
+}
+
+func resultToOutputProtos(r *domain.BlockExecutionResult) []*pbnotebook.BlockOutputInfo {
+	var outputs []*pbnotebook.BlockOutputInfo
+	pos := int32(0)
+
+	if stdout := strings.Join(r.Stdout, "\n"); stdout != "" {
+		outputs = append(outputs, &pbnotebook.BlockOutputInfo{
+			Position: pos, OutputType: "stdout", Content: stdout,
+		})
+	}
+	pos++
+
+	if stderr := strings.Join(r.Stderr, "\n"); stderr != "" {
+		outputs = append(outputs, &pbnotebook.BlockOutputInfo{
+			Position: pos, OutputType: "stderr", Content: stderr,
+		})
+	}
+	pos++
+
+	if r.Result != "" {
+		outputs = append(outputs, &pbnotebook.BlockOutputInfo{
+			Position: pos, OutputType: "result", Content: r.Result,
+		})
+	}
+	pos++
+
+	for _, item := range r.Outputs {
+		outputs = append(outputs, &pbnotebook.BlockOutputInfo{
+			Position: pos, OutputType: item.MimeType, Content: item.Data,
+		})
+		pos++
+	}
+
+	return outputs
 }
 
 func executionResultToProto(r *domain.BlockExecutionResult) *pb.BlockExecutionResult {
