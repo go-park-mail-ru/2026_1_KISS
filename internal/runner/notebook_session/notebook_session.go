@@ -85,6 +85,20 @@ func (s *notebookSession) ExecuteFromPosition(
 	copy(blocks, notebook.Blocks)
 	sort.Slice(blocks, func(i, j int) bool { return blocks[i].Position < blocks[j].Position })
 
+	for _, block := range blocks {
+		if state, exists := s.BlockStates[block.ID]; exists {
+			if state.Position != block.Position {
+				for _, b := range blocks {
+					if st, ok := s.BlockStates[b.ID]; ok {
+						st.Position = b.Position
+						st.Executed = false
+					}
+				}
+				break
+			}
+		}
+	}
+
 	for i := startPosition; i < len(blocks); i++ {
 		block := blocks[i]
 		if block.Type != "code" {
