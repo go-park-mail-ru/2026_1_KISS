@@ -80,6 +80,7 @@ func TestExecuteBlock_Success(t *testing.T) {
 		ExecutedAt: time.Now(),
 		Duration:   100 * time.Millisecond,
 	}, nil)
+	nbClient.EXPECT().SaveBlockOutputs(gomock.Any(), gomock.Any()).Return(&pbnotebook.SaveBlockOutputsResponse{}, nil)
 
 	resp, err := client.ExecuteBlock(context.Background(), &pb.ExecuteBlockRequest{
 		NotebookId:    1,
