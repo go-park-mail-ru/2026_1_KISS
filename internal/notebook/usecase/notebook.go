@@ -42,6 +42,7 @@ type NotebookService interface {
 	SetAllPrivateByOwner(ctx context.Context, ownerID int64) error
 	SaveBlockOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error
 	ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error
+	ImportNotebook(ctx context.Context, userID int64, title string, blocks []domain.Block) (*domain.Notebook, error)
 }
 
 type notebookService struct {
@@ -433,6 +434,57 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 		CreatedAt:  b.CreatedAt.Unix(),
 		UpdatedAt:  b.UpdatedAt.Unix(),
 	}
+}
+
+func (s *notebookService) ImportNotebook(ctx context.Context, userID int64, title string, blocks []domain.Block) (*domain.Notebook, error) {
+	logger.Info(ctx, "usecase.notebook.ImportNotebook", "user_id", userID, "title", title, "block_count", len(blocks))
+
+	title = sanitize.EscapeHTML(title)
+	if title == "" {
+		title = "Imported"
+	}
+	if utf8.RuneCountInString(title) > 255 {
+		title = string([]rune(title)[:255])
+	}
+
+	nb := &domain.Notebook{OwnerID: userID, Title: title}
+	id, err := s.notebookRepo.Create(ctx, nb)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ImportNotebook", "error", err)
+		return nil, err
+	}
+	nb.ID = id
+
+	for i := range blocks {
+		blocks[i].NotebookID = nb.ID
+		blocks[i].Position = i
+		if blocks[i].Type == "text" && blocks[i].Language == "" {
+			blocks[i].Language = "markdown"
+		}
+		if blocks[i].Type == "code" && blocks[i].Language == "" {
+			blocks[i].Language = "python"
+		}
+	}
+
+	if len(blocks) > 0 {
+		ids, err := s.blockRepo.CreateBatch(ctx, blocks)
+		if err != nil {
+			logger.Error(ctx, "usecase.notebook.ImportNotebook", "error", err)
+			return nil, err
+		}
+		for i, blockID := range ids {
+			blocks[i].ID = blockID
+			if len(blocks[i].Outputs) > 0 {
+				if err := s.blockRepo.SaveOutputs(ctx, blockID, blocks[i].Outputs); err != nil {
+					logger.Error(ctx, "usecase.notebook.ImportNotebook.SaveOutputs", "error", err, "block_id", blockID)
+				}
+			}
+		}
+	}
+
+	nb.Blocks = blocks
+	logger.Info(ctx, "usecase.notebook.ImportNotebook", "notebook_id", nb.ID, "block_count", len(blocks))
+	return nb, nil
 }
 
 func (s *notebookService) SetAllPrivateByOwner(ctx context.Context, ownerID int64) error {
