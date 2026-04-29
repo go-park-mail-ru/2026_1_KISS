@@ -33,6 +33,7 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("PUT /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.UpdateBlock)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}", authMw(http.HandlerFunc(h.DeleteBlock)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/reorder", authMw(http.HandlerFunc(h.ReorderBlocks)))
+	mux.Handle("POST /api/v1/notebooks/import", authMw(http.HandlerFunc(h.ImportNotebook)))
 	mux.Handle("GET /api/v1/notebooks/{id}/permissions", authMw(http.HandlerFunc(h.ListPermissions)))
 	mux.Handle("POST /api/v1/notebooks/{id}/permissions/invite", authMw(http.HandlerFunc(h.GrantPermissionByIdentifier)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.GrantPermission)))
@@ -344,6 +345,25 @@ func (h *NotebookHandler) DeleteBlock(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, nil)
 }
 
+type importNotebookRequest struct {
+	Title  string               `json:"title"`
+	Blocks []importBlockRequest `json:"blocks"`
+}
+
+type importBlockRequest struct {
+	Type     string              `json:"type"`
+	Language string              `json:"language"`
+	Content  string              `json:"content"`
+	Position int                 `json:"position"`
+	Outputs  []importBlockOutput `json:"outputs,omitempty"`
+}
+
+type importBlockOutput struct {
+	OutputType string `json:"output_type"`
+	Content    string `json:"content"`
+	Position   int    `json:"position"`
+}
+
 type reorderBlocksRequest struct {
 	BlockIDs []int64 `json:"block_ids"`
 }
@@ -398,6 +418,51 @@ type permissionResponse struct {
 
 type permissionListResponse struct {
 	Permissions []permissionResponse `json:"permissions"`
+}
+
+func (h *NotebookHandler) ImportNotebook(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req importNotebookRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	pbBlocks := make([]*pb.ImportBlockInfo, len(req.Blocks))
+	for i, b := range req.Blocks {
+		pbOutputs := make([]*pb.BlockOutputInfo, len(b.Outputs))
+		for j, o := range b.Outputs {
+			pbOutputs[j] = &pb.BlockOutputInfo{
+				Position:   int32(o.Position), //nolint:gosec // output position fits int32
+				OutputType: o.OutputType,
+				Content:    o.Content,
+			}
+		}
+		pbBlocks[i] = &pb.ImportBlockInfo{
+			Type:     b.Type,
+			Language: b.Language,
+			Content:  b.Content,
+			Position: int32(b.Position), //nolint:gosec // block position fits int32
+			Outputs:  pbOutputs,
+		}
+	}
+
+	resp, err := h.client.ImportNotebook(r.Context(), &pb.ImportNotebookRequest{
+		UserId: user.ID,
+		Title:  req.Title,
+		Blocks: pbBlocks,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	httputil.JSON(w, http.StatusCreated, protoNotebookToResponse(resp.GetNotebook()))
 }
 
 func (h *NotebookHandler) ListShared(w http.ResponseWriter, r *http.Request) {
