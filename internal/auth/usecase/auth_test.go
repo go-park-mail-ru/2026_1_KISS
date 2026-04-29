@@ -71,7 +71,7 @@ func (m *mockUserRepo) UpdateAvatarURL(_ context.Context, _ int64, _ string) err
 func (m *mockUserRepo) UpdateProfile(_ context.Context, _ *domain.User) error      { return nil }
 func (m *mockUserRepo) UpdatePassword(_ context.Context, _ int64, _ string) error  { return nil }
 func (m *mockUserRepo) UpdateEmail(_ context.Context, _ int64, _ string) error     { return nil }
-func (m *mockUserRepo) ListAll(_ context.Context, _, _ int, _ string) ([]domain.User, int, error) {
+func (m *mockUserRepo) ListAll(_ context.Context, _, _ int, _ string, _ *bool) ([]domain.User, int, error) {
 	return nil, 0, nil
 }
 func (m *mockUserRepo) SetBanned(_ context.Context, _ int64, _ bool) error { return nil }

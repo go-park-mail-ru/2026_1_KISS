@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-const userColumns = `id, username, email, password_hash, avatar_url, status, description, is_admin, plan, last_active_at, total_time_seconds, created_at, updated_at`
+const userColumns = `id, username, email, password_hash, avatar_url, status, description, is_verified, is_admin, plan, last_active_at, total_time_seconds, created_at, updated_at`
 
 type UserRepo struct {
 	db *sql.DB
@@ -47,7 +47,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) 
 		`SELECT `+userColumns+` FROM users WHERE id = $1`, id,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
-		&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+		&u.AvatarURL, &u.Status, &u.Description, &u.IsVerified, &u.IsAdmin,
 		&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
 		&u.CreatedAt, &u.UpdatedAt,
 	)
@@ -70,7 +70,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 		`SELECT `+userColumns+` FROM users WHERE email = $1`, email,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
-		&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+		&u.AvatarURL, &u.Status, &u.Description, &u.IsVerified, &u.IsAdmin,
 		&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
 		&u.CreatedAt, &u.UpdatedAt,
 	)
@@ -93,7 +93,7 @@ func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*domain.
 		`SELECT `+userColumns+` FROM users WHERE username = $1`, username,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
-		&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+		&u.AvatarURL, &u.Status, &u.Description, &u.IsVerified, &u.IsAdmin,
 		&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
 		&u.CreatedAt, &u.UpdatedAt,
 	)
@@ -209,13 +209,32 @@ func (r *UserRepo) UpdateEmail(ctx context.Context, userID int64, email string) 
 	return nil
 }
 
-func (r *UserRepo) ListAll(ctx context.Context, limit, offset int, search string) ([]domain.User, int, error) {
+func (r *UserRepo) ListAll(ctx context.Context, limit, offset int, search string, verified *bool) ([]domain.User, int, error) { //nolint:cyclop
 	start := time.Now()
 	var total int
-	if search != "" {
+
+	if search != "" && verified != nil {
+		err := r.db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM users WHERE (username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%') AND is_verified = $2`,
+			search, *verified,
+		).Scan(&total)
+		if err != nil {
+			logger.Error(ctx, "repo.users.ListAll.count", "error", err, "duration", time.Since(start))
+			return nil, 0, err
+		}
+	} else if search != "" {
 		err := r.db.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM users WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'`,
 			search,
+		).Scan(&total)
+		if err != nil {
+			logger.Error(ctx, "repo.users.ListAll.count", "error", err, "duration", time.Since(start))
+			return nil, 0, err
+		}
+	} else if verified != nil {
+		err := r.db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM users WHERE is_verified = $1`,
+			*verified,
 		).Scan(&total)
 		if err != nil {
 			logger.Error(ctx, "repo.users.ListAll.count", "error", err, "duration", time.Since(start))
@@ -231,17 +250,24 @@ func (r *UserRepo) ListAll(ctx context.Context, limit, offset int, search string
 
 	var rows *sql.Rows
 	var err error
-	if search != "" {
+	if search != "" && verified != nil {
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT `+userColumns+`
-			 FROM users WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%'
-			 ORDER BY id DESC LIMIT $2 OFFSET $3`,
+			`SELECT `+userColumns+` FROM users WHERE (username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%') AND is_verified = $2 ORDER BY id DESC LIMIT $3 OFFSET $4`,
+			search, *verified, limit, offset,
+		)
+	} else if search != "" {
+		rows, err = r.db.QueryContext(ctx,
+			`SELECT `+userColumns+` FROM users WHERE username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%' ORDER BY id DESC LIMIT $2 OFFSET $3`,
 			search, limit, offset,
+		)
+	} else if verified != nil {
+		rows, err = r.db.QueryContext(ctx,
+			`SELECT `+userColumns+` FROM users WHERE is_verified = $1 ORDER BY id DESC LIMIT $2 OFFSET $3`,
+			*verified, limit, offset,
 		)
 	} else {
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT `+userColumns+`
-			 FROM users ORDER BY id DESC LIMIT $1 OFFSET $2`,
+			`SELECT `+userColumns+` FROM users ORDER BY id DESC LIMIT $1 OFFSET $2`,
 			limit, offset,
 		)
 	}
@@ -256,7 +282,7 @@ func (r *UserRepo) ListAll(ctx context.Context, limit, offset int, search string
 		var u domain.User
 		if err := rows.Scan(
 			&u.ID, &u.Username, &u.Email, &u.PasswordHash,
-			&u.AvatarURL, &u.Status, &u.Description, &u.IsAdmin,
+			&u.AvatarURL, &u.Status, &u.Description, &u.IsVerified, &u.IsAdmin,
 			&u.Plan, &u.LastActiveAt, &u.TotalTimeSeconds,
 			&u.CreatedAt, &u.UpdatedAt,
 		); err != nil {

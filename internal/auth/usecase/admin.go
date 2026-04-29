@@ -32,11 +32,11 @@ func (uc *AdminUsecase) checkAdmin(ctx context.Context, adminUserID int64) error
 	return nil
 }
 
-func (uc *AdminUsecase) ListUsers(ctx context.Context, adminUserID int64, limit, offset int, search string) ([]domain.User, int, error) {
+func (uc *AdminUsecase) ListUsers(ctx context.Context, adminUserID int64, limit, offset int, search string, verified *bool) ([]domain.User, int, error) {
 	if err := uc.checkAdmin(ctx, adminUserID); err != nil {
 		return nil, 0, err
 	}
-	return uc.userRepo.ListAll(ctx, limit, offset, search)
+	return uc.userRepo.ListAll(ctx, limit, offset, search, verified)
 }
 
 func (uc *AdminUsecase) SetBan(ctx context.Context, adminUserID, targetUserID int64, ban bool) error {

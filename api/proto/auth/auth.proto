@@ -26,6 +26,8 @@ service AuthService {
   rpc AdminResetPassword(AdminResetPasswordRequest) returns (AdminResetPasswordResponse);
   rpc AdminSetPlan(AdminSetPlanRequest) returns (AdminSetPlanResponse);
   rpc AdminGetActivityStats(AdminGetActivityStatsRequest) returns (AdminGetActivityStatsResponse);
+
+  rpc ConfirmEmail(ConfirmEmailRequest) returns (ConfirmEmailResponse);
 }
 
 message UserInfo {
@@ -41,6 +43,7 @@ message UserInfo {
   string plan = 10;
   int64 last_active_at = 11;
   int64 total_time_seconds = 12;
+  bool is_verified = 13;
 }
 
 message RegisterRequest {
@@ -146,6 +149,7 @@ message AdminListUsersRequest {
   int32 limit = 2;
   int32 offset = 3;
   string search = 4;
+  optional bool verified = 5;
 }
 
 message AdminListUsersResponse {
@@ -216,3 +220,9 @@ message AdminGetActivityStatsResponse {
   repeated DauEntry dau = 1;
   repeated MauEntry mau = 2;
 }
+
+message ConfirmEmailRequest {
+  string token = 1;
+}
+
+message ConfirmEmailResponse {}

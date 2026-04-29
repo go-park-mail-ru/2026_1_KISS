@@ -15,10 +15,11 @@ import (
 type AuthHandler struct {
 	client       pb.AuthServiceClient
 	cookieSecure bool
+	frontendURL  string
 }
 
-func NewAuthHandler(client pb.AuthServiceClient, cookieSecure bool) *AuthHandler {
-	return &AuthHandler{client: client, cookieSecure: cookieSecure}
+func NewAuthHandler(client pb.AuthServiceClient, cookieSecure bool, frontendURL string) *AuthHandler {
+	return &AuthHandler{client: client, cookieSecure: cookieSecure, frontendURL: frontendURL}
 }
 
 func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
@@ -26,6 +27,7 @@ func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
 	mux.HandleFunc("GET /api/v1/auth/me", h.Me)
+	mux.HandleFunc("GET /api/v1/auth/confirm", h.ConfirmEmail)
 }
 
 type registerRequest struct {
@@ -124,6 +126,20 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, protoUserToDTO(resp.GetUser()))
 }
 
+func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Redirect(w, r, h.frontendURL+"/sign?error=invalid_token", http.StatusSeeOther)
+		return
+	}
+	_, err := h.client.ConfirmEmail(r.Context(), &pb.ConfirmEmailRequest{Token: token})
+	if err != nil {
+		http.Redirect(w, r, h.frontendURL+"/sign?error=invalid_token", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, h.frontendURL+"/sign?verified=1", http.StatusSeeOther)
+}
+
 func clearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
@@ -142,6 +158,7 @@ func protoUserToDTO(info *pb.UserInfo) dto.UserResponse {
 		AvatarURL:        info.GetAvatarUrl(),
 		Status:           info.GetStatus(),
 		Description:      info.GetDescription(),
+		IsVerified:       info.GetIsVerified(),
 		IsAdmin:          info.GetIsAdmin(),
 		Plan:             info.GetPlan(),
 		TotalTimeSeconds: info.GetTotalTimeSeconds(),

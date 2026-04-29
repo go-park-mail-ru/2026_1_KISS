@@ -28,11 +28,12 @@ type MetricsConfig struct {
 }
 
 type GRPCConfig struct {
-	AuthAddr     string
-	NotebookAddr string
-	RunnerAddr   string
-	StorageAddr  string
-	IssueAddr    string
+	AuthAddr         string
+	NotebookAddr     string
+	RunnerAddr       string
+	StorageAddr      string
+	IssueAddr        string
+	NotificationAddr string
 }
 
 type RateLimitConfig struct {
@@ -162,11 +163,12 @@ func Load() *Config {
 			Window:      getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
 		},
 		GRPC: GRPCConfig{
-			AuthAddr:     getEnv("AUTH_GRPC_ADDR", "localhost:9001"),
-			NotebookAddr: getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
-			RunnerAddr:   getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
-			StorageAddr:  getEnv("STORAGE_GRPC_ADDR", "localhost:9004"),
-			IssueAddr:    getEnv("ISSUE_GRPC_ADDR", "localhost:9005"),
+			AuthAddr:         getEnv("AUTH_GRPC_ADDR", "localhost:9001"),
+			NotebookAddr:     getEnv("NOTEBOOK_GRPC_ADDR", "localhost:9002"),
+			RunnerAddr:       getEnv("RUNNER_GRPC_ADDR", "localhost:9003"),
+			StorageAddr:      getEnv("STORAGE_GRPC_ADDR", "localhost:9004"),
+			IssueAddr:        getEnv("ISSUE_GRPC_ADDR", "localhost:9005"),
+			NotificationAddr: getEnv("NOTIFICATION_GRPC_ADDR", "localhost:9006"),
 		},
 		Metrics: MetricsConfig{
 			Port: getEnv("METRICS_PORT", "9090"),

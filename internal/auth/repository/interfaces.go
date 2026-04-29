@@ -19,7 +19,7 @@ type UserRepository interface {
 	UpdateProfile(ctx context.Context, user *domain.User) error
 	UpdatePassword(ctx context.Context, userID int64, passwordHash string) error
 	UpdateEmail(ctx context.Context, userID int64, email string) error
-	ListAll(ctx context.Context, limit, offset int, search string) ([]domain.User, int, error)
+	ListAll(ctx context.Context, limit, offset int, search string, verified *bool) ([]domain.User, int, error)
 	SetBanned(ctx context.Context, userID int64, banned bool) error
 	CountAll(ctx context.Context) (int64, error)
 	UpdatePlan(ctx context.Context, userID int64, plan string) error

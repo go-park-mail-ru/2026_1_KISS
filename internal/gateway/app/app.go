@@ -71,7 +71,7 @@ func New(cfg *config.Config) (*App, error) {
 	storageClient := pbstorage.NewStorageServiceClient(storConn)
 	issueClient := pbissue.NewIssueServiceClient(issueConn)
 
-	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure)
+	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.Mail.AppURL)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
 	notebookHandler := handler.NewNotebookHandler(nbClient, authClient)
 	runnerHandler := handler.NewRunnerHandler(runClient)

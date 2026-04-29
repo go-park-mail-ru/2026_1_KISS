@@ -23,7 +23,7 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 		User: &pb.UserInfo{Id: 1, Username: "testuser", Email: "test@example.com"},
 	}, nil)
 
-	h := NewAuthHandler(client, false)
+	h := NewAuthHandler(client, false, "http://localhost:3000")
 	body, _ := json.Marshal(registerRequest{Username: "testuser", Email: "test@example.com", Password: "Password123!"})
 	req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -42,7 +42,7 @@ func TestAuthHandler_Register_Conflict(t *testing.T) {
 
 	client.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil, status.Error(codes.AlreadyExists, "conflict"))
 
-	h := NewAuthHandler(client, false)
+	h := NewAuthHandler(client, false, "http://localhost:3000")
 	body, _ := json.Marshal(registerRequest{Username: "testuser", Email: "test@example.com", Password: "Password123!"})
 	req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -65,7 +65,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 		User:      &pb.UserInfo{Id: 1, Username: "testuser"},
 	}, nil)
 
-	h := NewAuthHandler(client, false)
+	h := NewAuthHandler(client, false, "http://localhost:3000")
 	body, _ := json.Marshal(loginRequest{Email: "test@example.com", Password: "Password123!"})
 	req := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -95,7 +95,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 
 	client.EXPECT().Login(gomock.Any(), gomock.Any()).Return(nil, status.Error(codes.Unauthenticated, "unauthorized"))
 
-	h := NewAuthHandler(client, false)
+	h := NewAuthHandler(client, false, "http://localhost:3000")
 	body, _ := json.Marshal(loginRequest{Email: "test@example.com", Password: "wrong"})
 	req := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -114,7 +114,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 
 	client.EXPECT().Logout(gomock.Any(), gomock.Any()).Return(&pb.LogoutResponse{}, nil)
 
-	h := NewAuthHandler(client, false)
+	h := NewAuthHandler(client, false, "http://localhost:3000")
 	req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
 	req.AddCookie(&http.Cookie{Name: "session_id", Value: "sess-123"})
 	rec := httptest.NewRecorder()
@@ -134,7 +134,7 @@ func TestAuthHandler_Me_Success(t *testing.T) {
 		User: &pb.UserInfo{Id: 1, Username: "testuser"},
 	}, nil)
 
-	h := NewAuthHandler(client, false)
+	h := NewAuthHandler(client, false, "http://localhost:3000")
 	req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 	req.AddCookie(&http.Cookie{Name: "session_id", Value: "sess-123"})
 	rec := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestAuthHandler_Me_Success(t *testing.T) {
 }
 
 func TestAuthHandler_Me_Unauthorized(t *testing.T) {
-	h := NewAuthHandler(nil, false)
+	h := NewAuthHandler(nil, false, "http://localhost:3000")
 	req := httptest.NewRequest("GET", "/api/v1/auth/me", nil)
 	rec := httptest.NewRecorder()
 

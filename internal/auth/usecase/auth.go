@@ -26,14 +26,6 @@ type AuthUsecase struct {
 	mailService      mail.Sender
 }
 
-// func New(userRepo repository.UserRepository, sessionRepo repository.SessionRepository, sessionTTL time.Duration) *AuthUsecase {
-// 	return &AuthUsecase{
-// 		userRepo:    userRepo,
-// 		sessionRepo: sessionRepo,
-// 		sessionTTL:  sessionTTL,
-// 	}
-// }
-
 func New(
 	userRepo repository.UserRepository,
 	sessionRepo repository.SessionRepository,
