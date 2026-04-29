@@ -733,3 +733,79 @@ func TestBlockRepo_ReorderBlocks(t *testing.T) {
 		}
 	})
 }
+
+func TestBlockRepo_CreateBatch(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("sqlmock.New() error = %v", err)
+		}
+		defer db.Close()
+
+		repo := NewBlockRepository(db)
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`INSERT INTO blocks`).
+			WithArgs(int64(1), "code", "python", "print('hi')", 0).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(10)))
+		mock.ExpectQuery(`INSERT INTO blocks`).
+			WithArgs(int64(1), "text", "markdown", "# hello", 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(11)))
+		mock.ExpectCommit()
+
+		blocks := []domain.Block{
+			{NotebookID: 1, Type: "code", Language: "python", Content: "print('hi')", Position: 0},
+			{NotebookID: 1, Type: "text", Language: "markdown", Content: "# hello", Position: 1},
+		}
+
+		ids, err := repo.CreateBatch(context.Background(), blocks)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(ids) != 2 || ids[0] != 10 || ids[1] != 11 {
+			t.Errorf("want ids [10 11], got %v", ids)
+		}
+	})
+
+	t.Run("insert_error", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("sqlmock.New() error = %v", err)
+		}
+		defer db.Close()
+
+		repo := NewBlockRepository(db)
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`INSERT INTO blocks`).
+			WithArgs(int64(1), "code", "python", "", 0).
+			WillReturnError(fmt.Errorf("insert error"))
+		mock.ExpectRollback()
+
+		blocks := []domain.Block{
+			{NotebookID: 1, Type: "code", Language: "python", Content: "", Position: 0},
+		}
+
+		_, err = repo.CreateBatch(context.Background(), blocks)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("begin_error", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("sqlmock.New() error = %v", err)
+		}
+		defer db.Close()
+
+		repo := NewBlockRepository(db)
+
+		mock.ExpectBegin().WillReturnError(fmt.Errorf("begin error"))
+
+		_, err = repo.CreateBatch(context.Background(), []domain.Block{{NotebookID: 1}})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
