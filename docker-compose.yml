@@ -125,14 +125,25 @@ services:
       METRICS_PORT: "9090"
       NOTEBOOK_GRPC_ADDR: "notebook:9002"
       RUNNER_IMAGE_PYTHON: kiss-python-runner
-      NETWORK_NAME: "kiss_app-network"
       RUNNER_STARTUP_TIMEOUT: "${RUNNER_STARTUP_TIMEOUT:-30s}"
       RUNNER_HEALTHCHECK_INTERVAL: "${RUNNER_HEALTHCHECK_INTERVAL:-300ms}"
       RUNNER_IDLE_TIMEOUT: "${RUNNER_IDLE_TIMEOUT:-15m}"
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
+      NETWORK_NAME: "2026_1_kiss_app-network"
+      UPLOAD_DIR: /app/uploads
+      MAIL_FROM: "noreply@kisscolab.ru"
+      MAIL_SMTP_HOST: "172.17.0.1"
+      MAIL_SMTP_PORT: "25"
+      APP_URL: "https://kisscolab.ru"
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - app-network
+    extra_hosts:
+      - "mail.kisscolab.ru:212.233.96.54"
+      - "host.docker.internal:host-gateway"
 
   storage:
     build:

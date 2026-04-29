@@ -26,6 +26,7 @@ type User struct {
 	AvatarURL        string
 	Status           string
 	Description      string
+	IsVerified       bool
 	IsAdmin          bool
 	Plan             string
 	LastActiveAt     *time.Time

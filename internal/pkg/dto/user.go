@@ -37,3 +37,30 @@ func NewUserResponse(u *domain.User) UserResponse {
 		UpdatedAt:        u.UpdatedAt,
 	}
 }
+
+type RegisterRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UpdateProfileRequest struct {
+	Username    string `json:"username"`
+	Status      string `json:"status"`
+	Description string `json:"description"`
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+type ChangeEmailRequest struct {
+	NewEmail string `json:"new_email"`
+	Password string `json:"password"`
+}

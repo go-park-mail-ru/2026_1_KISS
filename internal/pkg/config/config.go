@@ -20,6 +20,7 @@ type Config struct {
 	GRPC        GRPCConfig
 	Metrics     MetricsConfig
 	DisableCSRF bool
+	Mail        MailConfig
 }
 
 type MetricsConfig struct {
@@ -150,6 +151,12 @@ func Load() *Config {
 			MaxDatasetSize:  getEnvInt64("UPLOAD_MAX_DATASET_SIZE", 50*1024*1024),
 			MaxFeedbackSize: getEnvInt64("UPLOAD_MAX_FEEDBACK_SIZE", 10*1024*1024),
 		},
+		Mail: MailConfig{
+			From:     getEnv("MAIL_FROM", "no-reply@kisscolab.ru"),
+			AppURL:   getEnv("APP_URL", "https://kisscolab.ru"),
+			SMTPHost: getEnv("MAIL_SMTP_HOST", "172.17.0.1"),
+			SMTPPort: getEnv("MAIL_SMTP_PORT", "25"),
+		},
 		RateLimit: RateLimitConfig{
 			MaxRequests: int(getEnvInt64("RATE_LIMIT_MAX_REQUESTS", 300)),
 			Window:      getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
@@ -191,6 +198,13 @@ func getEnvInt64(key string, defaultVal int64) int64 {
 		}
 	}
 	return defaultVal
+}
+
+type MailConfig struct {
+	From     string
+	AppURL   string
+	SMTPHost string
+	SMTPPort string
 }
 
 func getEnvBool(key string, defaultVal bool) bool {

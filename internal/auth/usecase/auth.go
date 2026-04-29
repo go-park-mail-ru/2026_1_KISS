@@ -14,58 +14,157 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
 type AuthUsecase struct {
-	userRepo    repository.UserRepository
-	sessionRepo repository.SessionRepository
-	sessionTTL  time.Duration
+	userRepo         repository.UserRepository
+	sessionRepo      repository.SessionRepository
+	sessionTTL       time.Duration
+	verificationRepo repository.VerificationRepository
+	mailService      mail.Sender
 }
 
-func New(userRepo repository.UserRepository, sessionRepo repository.SessionRepository, sessionTTL time.Duration) *AuthUsecase {
+// func New(userRepo repository.UserRepository, sessionRepo repository.SessionRepository, sessionTTL time.Duration) *AuthUsecase {
+// 	return &AuthUsecase{
+// 		userRepo:    userRepo,
+// 		sessionRepo: sessionRepo,
+// 		sessionTTL:  sessionTTL,
+// 	}
+// }
+
+func New(
+	userRepo repository.UserRepository,
+	sessionRepo repository.SessionRepository,
+	verificationRepo repository.VerificationRepository,
+	mailService mail.Sender,
+	sessionTTL time.Duration,
+) *AuthUsecase {
 	return &AuthUsecase{
-		userRepo:    userRepo,
-		sessionRepo: sessionRepo,
-		sessionTTL:  sessionTTL,
+		userRepo:         userRepo,
+		sessionRepo:      sessionRepo,
+		verificationRepo: verificationRepo,
+		mailService:      mailService,
+		sessionTTL:       sessionTTL,
 	}
 }
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, email, password string) (*domain.User, error) {
-	logger.Info(ctx, "usecase.auth.Register", "email", email)
+	logger.Info(ctx, "REGISTER START",
+		"email", email,
+	)
 
+	// 1. validation email
 	if err := httputil.ValidateEmail(email); err != nil {
-		logger.Error(ctx, "usecase.auth.Register", "error", err)
+		logger.Error(ctx, "REGISTER FAILED",
+			"step", "validate_email",
+			"error", err,
+		)
 		return nil, fmt.Errorf("%w: invalid email format", domain.ErrInvalidInput)
 	}
-	if err := httputil.ValidatePassword(password); err != nil {
-		logger.Error(ctx, "usecase.auth.Register", "error", err)
-		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
-	}
-	if err := httputil.ValidateUsername(username); err != nil {
-		logger.Error(ctx, "usecase.auth.Register", "error", err)
-		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
-	}
+	logger.Info(ctx, "REGISTER STEP OK", "step", "validate_email")
 
+	// 2. password
+	if err := httputil.ValidatePassword(password); err != nil {
+		logger.Error(ctx, "REGISTER FAILED",
+			"step", "validate_password",
+			"error", err,
+		)
+		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
+	}
+	logger.Info(ctx, "REGISTER STEP OK", "step", "validate_password")
+
+	// 3. username
+	if err := httputil.ValidateUsername(username); err != nil {
+		logger.Error(ctx, "REGISTER FAILED",
+			"step", "validate_username",
+			"error", err,
+		)
+		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
+	}
+	logger.Info(ctx, "REGISTER STEP OK", "step", "validate_username")
+
+	// 4. hash password
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Error(ctx, "usecase.auth.Register", "error", err)
+		logger.Error(ctx, "REGISTER FAILED",
+			"step", "hash_password",
+			"error", err,
+		)
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
+	logger.Info(ctx, "REGISTER STEP OK", "step", "hash_password")
 
+	// 5. create user
 	user := &domain.User{
 		Username:     sanitize.EscapeHTML(username),
 		Email:        email,
 		PasswordHash: string(hash),
+		IsVerified:   false,
 	}
 
 	id, err := uc.userRepo.Create(ctx, user)
 	if err != nil {
-		logger.Error(ctx, "usecase.auth.Register", "error", err)
+		logger.Error(ctx, "REGISTER FAILED",
+			"step", "user_create",
+			"error", err,
+		)
 		return nil, err
 	}
+
+	logger.Info(ctx, "REGISTER STEP OK",
+		"step", "user_create",
+		"user_id", id,
+	)
+
 	user.ID = id
-	logger.Info(ctx, "usecase.auth.Register", "user_id", user.ID)
+
+	// 6. verification token
+	token := uuid.New().String()
+
+	vt := &domain.VerificationToken{
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	if err := uc.verificationRepo.Create(ctx, vt); err != nil {
+		logger.Error(ctx, "REGISTER FAILED",
+			"step", "verification_create",
+			"error", err,
+		)
+		return nil, err
+	}
+
+	logger.Info(ctx, "REGISTER STEP OK",
+		"step", "verification_create",
+	)
+
+	// 7. send email START
+	logger.Info(ctx, "EMAIL SENDING START",
+		"email", user.Email,
+		"user_id", user.ID,
+	)
+
+	if err := uc.mailService.SendVerification(user.Email, token); err != nil {
+		logger.Error(ctx, "EMAIL SEND FAILED",
+			"step", "send_verification",
+			"email", user.Email,
+			"user_id", user.ID,
+			"error", err,
+		)
+		return nil, fmt.Errorf("send verification email: %w", err)
+	}
+
+	logger.Info(ctx, "EMAIL SENT OK",
+		"user_id", user.ID,
+	)
+
+	logger.Info(ctx, "REGISTER SUCCESS",
+		"user_id", user.ID,
+	)
+
 	return user, nil
 }
 
@@ -76,6 +175,10 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password string) (*doma
 	if err != nil {
 		logger.Error(ctx, "usecase.auth.Login", "error", domain.ErrUnauthorized)
 		return nil, nil, domain.ErrUnauthorized
+	}
+
+	if !user.IsVerified {
+		return nil, nil, domain.ErrForbidden
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
@@ -136,6 +239,23 @@ func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*
 
 	logger.Info(ctx, "usecase.auth.ValidateSession", "user_id", user.ID)
 	return user, nil
+}
+
+func (uc *AuthUsecase) ConfirmEmail(ctx context.Context, token string) error {
+	vt, err := uc.verificationRepo.GetByToken(ctx, token)
+	if err != nil {
+		return err
+	}
+
+	if time.Now().After(vt.ExpiresAt) {
+		return domain.ErrInvalidInput
+	}
+
+	if err := uc.userRepo.SetVerified(ctx, vt.UserID, true); err != nil {
+		return err
+	}
+
+	return uc.verificationRepo.Delete(ctx, vt.ID)
 }
 
 func (uc *AuthUsecase) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {

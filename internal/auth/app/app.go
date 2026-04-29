@@ -20,6 +20,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
@@ -51,9 +52,23 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 
 	userRepo := authpg.NewUserRepository(db)
 	sessionRepo := authredis.NewSessionRepository(rdb)
+	verificationRepo := authpg.NewVerificationRepository(db)
 	eventRepo := authpg.NewEventRepository(db)
 
-	authUC := authusecase.New(userRepo, sessionRepo, cfg.Auth.SessionTTL)
+	mailService := mail.New(
+		cfg.Mail.From,
+		cfg.Mail.AppURL,
+		cfg.Mail.SMTPHost,
+		cfg.Mail.SMTPPort,
+	)
+
+	authUC := authusecase.New(
+		userRepo,
+		sessionRepo,
+		verificationRepo,
+		mailService,
+		cfg.Auth.SessionTTL,
+	)
 
 	storConn, err := grpc.NewClient(cfg.GRPC.StorageAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

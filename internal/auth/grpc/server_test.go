@@ -18,6 +18,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 )
 
@@ -70,9 +71,12 @@ func setup(t *testing.T) *testEnv {
 
 	userRepo := mocks.NewMockUserRepository(ctrl)
 	sessionRepo := mocks.NewMockSessionRepository(ctrl)
+	verificationRepo := mocks.NewMockVerificationRepository(ctrl)
 	profileUC := &mockProfileUsecase{}
 
-	authUC := usecase.New(userRepo, sessionRepo, 24*time.Hour)
+	mailSvc := mail.New("", "", "", "")
+
+	authUC := usecase.New(userRepo, sessionRepo, verificationRepo, mailSvc, 24*time.Hour)
 	eventRepo := mocks.NewMockEventRepository(ctrl)
 	eventUC := usecase.NewEventUsecase(eventRepo, userRepo)
 	adminUC := usecase.NewAdminUsecase(userRepo, eventRepo)
@@ -169,6 +173,7 @@ func TestLogin_Success(t *testing.T) {
 		Username:     "testuser",
 		Email:        "test@example.com",
 		PasswordHash: string(hash),
+		IsVerified:   true,
 	}, nil)
 	env.sessionRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
