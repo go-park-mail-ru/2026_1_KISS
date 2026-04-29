@@ -29,6 +29,7 @@ service NotebookService {
 
   rpc SaveBlockOutputs(SaveBlockOutputsRequest) returns (SaveBlockOutputsResponse);
   rpc ReorderBlocks(ReorderBlocksRequest) returns (ReorderBlocksResponse);
+  rpc ImportNotebook(ImportNotebookRequest) returns (NotebookResponse);
 }
 
 message NotebookInfo {
@@ -245,3 +246,17 @@ message ReorderBlocksRequest {
 }
 
 message ReorderBlocksResponse {}
+
+message ImportNotebookRequest {
+  int64 user_id = 1;
+  string title = 2;
+  repeated ImportBlockInfo blocks = 3;
+}
+
+message ImportBlockInfo {
+  string type = 1;
+  string language = 2;
+  string content = 3;
+  int32 position = 4;
+  repeated BlockOutputInfo outputs = 5;
+}
