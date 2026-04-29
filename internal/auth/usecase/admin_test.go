@@ -21,11 +21,11 @@ func TestAdminUsecase_ListUsers_Success(t *testing.T) {
 
 	gomock.InOrder(
 		userRepo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(adminUser, nil),
-		userRepo.EXPECT().ListAll(gomock.Any(), 10, 0, "").Return(users, 1, nil),
+		userRepo.EXPECT().ListAll(gomock.Any(), 10, 0, "", (*bool)(nil)).Return(users, 1, nil),
 	)
 
 	uc := NewAdminUsecase(userRepo, eventRepo)
-	result, total, err := uc.ListUsers(context.Background(), 1, 10, 0, "")
+	result, total, err := uc.ListUsers(context.Background(), 1, 10, 0, "", nil)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -46,7 +46,7 @@ func TestAdminUsecase_ListUsers_NotAdmin(t *testing.T) {
 	userRepo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(nonAdminUser, nil)
 
 	uc := NewAdminUsecase(userRepo, eventRepo)
-	_, _, err := uc.ListUsers(context.Background(), 1, 10, 0, "")
+	_, _, err := uc.ListUsers(context.Background(), 1, 10, 0, "", nil)
 
 	if err != domain.ErrForbidden {
 		t.Fatalf("expected ErrForbidden, got %v", err)

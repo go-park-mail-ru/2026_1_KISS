@@ -13,6 +13,7 @@ type UserResponse struct {
 	AvatarURL        string     `json:"avatar_url"`
 	Status           string     `json:"status"`
 	Description      string     `json:"description"`
+	IsVerified       bool       `json:"is_verified"`
 	IsAdmin          bool       `json:"is_admin"`
 	Plan             string     `json:"plan"`
 	LastActiveAt     *time.Time `json:"last_active_at,omitempty"`
@@ -29,6 +30,7 @@ func NewUserResponse(u *domain.User) UserResponse {
 		AvatarURL:        u.AvatarURL,
 		Status:           u.Status,
 		Description:      u.Description,
+		IsVerified:       u.IsVerified,
 		IsAdmin:          u.IsAdmin,
 		Plan:             u.Plan,
 		LastActiveAt:     u.LastActiveAt,

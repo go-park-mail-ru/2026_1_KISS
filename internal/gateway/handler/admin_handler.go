@@ -49,12 +49,22 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	search := r.URL.Query().Get("search")
 
-	resp, err := h.authClient.AdminListUsers(r.Context(), &pbauth.AdminListUsersRequest{
+	verifiedParam := r.URL.Query().Get("verified")
+	req := &pbauth.AdminListUsersRequest{
 		AdminUserId: user.ID,
 		Limit:       int32(limit),  //nolint:gosec
 		Offset:      int32(offset), //nolint:gosec
 		Search:      search,
-	})
+	}
+	if verifiedParam == "true" {
+		v := true
+		req.Verified = &v
+	} else if verifiedParam == "false" {
+		v := false
+		req.Verified = &v
+	}
+
+	resp, err := h.authClient.AdminListUsers(r.Context(), req)
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
 		return

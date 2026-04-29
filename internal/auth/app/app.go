@@ -20,9 +20,9 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
-	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/mail"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/metrics"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
+	pbnotification "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notification"
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
@@ -32,6 +32,7 @@ type App struct {
 	db         *sql.DB
 	rdb        *redisv9.Client
 	storConn   *grpc.ClientConn
+	notifConn  *grpc.ClientConn
 	metricsSrv *http.Server
 }
 
@@ -55,18 +56,18 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	verificationRepo := authpg.NewVerificationRepository(db)
 	eventRepo := authpg.NewEventRepository(db)
 
-	mailService := mail.New(
-		cfg.Mail.From,
-		cfg.Mail.AppURL,
-		cfg.Mail.SMTPHost,
-		cfg.Mail.SMTPPort,
-	)
+	notifConn, err := grpc.NewClient(cfg.GRPC.NotificationAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial notification: %w", err)
+	}
+	notifClient := pbnotification.NewNotificationServiceClient(notifConn)
+	notifAdapter := authgrpc.NewNotificationAdapter(notifClient, cfg.Mail.AppURL)
 
 	authUC := authusecase.New(
 		userRepo,
 		sessionRepo,
 		verificationRepo,
-		mailService,
+		notifAdapter,
 		cfg.Auth.SessionTTL,
 	)
 
@@ -102,6 +103,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		db:         db,
 		rdb:        rdb,
 		storConn:   storConn,
+		notifConn:  notifConn,
 		metricsSrv: metricsSrv,
 	}, nil
 }
@@ -124,5 +126,8 @@ func (a *App) Shutdown(_ context.Context) {
 	}
 	if a.storConn != nil {
 		a.storConn.Close()
+	}
+	if a.notifConn != nil {
+		a.notifConn.Close()
 	}
 }

@@ -146,9 +146,9 @@ func (mr *MockUserRepositoryMockRecorder) IncrementTotalTime(ctx, userID, second
 }
 
 // ListAll mocks base method.
-func (m *MockUserRepository) ListAll(ctx context.Context, limit, offset int, search string) ([]domain.User, int, error) {
+func (m *MockUserRepository) ListAll(ctx context.Context, limit, offset int, search string, verified *bool) ([]domain.User, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAll", ctx, limit, offset, search)
+	ret := m.ctrl.Call(m, "ListAll", ctx, limit, offset, search, verified)
 	ret0, _ := ret[0].([]domain.User)
 	ret1, _ := ret[1].(int)
 	ret2, _ := ret[2].(error)
@@ -156,9 +156,9 @@ func (m *MockUserRepository) ListAll(ctx context.Context, limit, offset int, sea
 }
 
 // ListAll indicates an expected call of ListAll.
-func (mr *MockUserRepositoryMockRecorder) ListAll(ctx, limit, offset, search any) *gomock.Call {
+func (mr *MockUserRepositoryMockRecorder) ListAll(ctx, limit, offset, search, verified any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockUserRepository)(nil).ListAll), ctx, limit, offset, search)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockUserRepository)(nil).ListAll), ctx, limit, offset, search, verified)
 }
 
 // SetBanned mocks base method.

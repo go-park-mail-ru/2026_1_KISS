@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification
 
 build:
 	go build -o gateway ./cmd/gateway
@@ -54,6 +54,9 @@ run-storage:
 run-issue:
 	go run ./cmd/issue
 
+run-notification:
+	go run ./cmd/notification
+
 proto-tools:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -74,6 +77,9 @@ proto: proto-tools
 	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
            --go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
            api/proto/issue/issue.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/notification/notification.proto
 
 fmt:
 	go fmt ./...

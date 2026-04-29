@@ -170,7 +170,7 @@ func (s *Server) AdminListUsers(ctx context.Context, req *pb.AdminListUsersReque
 	if limit <= 0 {
 		limit = defaultAdminPageSize
 	}
-	users, total, err := s.adminUC.ListUsers(ctx, req.GetAdminUserId(), limit, int(req.GetOffset()), req.GetSearch())
+	users, total, err := s.adminUC.ListUsers(ctx, req.GetAdminUserId(), limit, int(req.GetOffset()), req.GetSearch(), req.Verified)
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
@@ -228,6 +228,13 @@ func (s *Server) AdminSetPlan(ctx context.Context, req *pb.AdminSetPlanRequest) 
 	return &pb.AdminSetPlanResponse{}, nil
 }
 
+func (s *Server) ConfirmEmail(ctx context.Context, req *pb.ConfirmEmailRequest) (*pb.ConfirmEmailResponse, error) {
+	if err := s.authUC.ConfirmEmail(ctx, req.GetToken()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.ConfirmEmailResponse{}, nil
+}
+
 func (s *Server) AdminGetActivityStats(ctx context.Context, req *pb.AdminGetActivityStatsRequest) (*pb.AdminGetActivityStatsResponse, error) {
 	dauDays := int(req.GetDauDays())
 	if dauDays <= 0 {
@@ -268,6 +275,7 @@ func userToProto(u *domain.User) *pb.UserInfo {
 		IsAdmin:          u.IsAdmin,
 		Plan:             u.Plan,
 		TotalTimeSeconds: u.TotalTimeSeconds,
+		IsVerified:       u.IsVerified,
 	}
 	if u.LastActiveAt != nil {
 		info.LastActiveAt = u.LastActiveAt.Unix()
