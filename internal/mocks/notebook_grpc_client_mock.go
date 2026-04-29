@@ -262,6 +262,26 @@ func (mr *MockNotebookServiceClientMockRecorder) GrantPermission(ctx, in any, op
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrantPermission", reflect.TypeOf((*MockNotebookServiceClient)(nil).GrantPermission), varargs...)
 }
 
+// ImportNotebook mocks base method.
+func (m *MockNotebookServiceClient) ImportNotebook(ctx context.Context, in *notebook.ImportNotebookRequest, opts ...grpc.CallOption) (*notebook.NotebookResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ImportNotebook", varargs...)
+	ret0, _ := ret[0].(*notebook.NotebookResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportNotebook indicates an expected call of ImportNotebook.
+func (mr *MockNotebookServiceClientMockRecorder) ImportNotebook(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportNotebook", reflect.TypeOf((*MockNotebookServiceClient)(nil).ImportNotebook), varargs...)
+}
+
 // ListByUser mocks base method.
 func (m *MockNotebookServiceClient) ListByUser(ctx context.Context, in *notebook.ListNotebooksRequest, opts ...grpc.CallOption) (*notebook.ListNotebooksResponse, error) {
 	m.ctrl.T.Helper()
