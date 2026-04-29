@@ -153,6 +153,10 @@ func (a *BlockAdapter) ReorderBlocks(_ context.Context, _ int64, _ []int64) erro
 	return errNotSupported
 }
 
+func (a *BlockAdapter) CreateBatch(_ context.Context, _ []domain.Block) ([]int64, error) {
+	return nil, errNotSupported
+}
+
 func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 	if info == nil {
 		return nil

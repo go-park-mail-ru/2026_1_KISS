@@ -322,6 +322,30 @@ func (s *Server) SaveBlockOutputs(ctx context.Context, req *pb.SaveBlockOutputsR
 	return &pb.SaveBlockOutputsResponse{}, nil
 }
 
+func (s *Server) ImportNotebook(ctx context.Context, req *pb.ImportNotebookRequest) (*pb.NotebookResponse, error) {
+	blocks := make([]domain.Block, len(req.GetBlocks()))
+	for i, b := range req.GetBlocks() {
+		blocks[i] = domain.Block{
+			Type:     b.GetType(),
+			Language: b.GetLanguage(),
+			Content:  b.GetContent(),
+			Position: int(b.GetPosition()),
+		}
+		for _, o := range b.GetOutputs() {
+			blocks[i].Outputs = append(blocks[i].Outputs, domain.BlockOutput{
+				Position:   int(o.GetPosition()),
+				OutputType: o.GetOutputType(),
+				Content:    o.GetContent(),
+			})
+		}
+	}
+	nb, err := s.notebookUC.ImportNotebook(ctx, req.GetUserId(), req.GetTitle(), blocks)
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.NotebookResponse{Notebook: notebookToProto(nb)}, nil
+}
+
 func (s *Server) ReorderBlocks(ctx context.Context, req *pb.ReorderBlocksRequest) (*pb.ReorderBlocksResponse, error) {
 	if err := s.notebookUC.ReorderBlocks(ctx, req.GetUserId(), req.GetNotebookId(), req.GetBlockIds()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
