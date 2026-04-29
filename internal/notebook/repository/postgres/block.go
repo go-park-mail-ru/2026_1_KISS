@@ -247,6 +247,39 @@ func (r *BlockRepo) GetOutputsByBlockIDs(ctx context.Context, blockIDs []int64) 
 	return result, nil
 }
 
+func (r *BlockRepo) CreateBatch(ctx context.Context, blocks []domain.Block) ([]int64, error) {
+	start := time.Now()
+	tx, err := r.db.Begin()
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.CreateBatch", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	ids := make([]int64, len(blocks))
+	for i := range blocks {
+		b := &blocks[i]
+		var id int64
+		err := tx.QueryRowContext(ctx,
+			`INSERT INTO blocks (notebook_id, type, language, content, position) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+			b.NotebookID, b.Type, b.Language, b.Content, b.Position,
+		).Scan(&id)
+		if err != nil {
+			logger.Error(ctx, "repo.blocks.CreateBatch", "error", err, "duration", time.Since(start), "position", b.Position)
+			return nil, err
+		}
+		ids[i] = id
+		b.ID = id
+	}
+
+	if err := tx.Commit(); err != nil {
+		logger.Error(ctx, "repo.blocks.CreateBatch", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	logger.Info(ctx, "repo.blocks.CreateBatch", "duration", time.Since(start), "count", len(blocks))
+	return ids, nil
+}
+
 func (r *BlockRepo) ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error {
 	start := time.Now()
 	tx, err := r.db.Begin()
