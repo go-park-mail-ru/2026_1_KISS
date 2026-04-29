@@ -3,6 +3,7 @@ package grpc
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/smtp"
 	"time"
@@ -19,8 +20,38 @@ type SMTPSender interface {
 
 type defaultSMTPSender struct{}
 
-func (defaultSMTPSender) SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) error {
-	return smtp.SendMail(addr, a, from, to, msg)
+func (defaultSMTPSender) SendMail(addr string, _ smtp.Auth, from string, to []string, msg []byte) error {
+	c, err := smtp.Dial(addr)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err := c.StartTLS(&tls.Config{InsecureSkipVerify: true}); err != nil { //nolint:gosec
+			return err
+		}
+	}
+
+	if err := c.Mail(from); err != nil {
+		return err
+	}
+	for _, addr := range to {
+		if err := c.Rcpt(addr); err != nil {
+			return err
+		}
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(msg); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	return c.Quit()
 }
 
 type Server struct {
