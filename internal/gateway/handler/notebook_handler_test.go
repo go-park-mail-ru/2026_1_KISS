@@ -595,6 +595,54 @@ func TestNotebookHandler_ReorderBlocks_InvalidID(t *testing.T) {
 	}
 }
 
+func TestNotebookHandler_ImportNotebook_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockNotebookServiceClient(ctrl)
+
+	client.EXPECT().ImportNotebook(gomock.Any(), gomock.Any()).
+		Return(&pb.NotebookResponse{
+			Notebook: &pb.NotebookInfo{
+				Id: 1, OwnerId: 1, Title: "Imported",
+				Blocks: []*pb.BlockInfo{
+					{Id: 10, Type: "code", Language: "python", Content: "print('hi')", Position: 0},
+				},
+			},
+		}, nil)
+
+	h := NewNotebookHandler(client, nil)
+	body, _ := json.Marshal(importNotebookRequest{
+		Title: "Imported",
+		Blocks: []importBlockRequest{
+			{Type: "code", Language: "python", Content: "print('hi')", Position: 0},
+		},
+	})
+	req := httptest.NewRequest("POST", "/api/v1/notebooks/import", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ImportNotebook(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Errorf("want 201, got %d", rec.Code)
+	}
+}
+
+func TestNotebookHandler_ImportNotebook_Unauthorized(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockNotebookServiceClient(ctrl)
+
+	h := NewNotebookHandler(client, nil)
+	req := httptest.NewRequest("POST", "/api/v1/notebooks/import", nil)
+	rec := httptest.NewRecorder()
+
+	h.ImportNotebook(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d", rec.Code)
+	}
+}
+
 func TestNotebookHandler_RevokePermission_GRPCError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockNotebookServiceClient(ctrl)

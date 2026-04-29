@@ -1112,6 +1112,79 @@ func TestRequireEditorAccess_ReadonlyPermission(t *testing.T) {
 	}
 }
 
+func TestImportNotebook_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, nb *domain.Notebook) (int64, error) {
+			nb.ID = 100
+			return 100, nil
+		})
+	blockRepo.EXPECT().CreateBatch(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, blocks []domain.Block) ([]int64, error) {
+			if len(blocks) != 2 {
+				t.Errorf("want 2 blocks, got %d", len(blocks))
+			}
+			if blocks[0].NotebookID != 100 || blocks[1].NotebookID != 100 {
+				t.Error("blocks should have notebook_id=100")
+			}
+			return []int64{1, 2}, nil
+		})
+	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), gomock.Any()).Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	blocks := []domain.Block{
+		{Type: "code", Content: "print('hi')", Outputs: []domain.BlockOutput{{OutputType: "stdout", Content: "hi"}}},
+		{Type: "text", Content: "# hello"},
+	}
+	nb, err := uc.ImportNotebook(context.Background(), 1, "Test NB", blocks)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nb.ID != 100 {
+		t.Errorf("want notebook id 100, got %d", nb.ID)
+	}
+	if len(nb.Blocks) != 2 {
+		t.Errorf("want 2 blocks, got %d", len(nb.Blocks))
+	}
+}
+
+func TestImportNotebook_CreateError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(int64(0), errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	_, err := uc.ImportNotebook(context.Background(), 1, "Test", []domain.Block{{Type: "code"}})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestImportNotebook_EmptyBlocks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+
+	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(int64(1), nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	nb, err := uc.ImportNotebook(context.Background(), 1, "", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nb.Title != "Imported" {
+		t.Errorf("want title 'Imported', got %q", nb.Title)
+	}
+}
+
 func TestRequireEditorAccess_RepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
