@@ -447,6 +447,20 @@ func TestChangeEmail(t *testing.T) {
 			wantErr:   true,
 			errTarget: domain.ErrInvalidInput,
 		},
+		{
+			name:      "same email",
+			newEmail:  "test@example.com",
+			password:  "password123",
+			wantErr:   true,
+			errTarget: domain.ErrInvalidInput,
+		},
+		{
+			name:      "same email case insensitive",
+			newEmail:  "TEST@EXAMPLE.COM",
+			password:  "password123",
+			wantErr:   true,
+			errTarget: domain.ErrInvalidInput,
+		},
 	}
 
 	for _, tc := range tests {

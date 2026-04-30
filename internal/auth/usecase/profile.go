@@ -244,6 +244,11 @@ func (uc *ProfileUsecase) ChangeEmail(ctx context.Context, userID int64, newEmai
 		return nil, domain.ErrUnauthorized
 	}
 
+	if strings.EqualFold(newEmail, user.Email) {
+		logger.Error(ctx, "usecase.profile.ChangeEmail", "error", "email unchanged")
+		return nil, fmt.Errorf("%w: email is the same as current", domain.ErrInvalidInput)
+	}
+
 	if err := httputil.ValidateEmail(newEmail); err != nil {
 		logger.Error(ctx, "usecase.profile.ChangeEmail", "error", err)
 		return nil, fmt.Errorf("%w: %s", domain.ErrInvalidInput, err.Error())
