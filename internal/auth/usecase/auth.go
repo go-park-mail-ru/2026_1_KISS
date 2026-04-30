@@ -262,3 +262,28 @@ func (uc *AuthUsecase) GetUserByIdentifier(ctx context.Context, identifier strin
 	}
 	return uc.userRepo.GetByUsername(ctx, identifier)
 }
+
+func (uc *AuthUsecase) CleanupUnverified(ctx context.Context) {
+	cutoff := time.Now().Add(-24 * time.Hour)
+	count, err := uc.userRepo.DeleteUnverifiedBefore(ctx, cutoff)
+	if err != nil {
+		logger.Error(ctx, "usecase.auth.CleanupUnverified", "error", err)
+		return
+	}
+	if count > 0 {
+		logger.Info(ctx, "usecase.auth.CleanupUnverified", "deleted", count)
+	}
+}
+
+func (uc *AuthUsecase) StartCleanupLoop(ctx context.Context) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			uc.CleanupUnverified(ctx)
+		}
+	}
+}
