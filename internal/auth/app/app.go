@@ -27,13 +27,14 @@ import (
 )
 
 type App struct {
-	grpcServer *grpc.Server
-	listener   net.Listener
-	db         *sql.DB
-	rdb        *redisv9.Client
-	storConn   *grpc.ClientConn
-	notifConn  *grpc.ClientConn
-	metricsSrv *http.Server
+	grpcServer    *grpc.Server
+	listener      net.Listener
+	db            *sql.DB
+	rdb           *redisv9.Client
+	storConn      *grpc.ClientConn
+	notifConn     *grpc.ClientConn
+	metricsSrv    *http.Server
+	cancelCleanup context.CancelFunc
 }
 
 func New(cfg *config.Config, grpcPort string) (*App, error) {
@@ -97,14 +98,18 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	)
 	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC))
 
+	cleanupCtx, cancelCleanup := context.WithCancel(context.Background())
+	go authUC.StartCleanupLoop(cleanupCtx)
+
 	return &App{
-		grpcServer: srv,
-		listener:   lis,
-		db:         db,
-		rdb:        rdb,
-		storConn:   storConn,
-		notifConn:  notifConn,
-		metricsSrv: metricsSrv,
+		grpcServer:    srv,
+		listener:      lis,
+		db:            db,
+		rdb:           rdb,
+		storConn:      storConn,
+		notifConn:     notifConn,
+		metricsSrv:    metricsSrv,
+		cancelCleanup: cancelCleanup,
 	}, nil
 }
 
@@ -114,6 +119,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
+	a.cancelCleanup()
 	metrics.ShutdownMetricsServer(a.metricsSrv)
 	a.grpcServer.GracefulStop()
 	if err := a.db.Close(); err != nil {
