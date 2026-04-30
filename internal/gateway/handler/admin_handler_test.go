@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+	pbnotification "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notification"
 )
 
 func TestAdminHandler_ListUsers_Success(t *testing.T) {
@@ -28,7 +29,7 @@ func TestAdminHandler_ListUsers_Success(t *testing.T) {
 		Total: 2,
 	}, nil)
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/admin/users?limit=10&offset=0&search=test", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -47,7 +48,7 @@ func TestAdminHandler_ListUsers_GRPCError(t *testing.T) {
 	authClient.EXPECT().AdminListUsers(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.Internal, "internal"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/admin/users", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -69,7 +70,7 @@ func TestAdminHandler_BanUser_Success(t *testing.T) {
 	nbClient.EXPECT().AdminSetUserNotebooksPrivate(gomock.Any(), gomock.Any()).
 		Return(&pbnotebook.AdminSetUserNotebooksPrivateResponse{}, nil)
 
-	h := NewAdminHandler(authClient, nbClient, nil)
+	h := NewAdminHandler(authClient, nbClient, nil, nil)
 	req := httptest.NewRequest("POST", "/api/v1/admin/users/2/ban", nil)
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -83,7 +84,7 @@ func TestAdminHandler_BanUser_Success(t *testing.T) {
 }
 
 func TestAdminHandler_BanUser_InvalidID(t *testing.T) {
-	h := NewAdminHandler(nil, nil, nil)
+	h := NewAdminHandler(nil, nil, nil, nil)
 	req := httptest.NewRequest("POST", "/api/v1/admin/users/abc/ban", nil)
 	req.SetPathValue("id", "abc")
 	req = withUser(req, 1)
@@ -103,7 +104,7 @@ func TestAdminHandler_BanUser_GRPCError(t *testing.T) {
 	authClient.EXPECT().AdminSetBan(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.NotFound, "not found"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("POST", "/api/v1/admin/users/2/ban", nil)
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -123,7 +124,7 @@ func TestAdminHandler_UnbanUser_Success(t *testing.T) {
 	authClient.EXPECT().AdminSetBan(gomock.Any(), gomock.Any()).
 		Return(&pbauth.AdminSetBanResponse{}, nil)
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("POST", "/api/v1/admin/users/2/unban", nil)
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -137,7 +138,7 @@ func TestAdminHandler_UnbanUser_Success(t *testing.T) {
 }
 
 func TestAdminHandler_UnbanUser_InvalidID(t *testing.T) {
-	h := NewAdminHandler(nil, nil, nil)
+	h := NewAdminHandler(nil, nil, nil, nil)
 	req := httptest.NewRequest("POST", "/api/v1/admin/users/abc/unban", nil)
 	req.SetPathValue("id", "abc")
 	req = withUser(req, 1)
@@ -161,7 +162,7 @@ func TestAdminHandler_ListNotebooks_Success(t *testing.T) {
 		Total: 1,
 	}, nil)
 
-	h := NewAdminHandler(nil, nbClient, nil)
+	h := NewAdminHandler(nil, nbClient, nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/admin/notebooks?limit=10&offset=0", nil)
 	rec := httptest.NewRecorder()
 
@@ -179,7 +180,7 @@ func TestAdminHandler_ListNotebooks_GRPCError(t *testing.T) {
 	nbClient.EXPECT().AdminListNotebooks(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.Internal, "internal"))
 
-	h := NewAdminHandler(nil, nbClient, nil)
+	h := NewAdminHandler(nil, nbClient, nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/admin/notebooks", nil)
 	rec := httptest.NewRecorder()
 
@@ -197,7 +198,7 @@ func TestAdminHandler_DeleteNotebook_Success(t *testing.T) {
 	nbClient.EXPECT().AdminDeleteNotebook(gomock.Any(), gomock.Any()).
 		Return(&pbnotebook.DeleteNotebookResponse{}, nil)
 
-	h := NewAdminHandler(nil, nbClient, nil)
+	h := NewAdminHandler(nil, nbClient, nil, nil)
 	req := httptest.NewRequest("DELETE", "/api/v1/admin/notebooks/1", nil)
 	req.SetPathValue("id", "1")
 	rec := httptest.NewRecorder()
@@ -210,7 +211,7 @@ func TestAdminHandler_DeleteNotebook_Success(t *testing.T) {
 }
 
 func TestAdminHandler_DeleteNotebook_InvalidID(t *testing.T) {
-	h := NewAdminHandler(nil, nil, nil)
+	h := NewAdminHandler(nil, nil, nil, nil)
 	req := httptest.NewRequest("DELETE", "/api/v1/admin/notebooks/abc", nil)
 	req.SetPathValue("id", "abc")
 	rec := httptest.NewRecorder()
@@ -229,7 +230,7 @@ func TestAdminHandler_DeleteNotebook_GRPCError(t *testing.T) {
 	nbClient.EXPECT().AdminDeleteNotebook(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.NotFound, "not found"))
 
-	h := NewAdminHandler(nil, nbClient, nil)
+	h := NewAdminHandler(nil, nbClient, nil, nil)
 	req := httptest.NewRequest("DELETE", "/api/v1/admin/notebooks/1", nil)
 	req.SetPathValue("id", "1")
 	rec := httptest.NewRecorder()
@@ -255,7 +256,7 @@ func TestAdminHandler_GetStats_Success(t *testing.T) {
 	nbClient.EXPECT().AdminGetNotebookCount(gomock.Any(), gomock.Any()).
 		Return(&pbnotebook.AdminGetNotebookCountResponse{Total: 25}, nil)
 
-	h := NewAdminHandler(authClient, nbClient, nil)
+	h := NewAdminHandler(authClient, nbClient, nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/admin/stats", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -274,7 +275,7 @@ func TestAdminHandler_GetStats_GRPCError(t *testing.T) {
 	authClient.EXPECT().AdminGetStats(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.Internal, "internal"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("GET", "/api/v1/admin/stats", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -293,7 +294,7 @@ func TestAdminHandler_UpdateUser_Success(t *testing.T) {
 		AdminUpdateUser(gomock.Any(), gomock.Any()).
 		Return(&pbauth.UserResponse{User: &pbauth.UserInfo{Id: 2, Username: "new"}}, nil)
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2",
 		bytes.NewReader([]byte(`{"username":"new","email":"new@x.io"}`)))
 	req.SetPathValue("id", "2")
@@ -308,7 +309,7 @@ func TestAdminHandler_UpdateUser_Success(t *testing.T) {
 
 func TestAdminHandler_UpdateUser_InvalidID(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/abc", bytes.NewReader([]byte(`{}`)))
 	req.SetPathValue("id", "abc")
 	req = withUser(req, 1)
@@ -322,7 +323,7 @@ func TestAdminHandler_UpdateUser_InvalidID(t *testing.T) {
 
 func TestAdminHandler_UpdateUser_BadBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2", bytes.NewReader([]byte(`not json`)))
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -341,7 +342,7 @@ func TestAdminHandler_UpdateUser_GRPCError(t *testing.T) {
 		AdminUpdateUser(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.AlreadyExists, "dup"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2",
 		bytes.NewReader([]byte(`{"username":"new"}`)))
 	req.SetPathValue("id", "2")
@@ -361,7 +362,7 @@ func TestAdminHandler_ResetPassword_Success(t *testing.T) {
 		AdminResetPassword(gomock.Any(), gomock.Any()).
 		Return(&pbauth.AdminResetPasswordResponse{}, nil)
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2/password",
 		bytes.NewReader([]byte(`{"password":"newpass"}`)))
 	req.SetPathValue("id", "2")
@@ -376,7 +377,7 @@ func TestAdminHandler_ResetPassword_Success(t *testing.T) {
 
 func TestAdminHandler_ResetPassword_InvalidID(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/abc/password", bytes.NewReader([]byte(`{}`)))
 	req.SetPathValue("id", "abc")
 	req = withUser(req, 1)
@@ -390,7 +391,7 @@ func TestAdminHandler_ResetPassword_InvalidID(t *testing.T) {
 
 func TestAdminHandler_ResetPassword_BadBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2/password", bytes.NewReader([]byte(`{`)))
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -409,7 +410,7 @@ func TestAdminHandler_ResetPassword_GRPCError(t *testing.T) {
 		AdminResetPassword(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.NotFound, "missing"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2/password",
 		bytes.NewReader([]byte(`{"password":"x"}`)))
 	req.SetPathValue("id", "2")
@@ -429,7 +430,7 @@ func TestAdminHandler_SetPlan_Success(t *testing.T) {
 		AdminSetPlan(gomock.Any(), gomock.Any()).
 		Return(&pbauth.AdminSetPlanResponse{}, nil)
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2/plan",
 		bytes.NewReader([]byte(`{"plan":"pro"}`)))
 	req.SetPathValue("id", "2")
@@ -444,7 +445,7 @@ func TestAdminHandler_SetPlan_Success(t *testing.T) {
 
 func TestAdminHandler_SetPlan_InvalidID(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/x/plan", bytes.NewReader([]byte(`{}`)))
 	req.SetPathValue("id", "x")
 	req = withUser(req, 1)
@@ -458,7 +459,7 @@ func TestAdminHandler_SetPlan_InvalidID(t *testing.T) {
 
 func TestAdminHandler_SetPlan_BadBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2/plan", bytes.NewReader([]byte(`{`)))
 	req.SetPathValue("id", "2")
 	req = withUser(req, 1)
@@ -477,7 +478,7 @@ func TestAdminHandler_SetPlan_GRPCError(t *testing.T) {
 		AdminSetPlan(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.InvalidArgument, "bad plan"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("PUT", "/admin/users/2/plan",
 		bytes.NewReader([]byte(`{"plan":"weird"}`)))
 	req.SetPathValue("id", "2")
@@ -500,7 +501,7 @@ func TestAdminHandler_GetActivityStats_Success(t *testing.T) {
 			Mau: []*pbauth.MauEntry{{Month: "2025-01", Count: 50}},
 		}, nil)
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("GET", "/admin/stats/activity?dau_days=7&mau_months=3", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -518,7 +519,7 @@ func TestAdminHandler_GetActivityStats_GRPCError(t *testing.T) {
 		AdminGetActivityStats(gomock.Any(), gomock.Any()).
 		Return(nil, status.Error(codes.PermissionDenied, "no"))
 
-	h := NewAdminHandler(authClient, nil, nil)
+	h := NewAdminHandler(authClient, nil, nil, nil)
 	req := httptest.NewRequest("GET", "/admin/stats/activity", nil)
 	req = withUser(req, 1)
 	rec := httptest.NewRecorder()
@@ -531,7 +532,7 @@ func TestAdminHandler_GetActivityStats_GRPCError(t *testing.T) {
 
 func TestAdminHandler_RegisterRoutes(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), mocks.NewMockNotebookServiceClient(ctrl), nil)
+	h := NewAdminHandler(mocks.NewMockAuthServiceClient(ctrl), mocks.NewMockNotebookServiceClient(ctrl), nil, nil)
 	mux := http.NewServeMux()
 	noop := func(next http.Handler) http.Handler { return next }
 	var noopMw middleware.Middleware = noop
@@ -552,6 +553,7 @@ func TestAdminHandler_RegisterRoutes(t *testing.T) {
 		{"DELETE", "/api/v1/admin/notebooks/1"},
 		{"GET", "/api/v1/admin/stats"},
 		{"GET", "/api/v1/admin/stats/activity"},
+		{"POST", "/api/v1/admin/send-email"},
 	}
 	for _, tc := range cases {
 		req := httptest.NewRequest(tc.method, tc.path, bytes.NewReader([]byte(`{}`)))
@@ -564,5 +566,72 @@ func TestAdminHandler_RegisterRoutes(t *testing.T) {
 			t.Errorf("no route registered for %s %s", tc.method, tc.path)
 		}
 		_ = rec
+	}
+}
+
+func TestAdminHandler_SendEmail_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	notifClient := mocks.NewMockNotificationServiceClient(ctrl)
+
+	notifClient.EXPECT().SendEmail(gomock.Any(), gomock.Any()).
+		Return(&pbnotification.SendEmailResponse{}, nil)
+
+	h := NewAdminHandler(nil, nil, nil, notifClient)
+	body := `{"to":"user@test.com","subject":"Test","body":"Hello"}`
+	req := httptest.NewRequest("POST", "/api/v1/admin/send-email", bytes.NewReader([]byte(body)))
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SendEmail(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SendEmail_MissingFields(t *testing.T) {
+	h := NewAdminHandler(nil, nil, nil, nil)
+	body := `{"to":"user@test.com","subject":"","body":""}`
+	req := httptest.NewRequest("POST", "/api/v1/admin/send-email", bytes.NewReader([]byte(body)))
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SendEmail(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SendEmail_BadBody(t *testing.T) {
+	h := NewAdminHandler(nil, nil, nil, nil)
+	req := httptest.NewRequest("POST", "/api/v1/admin/send-email", bytes.NewReader([]byte(`{`)))
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SendEmail(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_SendEmail_GRPCError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	notifClient := mocks.NewMockNotificationServiceClient(ctrl)
+
+	notifClient.EXPECT().SendEmail(gomock.Any(), gomock.Any()).
+		Return(nil, status.Error(codes.Internal, "smtp failed"))
+
+	h := NewAdminHandler(nil, nil, nil, notifClient)
+	body := `{"to":"user@test.com","subject":"Test","body":"Hello"}`
+	req := httptest.NewRequest("POST", "/api/v1/admin/send-email", bytes.NewReader([]byte(body)))
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.SendEmail(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("want 500, got %d", rec.Code)
 	}
 }
