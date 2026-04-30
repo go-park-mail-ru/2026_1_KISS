@@ -17,6 +17,8 @@ services:
         condition: service_healthy
       issue:
         condition: service_healthy
+      notification:
+        condition: service_healthy
     environment:
       SERVER_PORT: "${SERVER_PORT:-8080}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
@@ -25,6 +27,7 @@ services:
       RUNNER_GRPC_ADDR: "runner:9003"
       STORAGE_GRPC_ADDR: "storage:9004"
       ISSUE_GRPC_ADDR: "issue:9005"
+      NOTIFICATION_GRPC_ADDR: "notification:9006"
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       UPLOAD_DIR: /app/uploads
       RATE_LIMIT_MAX_REQUESTS: "${RATE_LIMIT_MAX_REQUESTS:-300}"
