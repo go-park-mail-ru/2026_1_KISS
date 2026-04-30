@@ -91,7 +91,7 @@ func (s *Service) sendMultipart(to, subject, textBody, htmlBody string) error {
 	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
 	msg.WriteString("MIME-Version: 1.0\r\n")
 	msg.WriteString(fmt.Sprintf("Content-Type: multipart/alternative; boundary=%q\r\n", boundary))
-	msg.WriteString("Reply-To: support@kisscolab.ru\r\n")
+	msg.WriteString("Reply-To: support@colkiss.ru\r\n")
 	msg.WriteString("\r\n")
 
 	msg.WriteString(fmt.Sprintf("--%s\r\n", boundary))

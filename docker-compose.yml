@@ -155,7 +155,7 @@ services:
     environment:
       GRPC_PORT: "9006"
       METRICS_PORT: "9090"
-      MAIL_FROM: "${MAIL_FROM:-noreply@kisscolab.ru}"
+      MAIL_FROM: "${MAIL_FROM:-noreply@colkiss.ru}"
       MAIL_SMTP_HOST: "${MAIL_SMTP_HOST}"
       MAIL_SMTP_PORT: "${MAIL_SMTP_PORT:-25}"
     networks:
