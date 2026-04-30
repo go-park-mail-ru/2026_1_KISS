@@ -13,11 +13,11 @@ import (
 )
 
 type mockUserRepo struct {
-	createFn                func(ctx context.Context, user *domain.User) (int64, error)
-	getByIDFn               func(ctx context.Context, id int64) (*domain.User, error)
-	getByEmailFn            func(ctx context.Context, email string) (*domain.User, error)
-	getByUsernameFn         func(ctx context.Context, username string) (*domain.User, error)
-	setVerifiedFn           func(ctx context.Context, userID int64, isVerified bool) error
+	createFn                 func(ctx context.Context, user *domain.User) (int64, error)
+	getByIDFn                func(ctx context.Context, id int64) (*domain.User, error)
+	getByEmailFn             func(ctx context.Context, email string) (*domain.User, error)
+	getByUsernameFn          func(ctx context.Context, username string) (*domain.User, error)
+	setVerifiedFn            func(ctx context.Context, userID int64, isVerified bool) error
 	deleteUnverifiedBeforeFn func(ctx context.Context, before time.Time) (int64, error)
 }
 
