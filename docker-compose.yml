@@ -134,7 +134,7 @@ services:
       RUNNER_IDLE_TIMEOUT: "${RUNNER_IDLE_TIMEOUT:-15m}"
       REDIS_HOST: "${REDIS_HOST:-redis}"
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
-      NETWORK_NAME: "2026_1_kiss_app-network"
+      NETWORK_NAME: "kiss_app-network"
       UPLOAD_DIR: /app/uploads
 
     volumes:
