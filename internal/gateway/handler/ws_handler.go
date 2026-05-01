@@ -18,15 +18,21 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+	pbrunner "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
 )
 
 type WSHandler struct {
-	authClient pbauth.AuthServiceClient
-	nbClient   pb.NotebookServiceClient
+	authClient   pbauth.AuthServiceClient
+	nbClient     pb.NotebookServiceClient
+	runnerClient pbrunner.RunnerServiceClient
 }
 
-func NewWSHandler(authClient pbauth.AuthServiceClient, nbClient pb.NotebookServiceClient) *WSHandler {
-	return &WSHandler{authClient: authClient, nbClient: nbClient}
+func NewWSHandler(authClient pbauth.AuthServiceClient, nbClient pb.NotebookServiceClient, runnerClient ...pbrunner.RunnerServiceClient) *WSHandler {
+	h := &WSHandler{authClient: authClient, nbClient: nbClient}
+	if len(runnerClient) > 0 {
+		h.runnerClient = runnerClient[0]
+	}
+	return h
 }
 
 func (h *WSHandler) RegisterRoutes(mux *http.ServeMux) {
@@ -130,11 +136,12 @@ func (h *WSHandler) checkReadAccess(w http.ResponseWriter, ctx context.Context, 
 }
 
 type wsIncoming struct {
-	Type      string `json:"type"`
-	BlockID   int64  `json:"block_id,omitempty"`
-	Content   string `json:"content,omitempty"`
-	Language  string `json:"language,omitempty"`
-	BlockType string `json:"block_type,omitempty"`
+	Type          string `json:"type"`
+	BlockID       int64  `json:"block_id,omitempty"`
+	Content       string `json:"content,omitempty"`
+	Language      string `json:"language,omitempty"`
+	BlockType     string `json:"block_type,omitempty"`
+	BlockPosition int32  `json:"block_position,omitempty"`
 }
 
 type wsOutgoing struct {
@@ -180,6 +187,8 @@ func (h *WSHandler) readPump(ctx context.Context, conn *websocket.Conn, userID, 
 				)
 				_ = wsjson.Write(ctx, conn, errorEvent(err))
 			}
+		case "execute_block":
+			go h.handleExecuteBlock(ctx, conn, msg, userID, notebookID, connID)
 		default:
 			logger.Warn(ctx, "ws.readPump", "stage", "unknown_type", "type", msg.Type, "user_id", userID, "notebook_id", notebookID, "conn_id", connID)
 		}
@@ -207,6 +216,54 @@ func (h *WSHandler) handleMutation(ctx context.Context, msg wsIncoming, userID, 
 		return err
 	}
 	return nil
+}
+
+func (h *WSHandler) handleExecuteBlock(ctx context.Context, conn *websocket.Conn, msg wsIncoming, userID, notebookID int64, connID string) {
+	if h.runnerClient == nil {
+		_ = wsjson.Write(ctx, conn, wsOutgoing{Type: "error", Message: "runner not configured"})
+		return
+	}
+
+	logger.Info(ctx, "ws.executeBlock", "user_id", userID, "notebook_id", notebookID, "block_position", msg.BlockPosition, "conn_id", connID)
+
+	stream, err := h.runnerClient.ExecuteBlockStream(ctx, &pbrunner.ExecuteBlockRequest{
+		NotebookId:    notebookID,
+		BlockPosition: msg.BlockPosition,
+		UserId:        userID,
+	})
+	if err != nil {
+		_ = wsjson.Write(ctx, conn, wsOutgoing{Type: "execute_error", Message: grpcutil.GRPCToDomainError(err).Error()})
+		return
+	}
+
+	for {
+		chunk, err := stream.Recv()
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				_ = wsjson.Write(ctx, conn, wsOutgoing{Type: "execute_error", Message: err.Error()})
+			}
+			return
+		}
+
+		switch chunk.GetChunkType() {
+		case "complete":
+			result := chunk.GetFinalResult()
+			raw, _ := json.Marshal(map[string]any{
+				"block_id":    result.GetBlockId(),
+				"position":    result.GetPosition(),
+				"stdout":      result.GetStdout(),
+				"stderr":      result.GetStderr(),
+				"result":      result.GetResult(),
+				"error":       result.GetError(),
+				"executed_at": result.GetExecutedAt(),
+				"duration_ns": result.GetDurationNs(),
+			})
+			_ = wsjson.Write(ctx, conn, wsOutgoing{Type: "execute_completed", Block: raw})
+			return
+		default:
+			_ = wsjson.Write(ctx, conn, wsOutgoing{Type: chunk.GetChunkType() + "_chunk", Message: chunk.GetData()})
+		}
+	}
 }
 
 func (h *WSHandler) writePump(ctx context.Context, conn *websocket.Conn, stream pb.NotebookService_SubscribeNotebookClient, userID, notebookID int64, connID string) {

@@ -565,3 +565,17 @@ func TestIssueHandler_AdminAddResponse_EmptyContent(t *testing.T) {
 		t.Errorf("want 400, got %d", rec.Code)
 	}
 }
+
+func TestIssueHandler_RegisterRoutes(t *testing.T) {
+	h := NewIssueHandler(nil, nil)
+	mux := http.NewServeMux()
+	identity := func(next http.Handler) http.Handler { return next }
+	h.RegisterRoutes(mux, identity, identity)
+}
+
+func TestIssueHandler_RegisterRouesCompat(t *testing.T) {
+	h := NewIssueHandler(nil, nil)
+	mux := http.NewServeMux()
+	identity := func(next http.Handler) http.Handler { return next }
+	h.RegisterRoues(mux, identity)
+}

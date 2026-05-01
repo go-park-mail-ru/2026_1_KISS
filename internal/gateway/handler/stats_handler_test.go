@@ -15,6 +15,27 @@ import (
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
+func TestStatsHandler_GetMyStats_AllFailed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	authClient := mocks.NewMockAuthServiceClient(ctrl)
+	nbClient := mocks.NewMockNotebookServiceClient(ctrl)
+	storClient := mocks.NewMockStorageServiceClient(ctrl)
+
+	authClient.EXPECT().GetUserStats(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("down"))
+	nbClient.EXPECT().GetUserStats(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("down"))
+	storClient.EXPECT().GetUserStorageStats(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("down"))
+
+	h := NewStatsHandler(authClient, nbClient, storClient)
+	req := httptest.NewRequest("GET", "/api/v1/users/me/stats", nil)
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+	h.GetMyStats(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+}
+
 func TestStatsHandler_RegisterRoutes(t *testing.T) {
 	h := NewStatsHandler(nil, nil, nil)
 	mux := http.NewServeMux()

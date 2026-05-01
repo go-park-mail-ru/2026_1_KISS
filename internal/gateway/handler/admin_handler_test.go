@@ -15,6 +15,7 @@ import (
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pbnotification "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notification"
+	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
 func TestAdminHandler_ListUsers_Success(t *testing.T) {
@@ -633,5 +634,48 @@ func TestAdminHandler_SendEmail_GRPCError(t *testing.T) {
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("want 500, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_GetStorageStats_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	storClient := mocks.NewMockStorageServiceClient(ctrl)
+
+	storClient.EXPECT().GetStorageStats(gomock.Any(), gomock.Any()).
+		Return(&pbstorage.GetStorageStatsResponse{
+			TotalFiles: 10, TotalSizeBytes: 1024,
+			FilesByCategory: map[string]int64{"files": 5},
+			SizeByCategory:  map[string]int64{"files": 512},
+		}, nil)
+
+	h := NewAdminHandler(nil, nil, storClient, nil)
+	req := httptest.NewRequest("GET", "/api/v1/admin/storage/stats", nil)
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.GetStorageStats(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+}
+
+func TestAdminHandler_ListStorageFiles_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	storClient := mocks.NewMockStorageServiceClient(ctrl)
+
+	storClient.EXPECT().AdminListFiles(gomock.Any(), gomock.Any()).
+		Return(&pbstorage.ListFilesResponse{
+			Files: []*pbstorage.FileInfo{{Id: "abc", OwnerId: 1, Category: "files", Filename: "test.txt", Url: "/f/abc", Size: 100, CreatedAt: 1714500000}},
+			Total: 1,
+		}, nil)
+
+	h := NewAdminHandler(nil, nil, storClient, nil)
+	req := httptest.NewRequest("GET", "/api/v1/admin/storage/files", nil)
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ListStorageFiles(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", rec.Code)
 	}
 }
