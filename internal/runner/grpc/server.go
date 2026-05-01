@@ -159,10 +159,13 @@ func (s *Server) GetSessionStats(ctx context.Context, req *pb.GetSessionStatsReq
 	}
 
 	return &pb.GetSessionStatsResponse{
-		CpuPercent:    stats.CPUPercent,
-		MemoryUsage:   stats.MemoryUsage,
-		MemoryLimit:   stats.MemoryLimit,
-		MemoryPercent: stats.MemoryPercent,
+		CpuPercent:     stats.CPUPercent,
+		MemoryUsage:    stats.MemoryUsage,
+		MemoryLimit:    stats.MemoryLimit,
+		MemoryPercent:  stats.MemoryPercent,
+		CpuCores:       stats.CPUCores,
+		DiskLimitBytes: stats.DiskLimitBytes,
+		GpuAvailable:   stats.GPUAvailable,
 	}, nil
 }
 

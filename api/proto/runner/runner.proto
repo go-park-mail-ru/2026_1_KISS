@@ -7,6 +7,7 @@ service RunnerService {
   rpc ExecuteBlock(ExecuteBlockRequest) returns (ExecuteBlockResponse);
   rpc StopSession(StopSessionRequest) returns (StopSessionResponse);
   rpc GetSessionStats(GetSessionStatsRequest) returns (GetSessionStatsResponse);
+  rpc ExecuteBlockStream(ExecuteBlockRequest) returns (stream ExecutionChunk);
 }
 
 message ExecuteFromPositionRequest {
@@ -63,4 +64,13 @@ message GetSessionStatsResponse {
   int64 memory_usage = 2;
   int64 memory_limit = 3;
   double memory_percent = 4;
+  uint32 cpu_cores = 5;
+  int64 disk_limit_bytes = 6;
+  bool gpu_available = 7;
+}
+
+message ExecutionChunk {
+  string chunk_type = 1;
+  string data = 2;
+  BlockExecutionResult final_result = 3;
 }

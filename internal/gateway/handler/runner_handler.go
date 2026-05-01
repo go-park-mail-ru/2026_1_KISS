@@ -165,10 +165,13 @@ func (h *RunnerHandler) GetContainerStats(w http.ResponseWriter, r *http.Request
 	}
 
 	httputil.JSON(w, http.StatusOK, map[string]any{
-		"cpu_percent":    resp.GetCpuPercent(),
-		"memory_usage":   resp.GetMemoryUsage(),
-		"memory_limit":   resp.GetMemoryLimit(),
-		"memory_percent": resp.GetMemoryPercent(),
+		"cpu_percent":      resp.GetCpuPercent(),
+		"memory_usage":     resp.GetMemoryUsage(),
+		"memory_limit":     resp.GetMemoryLimit(),
+		"memory_percent":   resp.GetMemoryPercent(),
+		"cpu_cores":        resp.GetCpuCores(),
+		"disk_limit_bytes": resp.GetDiskLimitBytes(),
+		"gpu_available":    resp.GetGpuAvailable(),
 	})
 }
 
