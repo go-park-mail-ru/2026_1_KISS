@@ -1240,11 +1240,47 @@ func TestSaveBlockOutputs_Success(t *testing.T) {
 
 	outputs := []domain.BlockOutput{{Position: 0, OutputType: "stdout", Content: "hello"}}
 	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), outputs).Return(nil)
+	blockRepo.EXPECT().IncrementExecutionCount(gomock.Any(), int64(1)).Return(nil)
 
 	uc := usecase.New(notebookRepo, blockRepo, permRepo)
 	err := uc.SaveBlockOutputs(context.Background(), 1, outputs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSaveBlockOutputs_SaveError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	outputs := []domain.BlockOutput{{Position: 0, OutputType: "stdout", Content: "hello"}}
+	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), outputs).Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	err := uc.SaveBlockOutputs(context.Background(), 1, outputs)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestSaveBlockOutputs_IncrementError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	outputs := []domain.BlockOutput{{Position: 0, OutputType: "stdout", Content: "hello"}}
+	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), outputs).Return(nil)
+	blockRepo.EXPECT().IncrementExecutionCount(gomock.Any(), int64(1)).Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	err := uc.SaveBlockOutputs(context.Background(), 1, outputs)
+	if err != nil {
+		t.Fatal("increment error should not propagate")
 	}
 }
 

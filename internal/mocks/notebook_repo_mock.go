@@ -331,6 +331,20 @@ func (mr *MockBlockRepositoryMockRecorder) GetOutputsByBlockIDs(ctx, blockIDs an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutputsByBlockIDs", reflect.TypeOf((*MockBlockRepository)(nil).GetOutputsByBlockIDs), ctx, blockIDs)
 }
 
+// IncrementExecutionCount mocks base method.
+func (m *MockBlockRepository) IncrementExecutionCount(ctx context.Context, blockID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementExecutionCount", ctx, blockID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementExecutionCount indicates an expected call of IncrementExecutionCount.
+func (mr *MockBlockRepositoryMockRecorder) IncrementExecutionCount(ctx, blockID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementExecutionCount", reflect.TypeOf((*MockBlockRepository)(nil).IncrementExecutionCount), ctx, blockID)
+}
+
 // ReorderBlocks mocks base method.
 func (m *MockBlockRepository) ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error {
 	m.ctrl.T.Helper()
