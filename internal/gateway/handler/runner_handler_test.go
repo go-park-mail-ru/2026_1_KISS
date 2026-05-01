@@ -151,6 +151,32 @@ func TestRunnerHandler_GetContainerStats_InvalidID(t *testing.T) {
 	}
 }
 
+func TestRunnerHandler_ExecuteFromPosition_Unauthorized(t *testing.T) {
+	h := NewRunnerHandler(nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/1", nil)
+	req.SetPathValue("notebook_id", "1")
+	rec := httptest.NewRecorder()
+
+	h.ExecuteFromPosition(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d", rec.Code)
+	}
+}
+
+func TestRunnerHandler_ExecuteBlock_Unauthorized(t *testing.T) {
+	h := NewRunnerHandler(nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/1/block", nil)
+	req.SetPathValue("notebook_id", "1")
+	rec := httptest.NewRecorder()
+
+	h.ExecuteBlock(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d", rec.Code)
+	}
+}
+
 func TestRunnerHandler_ExecuteBlock_InvalidID(t *testing.T) {
 	h := NewRunnerHandler(nil)
 	req := httptest.NewRequest("POST", "/api/v1/runner/abc/block", nil)

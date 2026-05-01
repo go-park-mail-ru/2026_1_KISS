@@ -136,3 +136,59 @@ class KernelBridge:
                 result=result_text,
                 outputs=rich_outputs,
             )
+
+    def execute_streaming(self, code, timeout):
+        if self._kc is None:
+            raise RuntimeError("Kernel is not initialized")
+
+        with self._lock:
+            msg_id = self._kc.execute(code)
+            result_text = ""
+            rich_outputs: list[OutputItem] = []
+
+            deadline = time.monotonic() + timeout
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self._recover_after_timeout()
+                    yield {"type": "error", "data": f"Execution timeout after {timeout} seconds"}
+                    return
+
+                try:
+                    msg = self._kc.get_iopub_msg(timeout=min(1.0, remaining))
+                except Empty:
+                    continue
+
+                parent_header = msg.get("parent_header", {})
+                if parent_header.get("msg_id") != msg_id:
+                    continue
+
+                msg_type = msg.get("msg_type")
+                content = msg.get("content", {})
+
+                if msg_type == "stream":
+                    text = content.get("text", "")
+                    name = "stderr" if content.get("name") == "stderr" else "stdout"
+                    yield {"type": name, "data": text}
+                elif msg_type in {"execute_result", "display_data"}:
+                    data = content.get("data", {})
+                    for mime in ("image/png", "image/jpeg", "text/html", "text/plain"):
+                        if mime in data:
+                            rich_outputs.append(OutputItem(mime_type=mime, data=data[mime]))
+                    if "text/plain" in data:
+                        result_text = data["text/plain"]
+                elif msg_type == "error":
+                    tb = content.get("traceback") or []
+                    if tb:
+                        yield {"type": "stderr", "data": "\n".join(tb) + "\n"}
+                    else:
+                        ename = content.get("ename", "Error")
+                        evalue = content.get("evalue", "")
+                        yield {"type": "stderr", "data": f"{ename}: {evalue}\n"}
+                elif msg_type == "status" and content.get("execution_state") == "idle":
+                    break
+
+            if result_text:
+                yield {"type": "result", "data": result_text}
+            for output in rich_outputs:
+                yield {"type": "output", "data": output.data, "mime_type": output.mime_type}

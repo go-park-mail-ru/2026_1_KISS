@@ -99,3 +99,37 @@ func TestEventHandler_Track_GRPCError(t *testing.T) {
 		t.Errorf("want 500, got %d", rec.Code)
 	}
 }
+
+func TestEventHandler_RegisterRoutes(t *testing.T) {
+	h := NewEventHandler(nil)
+	mux := http.NewServeMux()
+	identity := func(next http.Handler) http.Handler { return next }
+	h.RegisterRoutes(mux, identity)
+}
+
+func TestNotebookHandler_RegisterRoutes(t *testing.T) {
+	h := NewNotebookHandler(nil, nil)
+	mux := http.NewServeMux()
+	identity := func(next http.Handler) http.Handler { return next }
+	h.RegisterRoutes(mux, identity)
+}
+
+func TestProfileHandler_RegisterRoutes(t *testing.T) {
+	h := NewProfileHandler(nil, 0)
+	mux := http.NewServeMux()
+	identity := func(next http.Handler) http.Handler { return next }
+	h.RegisterRoutes(mux, identity)
+}
+
+func TestFileHandler_RegisterRoutes(t *testing.T) {
+	h := NewFileHandler(nil, 0)
+	mux := http.NewServeMux()
+	identity := func(next http.Handler) http.Handler { return next }
+	h.RegisterRoutes(mux, identity)
+}
+
+func TestHealthHandler_RegisterRoutes(t *testing.T) {
+	h := NewHealthHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+}

@@ -91,7 +91,7 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler := handler.NewHealthHandler()
 	eventHandler := handler.NewEventHandler(authClient)
 	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient, notifClient)
-	wsHandler := handler.NewWSHandler(authClient, nbClient)
+	wsHandler := handler.NewWSHandler(authClient, nbClient, runClient)
 	statsHandler := handler.NewStatsHandler(authClient, nbClient, storageClient)
 	issueHandler := handler.NewIssueHandler(issueClient, authClient)
 
