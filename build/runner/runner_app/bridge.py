@@ -82,6 +82,7 @@ class KernelBridge:
             stderr_chunks = []
             result_text = ""
             rich_outputs: list[OutputItem] = []
+            output_bytes = 0
 
             deadline = time.monotonic() + timeout
             while True:
@@ -104,6 +105,10 @@ class KernelBridge:
 
                 if msg_type == "stream":
                     text = content.get("text", "")
+                    output_bytes += len(text.encode("utf-8"))
+                    if output_bytes > self.MAX_OUTPUT_BYTES:
+                        self._recover_after_timeout()
+                        raise TimeoutError(f"Output limit exceeded ({self.MAX_OUTPUT_BYTES // (1024*1024)} MB)")
                     if content.get("name") == "stderr":
                         stderr_chunks.append(text)
                     else:
@@ -137,6 +142,8 @@ class KernelBridge:
                 outputs=rich_outputs,
             )
 
+    MAX_OUTPUT_BYTES = 5 * 1024 * 1024
+
     def execute_streaming(self, code, timeout):
         if self._kc is None:
             raise RuntimeError("Kernel is not initialized")
@@ -145,6 +152,7 @@ class KernelBridge:
             msg_id = self._kc.execute(code)
             result_text = ""
             rich_outputs: list[OutputItem] = []
+            output_bytes = 0
 
             deadline = time.monotonic() + timeout
             while True:
@@ -168,6 +176,11 @@ class KernelBridge:
 
                 if msg_type == "stream":
                     text = content.get("text", "")
+                    output_bytes += len(text.encode("utf-8"))
+                    if output_bytes > self.MAX_OUTPUT_BYTES:
+                        self._recover_after_timeout()
+                        yield {"type": "error", "data": f"Output limit exceeded ({self.MAX_OUTPUT_BYTES // (1024*1024)} MB). Execution interrupted."}
+                        return
                     name = "stderr" if content.get("name") == "stderr" else "stdout"
                     yield {"type": name, "data": text}
                 elif msg_type in {"execute_result", "display_data"}:
