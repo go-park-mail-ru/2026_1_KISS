@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
@@ -34,6 +35,7 @@ type BlockRepository interface {
 	CountByOwnerID(ctx context.Context, ownerID int64) (int64, error)
 	SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (int64, error)
 	IncrementExecutionCount(ctx context.Context, blockID int64) error
+	CountExecutionsByOwnerByDay(ctx context.Context, ownerID int64, since time.Time) ([]domain.DayCount, error)
 }
 
 type PermissionRepository interface {

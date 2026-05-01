@@ -310,6 +310,35 @@ func (r *BlockRepo) SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (
 	return total, nil
 }
 
+func (r *BlockRepo) CountExecutionsByOwnerByDay(ctx context.Context, ownerID int64, since time.Time) ([]domain.DayCount, error) {
+	start := time.Now()
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT DATE(bo.created_at) AS day, COUNT(DISTINCT bo.block_id)
+		 FROM block_outputs bo
+		 JOIN blocks b ON bo.block_id = b.id
+		 JOIN notebooks n ON b.notebook_id = n.id
+		 WHERE n.owner_id = $1 AND bo.created_at >= $2
+		 GROUP BY DATE(bo.created_at) ORDER BY day`,
+		ownerID, since,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.CountExecutionsByOwnerByDay", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []domain.DayCount
+	for rows.Next() {
+		var dc domain.DayCount
+		if err := rows.Scan(&dc.Date, &dc.Count); err != nil {
+			return nil, err
+		}
+		result = append(result, dc)
+	}
+	logger.Info(ctx, "repo.blocks.CountExecutionsByOwnerByDay", "duration", time.Since(start), "owner_id", ownerID, "entries", len(result))
+	return result, rows.Err()
+}
+
 func (r *BlockRepo) IncrementExecutionCount(ctx context.Context, blockID int64) error {
 	start := time.Now()
 	_, err := r.db.ExecContext(ctx,

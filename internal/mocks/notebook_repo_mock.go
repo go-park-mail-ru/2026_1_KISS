@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	gomock "go.uber.org/mock/gomock"
@@ -240,6 +241,21 @@ func (m *MockBlockRepository) CountByOwnerID(ctx context.Context, ownerID int64)
 func (mr *MockBlockRepositoryMockRecorder) CountByOwnerID(ctx, ownerID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountByOwnerID", reflect.TypeOf((*MockBlockRepository)(nil).CountByOwnerID), ctx, ownerID)
+}
+
+// CountExecutionsByOwnerByDay mocks base method.
+func (m *MockBlockRepository) CountExecutionsByOwnerByDay(ctx context.Context, ownerID int64, since time.Time) ([]domain.DayCount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountExecutionsByOwnerByDay", ctx, ownerID, since)
+	ret0, _ := ret[0].([]domain.DayCount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountExecutionsByOwnerByDay indicates an expected call of CountExecutionsByOwnerByDay.
+func (mr *MockBlockRepositoryMockRecorder) CountExecutionsByOwnerByDay(ctx, ownerID, since any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountExecutionsByOwnerByDay", reflect.TypeOf((*MockBlockRepository)(nil).CountExecutionsByOwnerByDay), ctx, ownerID, since)
 }
 
 // Create mocks base method.
