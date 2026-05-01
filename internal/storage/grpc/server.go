@@ -144,6 +144,33 @@ func (s *Server) DeleteFileByURL(ctx context.Context, req *pb.DeleteFileByURLReq
 	return &pb.DeleteFileResponse{}, nil
 }
 
+func (s *Server) GetUserStorageStats(ctx context.Context, req *pb.GetUserStorageStatsRequest) (*pb.GetStorageStatsResponse, error) {
+	if req.GetUserId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	stats, err := s.uc.GetUserStorageStats(ctx, req.GetUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+
+	filesByCat := make(map[string]int64, len(stats.FilesByCategory))
+	sizeByCat := make(map[string]int64, len(stats.SizeByCategory))
+	for k, v := range stats.FilesByCategory {
+		filesByCat[string(k)] = v
+	}
+	for k, v := range stats.SizeByCategory {
+		sizeByCat[string(k)] = v
+	}
+
+	return &pb.GetStorageStatsResponse{
+		TotalFiles:      stats.TotalFiles,
+		TotalSizeBytes:  stats.TotalSizeBytes,
+		FilesByCategory: filesByCat,
+		SizeByCategory:  sizeByCat,
+	}, nil
+}
+
 func fileToProto(f *domain.File) *pb.FileInfo {
 	if f == nil {
 		return nil

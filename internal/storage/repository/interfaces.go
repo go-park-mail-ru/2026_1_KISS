@@ -14,5 +14,6 @@ type FileRepository interface {
 	Delete(ctx context.Context, id string) error
 	DeleteByURL(ctx context.Context, url string) (string, error)
 	GetStats(ctx context.Context) (*domain.StorageStats, error)
+	GetStatsByOwner(ctx context.Context, ownerID int64) (*domain.StorageStats, error)
 	ListAll(ctx context.Context, category string, ownerID int64, limit, offset int) ([]domain.File, int, error)
 }

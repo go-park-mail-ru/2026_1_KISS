@@ -219,3 +219,40 @@ func TestGetStats(t *testing.T) {
 		t.Errorf("expected 10, got %d", stats.TotalFiles)
 	}
 }
+
+func TestGetUserStorageStats_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	uc, repo, _ := newTestUsecase(ctrl)
+
+	expected := &domain.StorageStats{
+		TotalFiles:      3,
+		TotalSizeBytes:  1024,
+		FilesByCategory: map[domain.FileCategory]int64{"datasets": 2, "files": 1},
+		SizeByCategory:  map[domain.FileCategory]int64{"datasets": 800, "files": 224},
+	}
+
+	repo.EXPECT().GetStatsByOwner(gomock.Any(), int64(1)).Return(expected, nil)
+
+	stats, err := uc.GetUserStorageStats(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stats.TotalFiles != 3 {
+		t.Errorf("expected 3 files, got %d", stats.TotalFiles)
+	}
+	if stats.TotalSizeBytes != 1024 {
+		t.Errorf("expected 1024 bytes, got %d", stats.TotalSizeBytes)
+	}
+}
+
+func TestGetUserStorageStats_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	uc, repo, _ := newTestUsecase(ctrl)
+
+	repo.EXPECT().GetStatsByOwner(gomock.Any(), int64(99)).Return(nil, domain.ErrNotFound)
+
+	_, err := uc.GetUserStorageStats(context.Background(), 99)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
