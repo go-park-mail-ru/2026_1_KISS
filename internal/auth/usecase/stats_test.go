@@ -81,6 +81,47 @@ func TestStatsUsecase_GetUserStats_ProPlan_Unlimited(t *testing.T) {
 	}
 }
 
+func TestStatsUsecase_GetUserStats_FreezePlan(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	userRepo := mocks.NewMockUserRepository(ctrl)
+	eventRepo := mocks.NewMockEventRepository(ctrl)
+
+	user := &domain.User{ID: 3, Plan: domain.PlanFreeze, TotalTimeSeconds: 10800, CreatedAt: time.Now()}
+
+	userRepo.EXPECT().GetByID(gomock.Any(), int64(3)).Return(user, nil)
+	eventRepo.EXPECT().CountUserActivityByDay(gomock.Any(), int64(3), gomock.Any()).Return(nil, nil)
+
+	uc := NewStatsUsecase(userRepo, eventRepo)
+	stats, err := uc.GetUserStats(context.Background(), 3, 30)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stats.TimeLimitSeconds != freeTimeLimitSeconds {
+		t.Errorf("freeze plan should have same limit as free")
+	}
+}
+
+func TestStatsUsecase_GetUserStats_ActivityError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	userRepo := mocks.NewMockUserRepository(ctrl)
+	eventRepo := mocks.NewMockEventRepository(ctrl)
+
+	user := &domain.User{ID: 1, Plan: domain.PlanFree, CreatedAt: time.Now()}
+
+	userRepo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(user, nil)
+	eventRepo.EXPECT().CountUserActivityByDay(gomock.Any(), int64(1), gomock.Any()).Return(nil, domain.ErrNotFound)
+
+	uc := NewStatsUsecase(userRepo, eventRepo)
+	_, err := uc.GetUserStats(context.Background(), 1, 30)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestStatsUsecase_GetUserStats_UserNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
