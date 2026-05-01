@@ -21,6 +21,7 @@ type DockerAdapter interface {
 	ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error
 	ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error)
 	GetAvailableRuntimes() ([]string, error)
+	ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error)
 }
 
 type dockerAdapter struct {
@@ -59,6 +60,10 @@ func (a *dockerAdapter) ContainerRemove(ctx context.Context, containerID string,
 
 func (a *dockerAdapter) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
 	return a.cli.ContainerList(ctx, options)
+}
+
+func (a *dockerAdapter) ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error) {
+	return a.cli.ContainerStats(ctx, containerID, stream)
 }
 
 func (a *dockerAdapter) GetAvailableRuntimes() ([]string, error) {

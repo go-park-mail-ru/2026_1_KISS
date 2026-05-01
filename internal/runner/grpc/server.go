@@ -148,6 +148,24 @@ func resultToOutputProtos(r *domain.BlockExecutionResult) []*pbnotebook.BlockOut
 	return outputs
 }
 
+func (s *Server) GetSessionStats(ctx context.Context, req *pb.GetSessionStatsRequest) (*pb.GetSessionStatsResponse, error) {
+	if err := s.checkNotebookAccess(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
+		return nil, err
+	}
+
+	stats, err := s.runnerSvc.GetSessionStats(ctx, req.GetNotebookId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+
+	return &pb.GetSessionStatsResponse{
+		CpuPercent:    stats.CPUPercent,
+		MemoryUsage:   stats.MemoryUsage,
+		MemoryLimit:   stats.MemoryLimit,
+		MemoryPercent: stats.MemoryPercent,
+	}, nil
+}
+
 func executionResultToProto(r *domain.BlockExecutionResult) *pb.BlockExecutionResult {
 	if r == nil {
 		return nil
