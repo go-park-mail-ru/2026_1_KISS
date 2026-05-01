@@ -1214,9 +1214,10 @@ func TestGetUserResourceStats_Success(t *testing.T) {
 	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").Return(5, nil)
 	blockRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1)).Return(int64(20), nil)
 	blockRepo.EXPECT().SumExecutionsByOwnerID(gomock.Any(), int64(1)).Return(int64(100), nil)
+	blockRepo.EXPECT().CountExecutionsByOwnerByDay(gomock.Any(), int64(1), gomock.Any()).Return(nil, nil)
 
 	uc := usecase.New(notebookRepo, blockRepo, permRepo)
-	nbCount, blockCount, totalExec, err := uc.GetUserResourceStats(context.Background(), 1)
+	nbCount, blockCount, totalExec, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1294,7 +1295,7 @@ func TestGetUserResourceStats_NotebookCountError(t *testing.T) {
 	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").Return(0, errors.New("db error"))
 
 	uc := usecase.New(notebookRepo, blockRepo, permRepo)
-	_, _, _, err := uc.GetUserResourceStats(context.Background(), 1)
+	_, _, _, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
 	if err == nil {
 		t.Error("expected error")
 	}
@@ -1312,7 +1313,7 @@ func TestGetUserResourceStats_SumExecError(t *testing.T) {
 	blockRepo.EXPECT().SumExecutionsByOwnerID(gomock.Any(), int64(1)).Return(int64(0), errors.New("db error"))
 
 	uc := usecase.New(notebookRepo, blockRepo, permRepo)
-	_, _, _, err := uc.GetUserResourceStats(context.Background(), 1)
+	_, _, _, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
 	if err == nil {
 		t.Error("expected error")
 	}
@@ -1329,7 +1330,7 @@ func TestGetUserResourceStats_BlockCountError(t *testing.T) {
 	blockRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1)).Return(int64(0), errors.New("db error"))
 
 	uc := usecase.New(notebookRepo, blockRepo, permRepo)
-	_, _, _, err := uc.GetUserResourceStats(context.Background(), 1)
+	_, _, _, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
 	if err == nil {
 		t.Error("expected error")
 	}

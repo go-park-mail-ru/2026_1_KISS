@@ -43,7 +43,7 @@ type NotebookService interface {
 	SaveBlockOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error
 	ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error
 	ImportNotebook(ctx context.Context, userID int64, title string, blocks []domain.Block) (*domain.Notebook, error)
-	GetUserResourceStats(ctx context.Context, ownerID int64) (notebookCount int64, blockCount int64, totalExecutions int64, err error)
+	GetUserResourceStats(ctx context.Context, ownerID int64, executionDays int) (notebookCount int64, blockCount int64, totalExecutions int64, dailyExec []domain.DayCount, err error)
 }
 
 type notebookService struct {
@@ -547,21 +547,30 @@ func (s *notebookService) ReorderBlocks(ctx context.Context, userID, notebookID 
 	return nil
 }
 
-func (s *notebookService) GetUserResourceStats(ctx context.Context, ownerID int64) (int64, int64, int64, error) {
+func (s *notebookService) GetUserResourceStats(ctx context.Context, ownerID int64, executionDays int) (int64, int64, int64, []domain.DayCount, error) {
 	nbCount, err := s.notebookRepo.CountByOwnerID(ctx, ownerID, "")
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, nil, err
 	}
 
 	blockCount, err := s.blockRepo.CountByOwnerID(ctx, ownerID)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, nil, err
 	}
 
 	totalExec, err := s.blockRepo.SumExecutionsByOwnerID(ctx, ownerID)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, nil, err
 	}
 
-	return int64(nbCount), blockCount, totalExec, nil
+	if executionDays <= 0 {
+		executionDays = 30
+	}
+	since := time.Now().AddDate(0, 0, -executionDays)
+	dailyExec, err := s.blockRepo.CountExecutionsByOwnerByDay(ctx, ownerID, since)
+	if err != nil {
+		return 0, 0, 0, nil, err
+	}
+
+	return int64(nbCount), blockCount, totalExec, dailyExec, nil
 }

@@ -270,14 +270,14 @@ func (s *notebookSession) ExecuteBlockStreaming(ctx context.Context, block domai
 	var outputs []domain.OutputItem
 
 	decoder := json.NewDecoder(resp.Body)
-	for decoder.More() {
+	for {
 		var chunk struct {
 			Type     string `json:"type"`
 			Data     string `json:"data"`
 			MimeType string `json:"mime_type,omitempty"`
 		}
 		if err := decoder.Decode(&chunk); err != nil {
-			break
+			break // EOF or read error
 		}
 		switch chunk.Type {
 		case "stdout":

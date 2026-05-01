@@ -51,7 +51,8 @@ func (h *StatsHandler) GetMyStats(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer wg.Done()
 		nbResp, _ = h.notebookClient.GetUserStats(r.Context(), &pbnotebook.GetUserNotebookStatsRequest{
-			UserId: user.ID,
+			UserId:        user.ID,
+			ExecutionDays: 30, //nolint:mnd
 		})
 	}()
 	go func() {
@@ -103,11 +104,22 @@ func (h *StatsHandler) GetMyStats(w http.ResponseWriter, r *http.Request) {
 		"notebook_count":   int64(0),
 		"block_count":      int64(0),
 		"total_executions": int64(0),
+		"daily_executions": []any{},
 	}
 	if nbResp != nil {
 		resources["notebook_count"] = nbResp.GetNotebookCount()
 		resources["block_count"] = nbResp.GetBlockCount()
 		resources["total_executions"] = nbResp.GetTotalExecutions()
+
+		type execDay struct {
+			Date  string `json:"date"`
+			Count int64  `json:"count"`
+		}
+		de := make([]execDay, len(nbResp.GetDailyExecutions()))
+		for i, d := range nbResp.GetDailyExecutions() {
+			de[i] = execDay{Date: d.GetDate(), Count: d.GetCount()}
+		}
+		resources["daily_executions"] = de
 	}
 
 	storage := map[string]any{

@@ -169,6 +169,10 @@ func (a *BlockAdapter) IncrementExecutionCount(_ context.Context, _ int64) error
 	return errNotSupported
 }
 
+func (a *BlockAdapter) CountExecutionsByOwnerByDay(_ context.Context, _ int64, _ time.Time) ([]domain.DayCount, error) {
+	return nil, errNotSupported
+}
+
 func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 	if info == nil {
 		return nil
