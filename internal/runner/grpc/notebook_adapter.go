@@ -165,6 +165,10 @@ func (a *BlockAdapter) SumExecutionsByOwnerID(_ context.Context, _ int64) (int64
 	return 0, errNotSupported
 }
 
+func (a *BlockAdapter) IncrementExecutionCount(_ context.Context, _ int64) error {
+	return errNotSupported
+}
+
 func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 	if info == nil {
 		return nil

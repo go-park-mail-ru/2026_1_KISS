@@ -33,6 +33,7 @@ type BlockRepository interface {
 	CreateBatch(ctx context.Context, blocks []domain.Block) ([]int64, error)
 	CountByOwnerID(ctx context.Context, ownerID int64) (int64, error)
 	SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (int64, error)
+	IncrementExecutionCount(ctx context.Context, blockID int64) error
 }
 
 type PermissionRepository interface {

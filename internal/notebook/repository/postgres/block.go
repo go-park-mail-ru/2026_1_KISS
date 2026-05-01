@@ -310,6 +310,20 @@ func (r *BlockRepo) SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (
 	return total, nil
 }
 
+func (r *BlockRepo) IncrementExecutionCount(ctx context.Context, blockID int64) error {
+	start := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE blocks SET execution_count = COALESCE(execution_count, 0) + 1 WHERE id = $1`,
+		blockID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.IncrementExecutionCount", "error", err, "duration", time.Since(start), "block_id", blockID)
+		return err
+	}
+	logger.Info(ctx, "repo.blocks.IncrementExecutionCount", "duration", time.Since(start), "block_id", blockID)
+	return nil
+}
+
 func (r *BlockRepo) ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error {
 	start := time.Now()
 	tx, err := r.db.Begin()

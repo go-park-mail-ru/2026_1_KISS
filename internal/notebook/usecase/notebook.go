@@ -498,6 +498,7 @@ func (s *notebookService) SaveBlockOutputs(ctx context.Context, blockID int64, o
 		logger.Error(ctx, "usecase.notebook.SaveBlockOutputs", "error", err)
 		return err
 	}
+	_ = s.blockRepo.IncrementExecutionCount(ctx, blockID)
 	return nil
 }
 
