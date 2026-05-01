@@ -28,6 +28,8 @@ service AuthService {
   rpc AdminGetActivityStats(AdminGetActivityStatsRequest) returns (AdminGetActivityStatsResponse);
 
   rpc ConfirmEmail(ConfirmEmailRequest) returns (ConfirmEmailResponse);
+
+  rpc GetUserStats(GetUserStatsRequest) returns (GetUserStatsResponse);
 }
 
 message UserInfo {
@@ -226,3 +228,17 @@ message ConfirmEmailRequest {
 }
 
 message ConfirmEmailResponse {}
+
+message GetUserStatsRequest {
+  int64 user_id = 1;
+  int32 activity_days = 2;
+}
+
+message GetUserStatsResponse {
+  string plan = 1;
+  int64 total_time_seconds = 2;
+  int64 time_limit_seconds = 3;
+  int64 last_active_at = 4;
+  int64 created_at = 5;
+  repeated DauEntry daily_activity = 6;
+}

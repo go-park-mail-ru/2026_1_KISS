@@ -11,6 +11,8 @@ service StorageService {
   rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
   rpc AdminListFiles(AdminListFilesRequest) returns (ListFilesResponse);
   rpc DeleteFileByURL(DeleteFileByURLRequest) returns (DeleteFileResponse);
+
+  rpc GetUserStorageStats(GetUserStorageStatsRequest) returns (GetStorageStatsResponse);
 }
 
 message DeleteFileByURLRequest {
@@ -80,4 +82,8 @@ message AdminListFilesRequest {
   int64 owner_id = 2;
   int32 limit = 3;
   int32 offset = 4;
+}
+
+message GetUserStorageStatsRequest {
+  int64 user_id = 1;
 }

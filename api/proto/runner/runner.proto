@@ -6,6 +6,7 @@ service RunnerService {
   rpc ExecuteFromPosition(ExecuteFromPositionRequest) returns (ExecuteFromPositionResponse);
   rpc ExecuteBlock(ExecuteBlockRequest) returns (ExecuteBlockResponse);
   rpc StopSession(StopSessionRequest) returns (StopSessionResponse);
+  rpc GetSessionStats(GetSessionStatsRequest) returns (GetSessionStatsResponse);
 }
 
 message ExecuteFromPositionRequest {
@@ -50,4 +51,16 @@ message BlockExecutionResult {
   int64 executed_at = 7;
   int64 duration_ns = 8;
   repeated OutputItem outputs = 9;
+}
+
+message GetSessionStatsRequest {
+  int64 notebook_id = 1;
+  int64 user_id = 2;
+}
+
+message GetSessionStatsResponse {
+  double cpu_percent = 1;
+  int64 memory_usage = 2;
+  int64 memory_limit = 3;
+  double memory_percent = 4;
 }
