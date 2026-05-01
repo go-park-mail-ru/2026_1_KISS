@@ -43,6 +43,7 @@ type NotebookService interface {
 	SaveBlockOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error
 	ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error
 	ImportNotebook(ctx context.Context, userID int64, title string, blocks []domain.Block) (*domain.Notebook, error)
+	GetUserResourceStats(ctx context.Context, ownerID int64) (notebookCount int64, blockCount int64, totalExecutions int64, err error)
 }
 
 type notebookService struct {
@@ -543,4 +544,23 @@ func (s *notebookService) ReorderBlocks(ctx context.Context, userID, notebookID 
 		Timestamp:  time.Now().UnixMilli(),
 	})
 	return nil
+}
+
+func (s *notebookService) GetUserResourceStats(ctx context.Context, ownerID int64) (int64, int64, int64, error) {
+	nbCount, err := s.notebookRepo.CountByOwnerID(ctx, ownerID, "")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	blockCount, err := s.blockRepo.CountByOwnerID(ctx, ownerID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	totalExec, err := s.blockRepo.SumExecutionsByOwnerID(ctx, ownerID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return int64(nbCount), blockCount, totalExec, nil
 }

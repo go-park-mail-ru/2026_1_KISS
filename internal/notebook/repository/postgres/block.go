@@ -280,6 +280,36 @@ func (r *BlockRepo) CreateBatch(ctx context.Context, blocks []domain.Block) ([]i
 	return ids, nil
 }
 
+func (r *BlockRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int64, error) {
+	start := time.Now()
+	var count int64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(b.id) FROM blocks b JOIN notebooks n ON b.notebook_id = n.id WHERE n.owner_id = $1`,
+		ownerID,
+	).Scan(&count)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.CountByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return 0, err
+	}
+	logger.Info(ctx, "repo.blocks.CountByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "count", count)
+	return count, nil
+}
+
+func (r *BlockRepo) SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (int64, error) {
+	start := time.Now()
+	var total int64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COALESCE(SUM(b.execution_count), 0) FROM blocks b JOIN notebooks n ON b.notebook_id = n.id WHERE n.owner_id = $1`,
+		ownerID,
+	).Scan(&total)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.SumExecutionsByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return 0, err
+	}
+	logger.Info(ctx, "repo.blocks.SumExecutionsByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "total", total)
+	return total, nil
+}
+
 func (r *BlockRepo) ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error {
 	start := time.Now()
 	tx, err := r.db.Begin()

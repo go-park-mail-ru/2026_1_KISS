@@ -386,3 +386,15 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 	}
 	return info
 }
+
+func (s *Server) GetUserStats(ctx context.Context, req *pb.GetUserNotebookStatsRequest) (*pb.GetUserNotebookStatsResponse, error) {
+	nbCount, blockCount, totalExec, err := s.notebookUC.GetUserResourceStats(ctx, req.GetUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.GetUserNotebookStatsResponse{
+		NotebookCount:   nbCount,
+		BlockCount:      blockCount,
+		TotalExecutions: totalExec,
+	}, nil
+}
