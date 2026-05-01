@@ -190,3 +190,7 @@ func mimeToExt(mime string) string {
 		return ".bin"
 	}
 }
+
+func (uc *StorageUsecase) GetUserStorageStats(ctx context.Context, ownerID int64) (*domain.StorageStats, error) {
+	return uc.fileRepo.GetStatsByOwner(ctx, ownerID)
+}

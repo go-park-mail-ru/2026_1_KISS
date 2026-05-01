@@ -158,6 +158,38 @@ func (r *FileRepo) GetStats(ctx context.Context) (*domain.StorageStats, error) {
 	return stats, rows.Err()
 }
 
+func (r *FileRepo) GetStatsByOwner(ctx context.Context, ownerID int64) (*domain.StorageStats, error) {
+	logger.Info(ctx, "repo.file.GetStatsByOwner", "owner_id", ownerID)
+
+	stats := &domain.StorageStats{
+		FilesByCategory: make(map[domain.FileCategory]int64),
+		SizeByCategory:  make(map[domain.FileCategory]int64),
+	}
+
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT category, COUNT(*), COALESCE(SUM(size), 0) FROM files WHERE owner_id = $1 GROUP BY category`,
+		ownerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get stats by owner: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cat string
+		var count, size int64
+		if err := rows.Scan(&cat, &count, &size); err != nil {
+			return nil, fmt.Errorf("scan stats: %w", err)
+		}
+		fc := domain.FileCategory(cat)
+		stats.FilesByCategory[fc] = count
+		stats.SizeByCategory[fc] = size
+		stats.TotalFiles += count
+		stats.TotalSizeBytes += size
+	}
+	return stats, rows.Err()
+}
+
 func (r *FileRepo) ListAll(ctx context.Context, category string, ownerID int64, limit, offset int) ([]domain.File, int, error) {
 	logger.Info(ctx, "repo.file.ListAll", "category", category, "owner_id", ownerID)
 
