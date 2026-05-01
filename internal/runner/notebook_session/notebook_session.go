@@ -24,8 +24,7 @@ type NotebookSession interface {
 	LastActivity() time.Time
 	ExecuteFromPosition(ctx context.Context, notebook *domain.Notebook, startPosition int) ([]*domain.BlockExecutionResult, error)
 	ExecuteBlock(ctx context.Context, block domain.Block) (*domain.BlockExecutionResult, error)
-	//UpdateAndExecuteFromBlock(ctx context.Context, notebook *domain.Notebook, blockID int64, newContent string) ([]*domain.BlockExecutionResult, error)
-	//Reset()
+	ExecuteBlockStreaming(ctx context.Context, block domain.Block, onChunk func(chunkType, data string)) (*domain.BlockExecutionResult, error)
 }
 
 func NewNotebookSession(NotebookID int64,
@@ -221,6 +220,89 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		Stderr:     stderrLines,
 		Result:     execResp.Result,
 		Outputs:    execResp.Outputs,
+		ExecutedAt: time.Now(),
+		Duration:   time.Since(startTime),
+	}
+
+	s.lastActivity.Store(time.Now().UnixNano())
+	return result, nil
+}
+
+func (s *notebookSession) ExecuteBlockStreaming(ctx context.Context, block domain.Block, onChunk func(chunkType, data string)) (*domain.BlockExecutionResult, error) {
+	startTime := time.Now()
+	req := domain.ExecuteRequest{
+		Code:    block.Content,
+		Timeout: s.execTimeout.Seconds(),
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	var fullURL string
+	parsed, err := url.Parse(s.BaseURL)
+	if err != nil || parsed.Port() != "" {
+		fullURL = s.BaseURL + "/execute/stream"
+	} else {
+		fullURL = s.BaseURL + ":8080/execute/stream"
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute block: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("execution failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var stdoutChunks, stderrChunks []string
+	var resultText string
+	var outputs []domain.OutputItem
+
+	decoder := json.NewDecoder(resp.Body)
+	for decoder.More() {
+		var chunk struct {
+			Type     string `json:"type"`
+			Data     string `json:"data"`
+			MimeType string `json:"mime_type,omitempty"`
+		}
+		if err := decoder.Decode(&chunk); err != nil {
+			break
+		}
+		switch chunk.Type {
+		case "stdout":
+			stdoutChunks = append(stdoutChunks, chunk.Data)
+			onChunk("stdout", chunk.Data)
+		case "stderr":
+			stderrChunks = append(stderrChunks, chunk.Data)
+			onChunk("stderr", chunk.Data)
+		case "result":
+			resultText = chunk.Data
+		case "output":
+			outputs = append(outputs, domain.OutputItem{MimeType: chunk.MimeType, Data: chunk.Data})
+		case "error":
+			stderrChunks = append(stderrChunks, chunk.Data)
+			onChunk("stderr", chunk.Data)
+		}
+	}
+
+	result := &domain.BlockExecutionResult{
+		BlockID:    block.ID,
+		Position:   block.Position,
+		Stdout:     stdoutChunks,
+		Stderr:     stderrChunks,
+		Result:     resultText,
+		Outputs:    outputs,
 		ExecutedAt: time.Now(),
 		Duration:   time.Since(startTime),
 	}

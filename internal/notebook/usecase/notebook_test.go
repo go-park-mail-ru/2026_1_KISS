@@ -1334,3 +1334,19 @@ func TestGetUserResourceStats_BlockCountError(t *testing.T) {
 		t.Error("expected error")
 	}
 }
+
+func TestSetAllPrivateByOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+
+	notebookRepo.EXPECT().SetAllPrivateByOwner(gomock.Any(), int64(1)).Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	err := uc.SetAllPrivateByOwner(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
