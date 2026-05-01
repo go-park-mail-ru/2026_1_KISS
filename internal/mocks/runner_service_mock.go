@@ -71,6 +71,21 @@ func (mr *MockRunnerServiceMockRecorder) ExecuteFromPosition(ctx, notebookID, st
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteFromPosition", reflect.TypeOf((*MockRunnerService)(nil).ExecuteFromPosition), ctx, notebookID, startPosition)
 }
 
+// GetSessionStats mocks base method.
+func (m *MockRunnerService) GetSessionStats(ctx context.Context, notebookID int64) (*domain.ContainerResourceStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionStats", ctx, notebookID)
+	ret0, _ := ret[0].(*domain.ContainerResourceStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionStats indicates an expected call of GetSessionStats.
+func (mr *MockRunnerServiceMockRecorder) GetSessionStats(ctx, notebookID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionStats", reflect.TypeOf((*MockRunnerService)(nil).GetSessionStats), ctx, notebookID)
+}
+
 // StartIdleReaper mocks base method.
 func (m *MockRunnerService) StartIdleReaper(ctx context.Context) {
 	m.ctrl.T.Helper()

@@ -82,6 +82,26 @@ func (mr *MockRunnerServiceClientMockRecorder) ExecuteFromPosition(ctx, in any, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteFromPosition", reflect.TypeOf((*MockRunnerServiceClient)(nil).ExecuteFromPosition), varargs...)
 }
 
+// GetSessionStats mocks base method.
+func (m *MockRunnerServiceClient) GetSessionStats(ctx context.Context, in *runner.GetSessionStatsRequest, opts ...grpc.CallOption) (*runner.GetSessionStatsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetSessionStats", varargs...)
+	ret0, _ := ret[0].(*runner.GetSessionStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionStats indicates an expected call of GetSessionStats.
+func (mr *MockRunnerServiceClientMockRecorder) GetSessionStats(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionStats", reflect.TypeOf((*MockRunnerServiceClient)(nil).GetSessionStats), varargs...)
+}
+
 // StopSession mocks base method.
 func (m *MockRunnerServiceClient) StopSession(ctx context.Context, in *runner.StopSessionRequest, opts ...grpc.CallOption) (*runner.StopSessionResponse, error) {
 	m.ctrl.T.Helper()

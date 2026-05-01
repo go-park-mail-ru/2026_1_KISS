@@ -130,6 +130,21 @@ func (mr *MockDockerAdapterMockRecorder) ContainerStart(ctx, containerID, option
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStart", reflect.TypeOf((*MockDockerAdapter)(nil).ContainerStart), ctx, containerID, options)
 }
 
+// ContainerStats mocks base method.
+func (m *MockDockerAdapter) ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ContainerStats", ctx, containerID, stream)
+	ret0, _ := ret[0].(container.StatsResponseReader)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ContainerStats indicates an expected call of ContainerStats.
+func (mr *MockDockerAdapterMockRecorder) ContainerStats(ctx, containerID, stream any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStats", reflect.TypeOf((*MockDockerAdapter)(nil).ContainerStats), ctx, containerID, stream)
+}
+
 // GetAvailableRuntimes mocks base method.
 func (m *MockDockerAdapter) GetAvailableRuntimes() ([]string, error) {
 	m.ctrl.T.Helper()

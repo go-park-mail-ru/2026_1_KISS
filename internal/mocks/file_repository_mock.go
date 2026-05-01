@@ -114,6 +114,21 @@ func (mr *MockFileRepositoryMockRecorder) GetStats(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockFileRepository)(nil).GetStats), ctx)
 }
 
+// GetStatsByOwner mocks base method.
+func (m *MockFileRepository) GetStatsByOwner(ctx context.Context, ownerID int64) (*domain.StorageStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStatsByOwner", ctx, ownerID)
+	ret0, _ := ret[0].(*domain.StorageStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStatsByOwner indicates an expected call of GetStatsByOwner.
+func (mr *MockFileRepositoryMockRecorder) GetStatsByOwner(ctx, ownerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatsByOwner", reflect.TypeOf((*MockFileRepository)(nil).GetStatsByOwner), ctx, ownerID)
+}
+
 // ListAll mocks base method.
 func (m *MockFileRepository) ListAll(ctx context.Context, category string, ownerID int64, limit, offset int) ([]domain.File, int, error) {
 	m.ctrl.T.Helper()

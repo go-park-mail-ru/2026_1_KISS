@@ -182,26 +182,6 @@ func (mr *MockAuthServiceClientMockRecorder) AdminUpdateUser(ctx, in any, opts .
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminUpdateUser", reflect.TypeOf((*MockAuthServiceClient)(nil).AdminUpdateUser), varargs...)
 }
 
-// ConfirmEmail mocks base method.
-func (m *MockAuthServiceClient) ConfirmEmail(ctx context.Context, in *auth.ConfirmEmailRequest, opts ...grpc.CallOption) (*auth.ConfirmEmailResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ConfirmEmail", varargs...)
-	ret0, _ := ret[0].(*auth.ConfirmEmailResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ConfirmEmail indicates an expected call of ConfirmEmail.
-func (mr *MockAuthServiceClientMockRecorder) ConfirmEmail(ctx, in any, opts ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmEmail", reflect.TypeOf((*MockAuthServiceClient)(nil).ConfirmEmail), varargs...)
-}
-
 // ChangeEmail mocks base method.
 func (m *MockAuthServiceClient) ChangeEmail(ctx context.Context, in *auth.ChangeEmailRequest, opts ...grpc.CallOption) (*auth.UserResponse, error) {
 	m.ctrl.T.Helper()
@@ -240,6 +220,26 @@ func (mr *MockAuthServiceClientMockRecorder) ChangePassword(ctx, in any, opts ..
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangePassword", reflect.TypeOf((*MockAuthServiceClient)(nil).ChangePassword), varargs...)
+}
+
+// ConfirmEmail mocks base method.
+func (m *MockAuthServiceClient) ConfirmEmail(ctx context.Context, in *auth.ConfirmEmailRequest, opts ...grpc.CallOption) (*auth.ConfirmEmailResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ConfirmEmail", varargs...)
+	ret0, _ := ret[0].(*auth.ConfirmEmailResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfirmEmail indicates an expected call of ConfirmEmail.
+func (mr *MockAuthServiceClientMockRecorder) ConfirmEmail(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmEmail", reflect.TypeOf((*MockAuthServiceClient)(nil).ConfirmEmail), varargs...)
 }
 
 // GetOAuthURL mocks base method.
@@ -300,6 +300,26 @@ func (mr *MockAuthServiceClientMockRecorder) GetUserByIdentifier(ctx, in any, op
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByIdentifier", reflect.TypeOf((*MockAuthServiceClient)(nil).GetUserByIdentifier), varargs...)
+}
+
+// GetUserStats mocks base method.
+func (m *MockAuthServiceClient) GetUserStats(ctx context.Context, in *auth.GetUserStatsRequest, opts ...grpc.CallOption) (*auth.GetUserStatsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserStats", varargs...)
+	ret0, _ := ret[0].(*auth.GetUserStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserStats indicates an expected call of GetUserStats.
+func (mr *MockAuthServiceClientMockRecorder) GetUserStats(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserStats", reflect.TypeOf((*MockAuthServiceClient)(nil).GetUserStats), varargs...)
 }
 
 // Login mocks base method.
