@@ -169,6 +169,35 @@ func (s *Server) GetSessionStats(ctx context.Context, req *pb.GetSessionStatsReq
 	}, nil
 }
 
+func (s *Server) ExecuteBlockStream(req *pb.ExecuteBlockRequest, stream pb.RunnerService_ExecuteBlockStreamServer) error {
+	ctx := stream.Context()
+	if err := s.checkNotebookAccess(ctx, req.GetUserId(), req.GetNotebookId()); err != nil {
+		return err
+	}
+	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
+
+	if err := s.runnerSvc.StartSession(ctx, req.GetNotebookId()); err != nil {
+		return grpcutil.DomainToGRPCError(err)
+	}
+
+	result, err := s.runnerSvc.ExecuteBlockStreaming(ctx, req.GetNotebookId(), int(req.GetBlockPosition()), func(chunkType, data string) {
+		_ = stream.Send(&pb.ExecutionChunk{
+			ChunkType: chunkType,
+			Data:      data,
+		})
+	})
+	if err != nil {
+		return grpcutil.DomainToGRPCError(err)
+	}
+
+	s.saveBlockOutputs(ctx, []*domain.BlockExecutionResult{result})
+
+	return stream.Send(&pb.ExecutionChunk{
+		ChunkType:   "complete",
+		FinalResult: executionResultToProto(result),
+	})
+}
+
 func executionResultToProto(r *domain.BlockExecutionResult) *pb.BlockExecutionResult {
 	if r == nil {
 		return nil

@@ -57,6 +57,21 @@ func (mr *MockNotebookSessionMockRecorder) ExecuteBlock(ctx, block any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockNotebookSession)(nil).ExecuteBlock), ctx, block)
 }
 
+// ExecuteBlockStreaming mocks base method.
+func (m *MockNotebookSession) ExecuteBlockStreaming(ctx context.Context, block domain.Block, onChunk func(string, string)) (*domain.BlockExecutionResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecuteBlockStreaming", ctx, block, onChunk)
+	ret0, _ := ret[0].(*domain.BlockExecutionResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExecuteBlockStreaming indicates an expected call of ExecuteBlockStreaming.
+func (mr *MockNotebookSessionMockRecorder) ExecuteBlockStreaming(ctx, block, onChunk any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlockStreaming", reflect.TypeOf((*MockNotebookSession)(nil).ExecuteBlockStreaming), ctx, block, onChunk)
+}
+
 // ExecuteFromPosition mocks base method.
 func (m *MockNotebookSession) ExecuteFromPosition(ctx context.Context, notebook *domain.Notebook, startPosition int) ([]*domain.BlockExecutionResult, error) {
 	m.ctrl.T.Helper()

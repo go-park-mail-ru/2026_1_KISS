@@ -262,6 +262,33 @@ func TestGetSessionStats_Success(t *testing.T) {
 	}
 }
 
+func TestExecuteBlockStreaming_NoSession(t *testing.T) {
+	ctrl, _, sessRepo, _, _, svc := setup(t)
+	defer ctrl.Finish()
+
+	sessRepo.EXPECT().GetSession(int64(1)).Return(nil, false)
+
+	_, err := svc.ExecuteBlockStreaming(context.Background(), 1, 0, func(_, _ string) {})
+	if !errors.Is(err, ErrSessionNotStarted) {
+		t.Errorf("expected ErrSessionNotStarted, got %v", err)
+	}
+}
+
+func TestExecuteBlockStreaming_InvalidPosition(t *testing.T) {
+	ctrl, _, sessRepo, nbRepo, blkRepo, svc := setup(t)
+	defer ctrl.Finish()
+
+	mockSession := mocks.NewMockNotebookSession(ctrl)
+	sessRepo.EXPECT().GetSession(int64(1)).Return(mockSession, true)
+	nbRepo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(&domain.Notebook{ID: 1}, nil)
+	blkRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).Return([]domain.Block{}, nil)
+
+	_, err := svc.ExecuteBlockStreaming(context.Background(), 1, 5, func(_, _ string) {})
+	if !errors.Is(err, ErrBlockPositionInvalid) {
+		t.Errorf("expected ErrBlockPositionInvalid, got %v", err)
+	}
+}
+
 func TestGetSessionStats_NoSession(t *testing.T) {
 	ctrl, _, sessRepo, _, _, svc := setup(t)
 	defer ctrl.Finish()

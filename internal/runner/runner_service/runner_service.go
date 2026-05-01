@@ -26,6 +26,7 @@ type RunnerService interface {
 	StopSession(ctx context.Context, notebookID int64) error
 	StartIdleReaper(ctx context.Context)
 	GetSessionStats(ctx context.Context, notebookID int64) (*domain.ContainerResourceStats, error)
+	ExecuteBlockStreaming(ctx context.Context, notebookID int64, blockPosition int, onChunk func(chunkType, data string)) (*domain.BlockExecutionResult, error)
 }
 
 type runnerService struct {
@@ -141,6 +142,27 @@ func (s *runnerService) ExecuteBlock(ctx context.Context, notebookID int64, bloc
 	}
 	logger.Info(ctx, "usecase.runner.ExecuteBlock", "notebook_id", notebookID, "block_position", blockPosition, "status", "ok")
 	return execResult, nil
+}
+
+func (s *runnerService) ExecuteBlockStreaming(ctx context.Context, notebookID int64, blockPosition int, onChunk func(chunkType, data string)) (*domain.BlockExecutionResult, error) {
+	logger.Info(ctx, "usecase.runner.ExecuteBlockStreaming", "notebook_id", notebookID, "block_position", blockPosition)
+
+	session, ok := s.sessionRepo.GetSession(notebookID)
+	if !ok {
+		return nil, ErrSessionNotStarted
+	}
+	notebook, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		return nil, err
+	}
+	notebook.Blocks, err = s.blockRepo.GetByNotebookID(ctx, notebookID)
+	if err != nil {
+		return nil, err
+	}
+	if blockPosition < 0 || blockPosition >= len(notebook.Blocks) {
+		return nil, ErrBlockPositionInvalid
+	}
+	return session.ExecuteBlockStreaming(ctx, notebook.Blocks[blockPosition], onChunk)
 }
 
 func (s *runnerService) StopSession(ctx context.Context, notebookID int64) error {
