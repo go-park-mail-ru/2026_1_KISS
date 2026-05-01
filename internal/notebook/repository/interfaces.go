@@ -31,6 +31,8 @@ type BlockRepository interface {
 	GetOutputsByBlockIDs(ctx context.Context, blockIDs []int64) (map[int64][]domain.BlockOutput, error)
 	ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error
 	CreateBatch(ctx context.Context, blocks []domain.Block) ([]int64, error)
+	CountByOwnerID(ctx context.Context, ownerID int64) (int64, error)
+	SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (int64, error)
 }
 
 type PermissionRepository interface {
