@@ -227,6 +227,21 @@ func (m *MockBlockRepository) EXPECT() *MockBlockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// CountByOwnerID mocks base method.
+func (m *MockBlockRepository) CountByOwnerID(ctx context.Context, ownerID int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountByOwnerID", ctx, ownerID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountByOwnerID indicates an expected call of CountByOwnerID.
+func (mr *MockBlockRepositoryMockRecorder) CountByOwnerID(ctx, ownerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountByOwnerID", reflect.TypeOf((*MockBlockRepository)(nil).CountByOwnerID), ctx, ownerID)
+}
+
 // Create mocks base method.
 func (m *MockBlockRepository) Create(ctx context.Context, block *domain.Block) (int64, error) {
 	m.ctrl.T.Helper()
@@ -342,6 +357,21 @@ func (m *MockBlockRepository) SaveOutputs(ctx context.Context, blockID int64, ou
 func (mr *MockBlockRepositoryMockRecorder) SaveOutputs(ctx, blockID, outputs any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveOutputs", reflect.TypeOf((*MockBlockRepository)(nil).SaveOutputs), ctx, blockID, outputs)
+}
+
+// SumExecutionsByOwnerID mocks base method.
+func (m *MockBlockRepository) SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SumExecutionsByOwnerID", ctx, ownerID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SumExecutionsByOwnerID indicates an expected call of SumExecutionsByOwnerID.
+func (mr *MockBlockRepositoryMockRecorder) SumExecutionsByOwnerID(ctx, ownerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SumExecutionsByOwnerID", reflect.TypeOf((*MockBlockRepository)(nil).SumExecutionsByOwnerID), ctx, ownerID)
 }
 
 // Update mocks base method.

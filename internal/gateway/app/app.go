@@ -92,6 +92,7 @@ func New(cfg *config.Config) (*App, error) {
 	eventHandler := handler.NewEventHandler(authClient)
 	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient, notifClient)
 	wsHandler := handler.NewWSHandler(authClient, nbClient)
+	statsHandler := handler.NewStatsHandler(authClient, nbClient, storageClient)
 	issueHandler := handler.NewIssueHandler(issueClient, authClient)
 
 	mux := http.NewServeMux()
@@ -106,6 +107,7 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler.RegisterRoutes(mux)
 	eventHandler.RegisterRoutes(mux, authMw)
 	adminHandler.RegisterRoutes(mux, authMw, adminMw)
+	statsHandler.RegisterRoutes(mux, authMw)
 	wsHandler.RegisterRoutes(mux)
 	issueHandler.RegisterRoutes(mux, authMw, adminMw)
 

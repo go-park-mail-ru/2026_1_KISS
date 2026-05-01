@@ -491,6 +491,21 @@ func (mr *MockEventRepositoryMockRecorder) CountActiveUsersByMonth(ctx, since an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountActiveUsersByMonth", reflect.TypeOf((*MockEventRepository)(nil).CountActiveUsersByMonth), ctx, since)
 }
 
+// CountUserActivityByDay mocks base method.
+func (m *MockEventRepository) CountUserActivityByDay(ctx context.Context, userID int64, since time.Time) ([]domain.DayCount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountUserActivityByDay", ctx, userID, since)
+	ret0, _ := ret[0].([]domain.DayCount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountUserActivityByDay indicates an expected call of CountUserActivityByDay.
+func (mr *MockEventRepositoryMockRecorder) CountUserActivityByDay(ctx, userID, since any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUserActivityByDay", reflect.TypeOf((*MockEventRepository)(nil).CountUserActivityByDay), ctx, userID, since)
+}
+
 // Create mocks base method.
 func (m *MockEventRepository) Create(ctx context.Context, event *domain.UserEvent) error {
 	m.ctrl.T.Helper()
