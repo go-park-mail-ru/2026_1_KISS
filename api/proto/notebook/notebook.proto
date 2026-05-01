@@ -30,6 +30,8 @@ service NotebookService {
   rpc SaveBlockOutputs(SaveBlockOutputsRequest) returns (SaveBlockOutputsResponse);
   rpc ReorderBlocks(ReorderBlocksRequest) returns (ReorderBlocksResponse);
   rpc ImportNotebook(ImportNotebookRequest) returns (NotebookResponse);
+
+  rpc GetUserStats(GetUserNotebookStatsRequest) returns (GetUserNotebookStatsResponse);
 }
 
 message NotebookInfo {
@@ -259,4 +261,14 @@ message ImportBlockInfo {
   string content = 3;
   int32 position = 4;
   repeated BlockOutputInfo outputs = 5;
+}
+
+message GetUserNotebookStatsRequest {
+  int64 user_id = 1;
+}
+
+message GetUserNotebookStatsResponse {
+  int64 notebook_count = 1;
+  int64 block_count = 2;
+  int64 total_executions = 3;
 }
