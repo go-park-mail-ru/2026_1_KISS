@@ -223,11 +223,40 @@ func (m *manager) GetContainerStats(ctx context.Context, sessionID string) (*dom
 	}
 
 	return &domain.ContainerResourceStats{
-		CPUPercent:    cpuPercent,
-		MemoryUsage:   memoryUsage,
-		MemoryLimit:   memoryLimit,
-		MemoryPercent: memoryPercent,
+		CPUPercent:     cpuPercent,
+		MemoryUsage:    memoryUsage,
+		MemoryLimit:    memoryLimit,
+		MemoryPercent:  memoryPercent,
+		CPUCores:       stats.CPUStats.OnlineCPUs,
+		DiskLimitBytes: parseTmpfsSize(m.cfg.TmpfsSize),
+		GPUAvailable:   false,
 	}, nil
+}
+
+func parseTmpfsSize(s string) int64 {
+	if s == "" {
+		return 0
+	}
+	multiplier := int64(1)
+	val := s
+	switch {
+	case s[len(s)-1] == 'm' || s[len(s)-1] == 'M':
+		multiplier = 1024 * 1024
+		val = s[:len(s)-1]
+	case s[len(s)-1] == 'g' || s[len(s)-1] == 'G':
+		multiplier = 1024 * 1024 * 1024
+		val = s[:len(s)-1]
+	case s[len(s)-1] == 'k' || s[len(s)-1] == 'K':
+		multiplier = 1024
+		val = s[:len(s)-1]
+	}
+	var n int64
+	for _, c := range val {
+		if c >= '0' && c <= '9' {
+			n = n*10 + int64(c-'0')
+		}
+	}
+	return n * multiplier
 }
 
 func (m *manager) inspectByName(ctx context.Context, name string) (container.InspectResponse, error) {

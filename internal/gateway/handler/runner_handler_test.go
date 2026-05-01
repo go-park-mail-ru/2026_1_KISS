@@ -136,3 +136,31 @@ func TestRunnerHandler_GetContainerStats_Unauthorized(t *testing.T) {
 		t.Errorf("want 401, got %d", rec.Code)
 	}
 }
+
+func TestRunnerHandler_GetContainerStats_InvalidID(t *testing.T) {
+	h := NewRunnerHandler(nil)
+	req := httptest.NewRequest("GET", "/api/v1/runner/abc/stats", nil)
+	req.SetPathValue("notebook_id", "abc")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.GetContainerStats(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestRunnerHandler_ExecuteBlock_InvalidID(t *testing.T) {
+	h := NewRunnerHandler(nil)
+	req := httptest.NewRequest("POST", "/api/v1/runner/abc/block", nil)
+	req.SetPathValue("notebook_id", "abc")
+	req = withUser(req, 1)
+	rec := httptest.NewRecorder()
+
+	h.ExecuteBlock(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want 400, got %d", rec.Code)
+	}
+}
