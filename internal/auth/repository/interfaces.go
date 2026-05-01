@@ -46,4 +46,5 @@ type EventRepository interface {
 	CountActiveUsers(ctx context.Context, since time.Time) (int64, error)
 	CountActiveUsersByDay(ctx context.Context, since time.Time) ([]domain.DayCount, error)
 	CountActiveUsersByMonth(ctx context.Context, since time.Time) ([]domain.MonthCount, error)
+	CountUserActivityByDay(ctx context.Context, userID int64, since time.Time) ([]domain.DayCount, error)
 }

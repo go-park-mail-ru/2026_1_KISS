@@ -77,6 +77,37 @@ func (r *EventRepo) CountActiveUsersByDay(ctx context.Context, since time.Time) 
 	return result, nil
 }
 
+func (r *EventRepo) CountUserActivityByDay(ctx context.Context, userID int64, since time.Time) ([]domain.DayCount, error) {
+	start := time.Now()
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT DATE(created_at) AS day, COUNT(*)
+		 FROM user_events WHERE user_id = $1 AND created_at >= $2
+		 GROUP BY DATE(created_at) ORDER BY day`,
+		userID, since,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.events.CountUserActivityByDay", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []domain.DayCount
+	for rows.Next() {
+		var dc domain.DayCount
+		if err := rows.Scan(&dc.Date, &dc.Count); err != nil {
+			logger.Error(ctx, "repo.events.CountUserActivityByDay.scan", "error", err, "duration", time.Since(start))
+			return nil, err
+		}
+		result = append(result, dc)
+	}
+	if err := rows.Err(); err != nil {
+		logger.Error(ctx, "repo.events.CountUserActivityByDay.rows", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	logger.Info(ctx, "repo.events.CountUserActivityByDay", "duration", time.Since(start), "user_id", userID, "entries", len(result))
+	return result, nil
+}
+
 func (r *EventRepo) CountActiveUsersByMonth(ctx context.Context, since time.Time) ([]domain.MonthCount, error) {
 	start := time.Now()
 	rows, err := r.db.QueryContext(ctx,
