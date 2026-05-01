@@ -25,6 +25,7 @@ type RunnerService interface {
 	ExecuteBlock(ctx context.Context, notebookID int64, blockPosition int) (*domain.BlockExecutionResult, error)
 	StopSession(ctx context.Context, notebookID int64) error
 	StartIdleReaper(ctx context.Context)
+	GetSessionStats(ctx context.Context, notebookID int64) (*domain.ContainerResourceStats, error)
 }
 
 type runnerService struct {
@@ -190,4 +191,18 @@ func (s *runnerService) evictIdleSessions(ctx context.Context) {
 		s.sessionRepo.DeleteSession(notebookID)
 		logger.Info(ctx, "idle_reaper.StopSession", "session_id", session.GetSessionID(), "notebook_id", notebookID, "idle", idle)
 	}
+}
+
+func (s *runnerService) GetSessionStats(ctx context.Context, notebookID int64) (*domain.ContainerResourceStats, error) {
+	session, ok := s.sessionRepo.GetSession(notebookID)
+	if !ok {
+		return nil, ErrSessionNotStarted
+	}
+
+	stats, err := s.runnerManager.GetContainerStats(ctx, session.GetSessionID())
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }

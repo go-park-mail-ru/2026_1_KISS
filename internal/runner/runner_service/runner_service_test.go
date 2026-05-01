@@ -233,3 +233,43 @@ func TestStopSession_ManagerError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestGetSessionStats_Success(t *testing.T) {
+	ctrl, mgr, sessRepo, _, _, svc := setup(t)
+	defer ctrl.Finish()
+
+	mockSession := mocks.NewMockNotebookSession(ctrl)
+	sessRepo.EXPECT().GetSession(int64(1)).Return(mockSession, true)
+	mockSession.EXPECT().GetSessionID().Return("session-abc")
+
+	expected := &domain.ContainerResourceStats{
+		CPUPercent:    12.5,
+		MemoryUsage:   134217728,
+		MemoryLimit:   536870912,
+		MemoryPercent: 25.0,
+	}
+	mgr.EXPECT().GetContainerStats(gomock.Any(), "session-abc").Return(expected, nil)
+
+	stats, err := svc.GetSessionStats(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stats.CPUPercent != 12.5 {
+		t.Errorf("expected 12.5%% CPU, got %f", stats.CPUPercent)
+	}
+	if stats.MemoryUsage != 134217728 {
+		t.Errorf("expected 128MB usage, got %d", stats.MemoryUsage)
+	}
+}
+
+func TestGetSessionStats_NoSession(t *testing.T) {
+	ctrl, _, sessRepo, _, _, svc := setup(t)
+	defer ctrl.Finish()
+
+	sessRepo.EXPECT().GetSession(int64(99)).Return(nil, false)
+
+	_, err := svc.GetSessionStats(context.Background(), 99)
+	if !errors.Is(err, ErrSessionNotStarted) {
+		t.Errorf("expected ErrSessionNotStarted, got %v", err)
+	}
+}
