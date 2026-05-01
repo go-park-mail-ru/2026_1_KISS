@@ -81,6 +81,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	profileUC := authusecase.NewProfileUsecase(userRepo, uploader, cfg.Upload.MaxAvatarSize)
 	eventUC := authusecase.NewEventUsecase(eventRepo, userRepo)
 	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
+	statsUC := authusecase.NewStatsUsecase(userRepo, eventRepo)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -96,7 +97,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
-	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC))
+	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC, statsUC))
 
 	cleanupCtx, cancelCleanup := context.WithCancel(context.Background())
 	go authUC.StartCleanupLoop(cleanupCtx)
