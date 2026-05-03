@@ -1,0 +1,337 @@
+syntax = "proto3";
+package notebook;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook";
+
+service NotebookService {
+  rpc Create(CreateNotebookRequest) returns (NotebookResponse);
+  rpc GetByID(GetNotebookRequest) returns (NotebookResponse);
+  rpc ListByUser(ListNotebooksRequest) returns (ListNotebooksResponse);
+  rpc Update(UpdateNotebookRequest) returns (NotebookResponse);
+  rpc Delete(DeleteNotebookRequest) returns (DeleteNotebookResponse);
+
+  rpc AddBlock(AddBlockRequest) returns (BlockResponse);
+  rpc UpdateBlock(UpdateBlockRequest) returns (BlockResponse);
+  rpc DeleteBlock(DeleteBlockRequest) returns (DeleteBlockResponse);
+
+  rpc GetBlocksByNotebookID(GetBlocksRequest) returns (GetBlocksResponse);
+
+  rpc AdminListNotebooks(AdminListNotebooksRequest) returns (AdminListNotebooksResponse);
+  rpc AdminDeleteNotebook(AdminDeleteNotebookRequest) returns (DeleteNotebookResponse);
+  rpc AdminSetUserNotebooksPrivate(AdminSetUserNotebooksPrivateRequest) returns (AdminSetUserNotebooksPrivateResponse);
+  rpc AdminGetNotebookCount(AdminGetNotebookCountRequest) returns (AdminGetNotebookCountResponse);
+
+  rpc GrantPermission(GrantPermissionRequest) returns (GrantPermissionResponse);
+  rpc RevokePermission(RevokePermissionRequest) returns (RevokePermissionResponse);
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+  rpc ListSharedWithUser(ListSharedWithUserRequest) returns (ListNotebooksResponse);
+
+  rpc SubscribeNotebook(SubscribeNotebookRequest) returns (stream NotebookEvent);
+
+  rpc SaveBlockOutputs(SaveBlockOutputsRequest) returns (SaveBlockOutputsResponse);
+  rpc ReorderBlocks(ReorderBlocksRequest) returns (ReorderBlocksResponse);
+  rpc ImportNotebook(ImportNotebookRequest) returns (NotebookResponse);
+
+  rpc AddComment(AddCommentRequest)                         returns (AddCommentResponse);
+  rpc DeleteComment(DeleteCommentRequest)                   returns (DeleteCommentResponse);
+  rpc ListCommentsByCell(ListCommentsByCellRequest)         returns (ListCommentsByCellResponse);
+  rpc ListCommentsByNotebook(ListCommentsByNotebookRequest) returns (ListCommentsByNotebookResponse);
+
+  rpc GetUserStats(GetUserNotebookStatsRequest) returns (GetUserNotebookStatsResponse);
+}
+
+message NotebookInfo {
+  int64 id = 1;
+  int64 owner_id = 2;
+  string title = 3;
+  bool is_public = 4;
+  repeated BlockInfo blocks = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+  string owner_name = 8;
+}
+
+message BlockInfo {
+  int64 id = 1;
+  int64 notebook_id = 2;
+  string type = 3;
+  string language = 4;
+  string content = 5;
+  int32 position = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  optional int32 execution_count = 9;
+  repeated BlockOutputInfo outputs = 10;
+}
+
+message BlockOutputInfo {
+  int64  id          = 1;
+  int64  block_id    = 2;
+  int32  position    = 3;
+  string output_type = 4;
+  string content     = 5;
+  int64  created_at  = 6;
+}
+
+message CreateNotebookRequest {
+  int64 user_id = 1;
+  string title = 2;
+}
+
+message GetNotebookRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+}
+
+message ListNotebooksRequest {
+  int64 user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string search = 4;
+}
+
+message UpdateNotebookRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  string title = 3;
+  bool is_public = 4;
+}
+
+message DeleteNotebookRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+}
+
+message AddBlockRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  string type = 3;
+  string language = 4;
+  string content = 5;
+}
+
+message UpdateBlockRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  int64 block_id = 3;
+  string content = 4;
+  string type = 5;
+  string language = 6;
+}
+
+message DeleteBlockRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  int64 block_id = 3;
+}
+
+message GetBlocksRequest {
+  int64 notebook_id = 1;
+  int64 user_id = 2;
+}
+
+message NotebookResponse {
+  NotebookInfo notebook = 1;
+}
+
+message ListNotebooksResponse {
+  repeated NotebookInfo notebooks = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message BlockResponse {
+  BlockInfo block = 1;
+}
+
+message GetBlocksResponse {
+  repeated BlockInfo blocks = 1;
+}
+
+message DeleteNotebookResponse {}
+
+message DeleteBlockResponse {}
+
+message AdminListNotebooksRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string search = 3;
+}
+
+message AdminListNotebooksResponse {
+  repeated NotebookInfo notebooks = 1;
+  int32 total = 2;
+}
+
+message AdminDeleteNotebookRequest {
+  int64 notebook_id = 1;
+}
+
+message PermissionInfo {
+  int64 notebook_id = 1;
+  int64 user_id = 2;
+  string permission_level = 3;
+}
+
+message GrantPermissionRequest {
+  int64 requester_id = 1;
+  int64 notebook_id = 2;
+  int64 target_user_id = 3;
+  string level = 4;
+}
+
+message GrantPermissionResponse {}
+
+message RevokePermissionRequest {
+  int64 requester_id = 1;
+  int64 notebook_id = 2;
+  int64 target_user_id = 3;
+}
+
+message RevokePermissionResponse {}
+
+message ListPermissionsRequest {
+  int64 requester_id = 1;
+  int64 notebook_id = 2;
+}
+
+message ListPermissionsResponse {
+  repeated PermissionInfo permissions = 1;
+}
+
+message ListSharedWithUserRequest {
+  int64 user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message SubscribeNotebookRequest {
+  int64 notebook_id = 1;
+  int64 user_id     = 2;
+}
+
+message NotebookEvent {
+  enum Type {
+    BLOCK_ADDED      = 0;
+    BLOCK_UPDATED    = 1;
+    BLOCK_DELETED    = 2;
+    NOTEBOOK_UPDATED = 3;
+    COMMENT_ADDED    = 4;
+    COMMENT_DELETED  = 5;
+  }
+  Type  type        = 1;
+  int64 notebook_id = 2;
+  int64 actor_id    = 3;
+  oneof payload {
+    BlockInfo   block              = 4;
+    int64       deleted_block_id   = 5;
+    CommentInfo comment            = 7;
+    int64       deleted_comment_id = 8;
+  }
+  int64 timestamp = 6;
+}
+
+message AdminSetUserNotebooksPrivateRequest {
+  int64 owner_id = 1;
+}
+
+message AdminSetUserNotebooksPrivateResponse {}
+
+message AdminGetNotebookCountRequest {}
+
+message AdminGetNotebookCountResponse {
+  int64 total = 1;
+}
+
+message SaveBlockOutputsRequest {
+  int64 block_id = 1;
+  repeated BlockOutputInfo outputs = 2;
+}
+
+message SaveBlockOutputsResponse {}
+
+message ReorderBlocksRequest {
+  int64 user_id = 1;
+  int64 notebook_id = 2;
+  repeated int64 block_ids = 3;
+}
+
+message ReorderBlocksResponse {}
+
+message ImportNotebookRequest {
+  int64 user_id = 1;
+  string title = 2;
+  repeated ImportBlockInfo blocks = 3;
+}
+
+message ImportBlockInfo {
+  string type = 1;
+  string language = 2;
+  string content = 3;
+  int32 position = 4;
+  repeated BlockOutputInfo outputs = 5;
+}
+
+message GetUserNotebookStatsRequest {
+  int64 user_id = 1;
+  int32 execution_days = 2;
+}
+
+message GetUserNotebookStatsResponse {
+  int64 notebook_count = 1;
+  int64 block_count = 2;
+  int64 total_executions = 3;
+  repeated ExecutionDayEntry daily_executions = 4;
+}
+
+message ExecutionDayEntry {
+  string date = 1;
+  int64 count = 2;
+}
+
+message CommentInfo {
+  int64  id         = 1;
+  int64  user_id    = 2;
+  string username   = 3;
+  int64  block_id   = 4;
+  string text       = 5;
+  int64  created_at = 6;
+}
+
+message AddCommentRequest {
+  int64  user_id     = 1;
+  int64  notebook_id = 2;
+  int64  block_id    = 3;
+  string text        = 4;
+}
+
+message AddCommentResponse {
+  CommentInfo comment = 1;
+}
+
+message DeleteCommentRequest {
+  int64 user_id     = 1;
+  int64 notebook_id = 2;
+  int64 comment_id  = 3;
+}
+
+message DeleteCommentResponse {}
+
+message ListCommentsByCellRequest {
+  int64 user_id     = 1;
+  int64 notebook_id = 2;
+  int64 block_id    = 3;
+}
+
+message ListCommentsByCellResponse {
+  repeated CommentInfo comments = 1;
+}
+
+message ListCommentsByNotebookRequest {
+  int64 user_id     = 1;
+  int64 notebook_id = 2;
+}
+
+message ListCommentsByNotebookResponse {
+  repeated CommentInfo comments = 1;
+}

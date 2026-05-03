@@ -1,0 +1,89 @@
+syntax = "proto3";
+package storage;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage";
+
+service StorageService {
+  rpc UploadFile(stream UploadFileChunk) returns (FileResponse);
+  rpc GetFile(GetFileRequest) returns (FileResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+
+  rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
+  rpc AdminListFiles(AdminListFilesRequest) returns (ListFilesResponse);
+  rpc DeleteFileByURL(DeleteFileByURLRequest) returns (DeleteFileResponse);
+
+  rpc GetUserStorageStats(GetUserStorageStatsRequest) returns (GetStorageStatsResponse);
+}
+
+message DeleteFileByURLRequest {
+  string url = 1;
+}
+
+message UploadFileChunk {
+  int64 owner_id = 1;
+  bytes data = 2;
+  string filename = 3;
+  int64 file_size = 4;
+  string category = 5;
+  optional int64 notebook_id = 6;
+}
+
+message FileInfo {
+  string id = 1;
+  int64 owner_id = 2;
+  optional int64 notebook_id = 3;
+  string category = 4;
+  string filename = 5;
+  string url = 6;
+  string mime_type = 7;
+  int64 size = 8;
+  int64 created_at = 9;
+}
+
+message FileResponse {
+  FileInfo file = 1;
+}
+
+message GetFileRequest {
+  string file_id = 1;
+  int64 user_id = 2;
+}
+
+message ListFilesRequest {
+  int64 user_id = 1;
+  string category = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListFilesResponse {
+  repeated FileInfo files = 1;
+  int32 total = 2;
+}
+
+message DeleteFileRequest {
+  string file_id = 1;
+  int64 user_id = 2;
+}
+
+message DeleteFileResponse {}
+
+message GetStorageStatsRequest {}
+
+message GetStorageStatsResponse {
+  int64 total_files = 1;
+  int64 total_size_bytes = 2;
+  map<string, int64> files_by_category = 3;
+  map<string, int64> size_by_category = 4;
+}
+
+message AdminListFilesRequest {
+  string category = 1;
+  int64 owner_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message GetUserStorageStatsRequest {
+  int64 user_id = 1;
+}

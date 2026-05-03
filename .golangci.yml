@@ -16,3 +16,7 @@ linters:
 issues:
   max-issues-per-linter: 50
   max-same-issues: 3
+  exclude-rules:
+    - path: internal/mocks/
+      linters:
+        - unused

@@ -1,0 +1,485 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Users",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Total Users\" FROM users;",
+          "format": "table"
+        }
+      ],
+      "title": "Total Users",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Active Sessions\" FROM sessions WHERE expires_at > NOW();",
+          "format": "table"
+        }
+      ],
+      "title": "Active Sessions",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "pointSize": 5,
+            "showPoints": "never"
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, COUNT(*) AS \"New Users\" FROM users WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ],
+      "title": "Registration Growth",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "Content",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "purple", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 10 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Total Notebooks\" FROM notebooks;",
+          "format": "table"
+        }
+      ],
+      "title": "Total Notebooks",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CASE WHEN is_public THEN 'Public' ELSE 'Private' END AS visibility, COUNT(*) AS count FROM notebooks GROUP BY is_public;",
+          "format": "table"
+        }
+      ],
+      "title": "Public vs Private Notebooks",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "id": 6,
+      "options": {
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT u.username, COUNT(n.id) AS notebooks FROM users u LEFT JOIN notebooks n ON n.owner_id = u.id GROUP BY u.username ORDER BY notebooks DESC LIMIT 20;",
+          "format": "table"
+        }
+      ],
+      "title": "Top Users by Notebooks",
+      "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "Code",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "orange", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 19 },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Total Blocks\" FROM blocks;",
+          "format": "table"
+        }
+      ],
+      "title": "Total Blocks",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "yellow", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 19 },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(execution_count), 0) AS \"Total Executions\" FROM blocks WHERE execution_count IS NOT NULL;",
+          "format": "table"
+        }
+      ],
+      "title": "Total Executions",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 19 },
+      "id": 9,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT language, COUNT(*) AS count FROM blocks GROUP BY language ORDER BY count DESC;",
+          "format": "table"
+        }
+      ],
+      "title": "Language Distribution",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 103,
+      "title": "Activity",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 80
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 10,
+      "options": {
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, COUNT(*) AS \"Comments\" FROM comments WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ],
+      "title": "Comments Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 80
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "id": 11,
+      "options": {
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, COUNT(*) AS \"Notebooks Created\" FROM notebooks WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ],
+      "title": "Notebooks Created Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "id": 104,
+      "title": "User Engagement (requires user_events table)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "id": 12,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, COUNT(DISTINCT user_id) AS \"DAU\" FROM user_events WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ],
+      "title": "DAU (Daily Active Users)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 37 },
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(DISTINCT user_id) AS \"MAU\" FROM user_events WHERE created_at >= NOW() - INTERVAL '30 days';",
+          "format": "table"
+        }
+      ],
+      "title": "MAU (Monthly Active Users)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "orange", "value": null }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 37 },
+      "id": 14,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(AVG(cnt * 60), 0) AS \"Avg Time on Site\" FROM (SELECT user_id, date_trunc('day', created_at) AS day, COUNT(*) AS cnt FROM user_events WHERE event_type = 'heartbeat' AND created_at >= NOW() - INTERVAL '7 days' GROUP BY user_id, day) sub;",
+          "format": "table"
+        }
+      ],
+      "title": "Avg Time on Site (7d)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 12, "y": 41 },
+      "id": 15,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT event_type, COUNT(*) AS count FROM user_events WHERE $__timeFilter(created_at) GROUP BY event_type ORDER BY count DESC;",
+          "format": "table"
+        }
+      ],
+      "title": "Event Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "POSTGRESQL_DS_001" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "id": 16,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "events", "desc": true }]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT u.username, COUNT(e.id) AS events FROM user_events e JOIN users u ON u.id = e.user_id WHERE e.created_at >= NOW() - INTERVAL '7 days' GROUP BY u.username ORDER BY events DESC LIMIT 10;",
+          "format": "table"
+        }
+      ],
+      "title": "Top Active Users (7d)",
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["business", "analytics", "kiss"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "KISS Business Analytics",
+  "uid": "kiss-business",
+  "version": 1
+}

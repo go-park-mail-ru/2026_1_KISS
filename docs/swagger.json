@@ -1,0 +1,1836 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "KISS Notebook API",
+    "version": "1.0.0",
+    "description": "REST API for collaborative Jupyter-like notebook platform.\n\nAll successful responses are wrapped in `{\"data\": ...}`; errors in `{\"error\": \"message\"}`.\n\n**Auth flow in Swagger UI:**\n1. `POST /api/v1/auth/login` — response sets `session_id` and `csrf_token` cookies.\n2. Copy the `csrf_token` cookie value.\n3. Click **Authorize**: set `cookieAuth` = `session_id` value, set `csrfToken` = `csrf_token` value.\n4. All subsequent mutating requests will include `X-CSRF-Token` header automatically."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8083",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    { "name": "auth" },
+    { "name": "profile" },
+    { "name": "notebooks" },
+    { "name": "blocks" },
+    { "name": "permissions" },
+    { "name": "runner" },
+    { "name": "events" },
+    { "name": "issues" },
+    { "name": "comments" },
+    { "name": "admin" },
+    { "name": "health" }
+  ],
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Login and create session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful. Sets `session_id` and `csrf_token` cookies.",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string" },
+                "description": "session_id and csrf_token cookies"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Logout and destroy session",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logged out (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "Get current user",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Current user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "Update profile (username, status, description)",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/users/me/avatar": {
+      "post": {
+        "tags": ["profile"],
+        "summary": "Upload avatar image",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["avatar"],
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Avatar image file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Avatar uploaded; returns updated user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" }
+        }
+      }
+    },
+    "/api/v1/users/me/password": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "Change password",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/users/me/email": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "Change email",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangeEmailRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email changed; returns updated user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataUserResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/notebooks": {
+      "get": {
+        "tags": ["notebooks"],
+        "summary": "List user notebooks",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Title substring filter" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated notebook list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["notebooks"],
+        "summary": "Create a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateNotebookRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notebook created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/notebooks/shared": {
+      "get": {
+        "tags": ["notebooks"],
+        "summary": "List notebooks shared with the current user",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of shared notebooks",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}": {
+      "get": {
+        "tags": ["notebooks"],
+        "summary": "Get notebook by ID (with blocks)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Notebook with blocks",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["notebooks"],
+        "summary": "Update notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateNotebookRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notebook updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNotebookResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["notebooks"],
+        "summary": "Delete notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Notebook deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/blocks": {
+      "post": {
+        "tags": ["blocks"],
+        "summary": "Add block to notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateBlockRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Block created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataBlockResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/blocks/{blockID}": {
+      "put": {
+        "tags": ["blocks"],
+        "summary": "Update block",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateBlockRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Block updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataBlockResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["blocks"],
+        "summary": "Delete block",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Block deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions": {
+      "get": {
+        "tags": ["permissions"],
+        "summary": "List permissions granted on a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Permission list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionListResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions/invite": {
+      "post": {
+        "tags": ["permissions"],
+        "summary": "Grant permission to a user by email or username",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrantPermissionByIdentifierRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permission granted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/permissions/{userID}": {
+      "put": {
+        "tags": ["permissions"],
+        "summary": "Grant a permission level to a user on a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/UserID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrantPermissionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permission granted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataPermissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["permissions"],
+        "summary": "Revoke a user's permission on a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/UserID" }
+        ],
+        "responses": {
+          "204": { "description": "Permission revoked" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/comments": {
+      "get": {
+        "tags": ["comments"],
+        "summary": "List all comments on a notebook (across all blocks)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "List of comments",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataCommentListResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/blocks/{blockID}/comments": {
+      "get": {
+        "tags": ["comments"],
+        "summary": "List comments on a specific block (cell)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of comments for the block",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataCommentListResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "post": {
+        "tags": ["comments"],
+        "summary": "Add a comment to a block (cell)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddCommentRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataCommentResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/blocks/{blockID}/comments/{commentID}": {
+      "delete": {
+        "tags": ["comments"],
+        "summary": "Delete a comment (owner or notebook owner)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/NotebookID" },
+          { "$ref": "#/components/parameters/BlockID" },
+          { "$ref": "#/components/parameters/CommentID" }
+        ],
+        "responses": {
+          "204": { "description": "Comment deleted" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/runner/{notebook_id}": {
+      "post": {
+        "tags": ["runner"],
+        "summary": "Execute all blocks from a given position",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/RunnerNotebookID" },
+          {
+            "name": "block_position",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Starting block position (inclusive)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of per-block execution results",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataExecutionResultList" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/runner/{notebook_id}/block": {
+      "post": {
+        "tags": ["runner"],
+        "summary": "Execute a single block",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/RunnerNotebookID" },
+          {
+            "name": "block_position",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Block position to execute"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution result for the block",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataExecutionResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/runner/{notebook_id}/stop": {
+      "post": {
+        "tags": ["runner"],
+        "summary": "Stop the runner session (kill container) for a notebook",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/RunnerNotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Session stopped (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/events/track": {
+      "post": {
+        "tags": ["events"],
+        "summary": "Track a user analytics event",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TrackEventRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event recorded (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/issues": {
+      "post": {
+        "tags": ["issues"],
+        "summary": "Create an issue (feedback)",
+        "description": "Authenticated user submits a feedback issue. Category and content are required. Files are optional (images/docs, max 10 MB each, up to 5 files). The issue is created with status `open` and linked to the current user.",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateIssueRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Issue created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "get": {
+        "tags": ["issues"],
+        "summary": "List own issues",
+        "description": "Returns a paginated list of issues created by the current user. Other users' issues are not included.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit",  "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": { "type": "string", "enum": ["open", "in_progress", "closed"] }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category",
+            "schema": { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of own issues",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/issues/{id}": {
+      "get": {
+        "tags": ["issues"],
+        "summary": "Get issue details",
+        "description": "Returns full details of one issue including the chat thread. Only the owner of the issue can access it.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "responses": {
+          "200": {
+            "description": "Issue details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["issues"],
+        "summary": "Delete own issue",
+        "description": "Permanently deletes the issue and its chat thread. Only the issue owner can do this.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "responses": {
+          "200": {
+            "description": "Issue deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/issues/{id}/messages": {
+      "post": {
+        "tags": ["issues"],
+        "summary": "Send a message in own issue chat",
+        "description": "Appends a new message to the chat thread of the user's own issue. Only the issue owner can post here. Returns the created message.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message created; returns the new chat message",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueMessageResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/issues": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all issues (admin only)",
+        "description": "Returns a paginated list of all issues from all users. Supports filtering by status, category, user ID, and full-text search over content.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit",   "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset",  "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "userid",  "in": "query", "description": "Filter by user ID", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "q",       "in": "query", "description": "Full-text search over issue content", "schema": { "type": "string" } },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": { "type": "string", "enum": ["open", "in_progress", "closed"] }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category",
+            "schema": { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of all issues",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminIssueListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/stats": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Issue statistics (admin only)",
+        "description": "Returns aggregate counts of issues broken down by status and category. Intended for the admin analytics page.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Issue statistics",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueStatsResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/{id}": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Get issue details (admin only)",
+        "description": "Returns full details of any issue including owner username and the full chat thread.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "responses": {
+          "200": {
+            "description": "Issue details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminIssueDetailResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/{id}/status": {
+      "patch": {
+        "tags": ["admin"],
+        "summary": "Update issue status (admin only)",
+        "description": "Transitions an issue to a new status. The change is idempotent — setting the same status again succeeds without side effects. The admin's user ID and timestamp are recorded.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PatchIssueStatusRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated; returns updated issue",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminIssueDetailResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/issues/{id}/response": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Send admin chat message on an issue (admin only)",
+        "description": "Appends a new message to the issue chat thread on behalf of the admin. Multiple messages accumulate — the thread is visible to both the issue author and admins. Returns the created message.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IssueID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminIssueResponseRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message created; returns the new chat message",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataIssueMessageResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all users (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of users",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminUserListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/ban": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Ban a user (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserPathID" }],
+        "responses": {
+          "200": {
+            "description": "User banned (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/unban": {
+      "post": {
+        "tags": ["admin"],
+        "summary": "Unban a user (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserPathID" }],
+        "responses": {
+          "200": {
+            "description": "User unbanned (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/notebooks": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "List all notebooks (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of notebooks",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminNotebookListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/admin/notebooks/{id}": {
+      "delete": {
+        "tags": ["admin"],
+        "summary": "Delete any notebook (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/NotebookID" }],
+        "responses": {
+          "200": {
+            "description": "Notebook deleted (returns `{\"data\": null}`)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataNullResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Get aggregate platform stats (admin only)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Aggregate stats",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataAdminStatsResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": { "type": "string", "example": "ok" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unhealthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session_id"
+      }
+    },
+    "parameters": {
+      "NotebookID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "BlockID": {
+        "name": "blockID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "UserID": {
+        "name": "userID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "UserPathID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "RunnerNotebookID": {
+        "name": "notebook_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "IssueID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      },
+      "CommentID": {
+        "name": "commentID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Not authenticated",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Access denied",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Resource conflict",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "Uploaded file exceeds the server limit",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "DataNullResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "null", "nullable": true }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "email", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "status": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": ["current_password", "new_password"],
+        "properties": {
+          "current_password": { "type": "string" },
+          "new_password": { "type": "string", "minLength": 8 }
+        }
+      },
+      "ChangeEmailRequest": {
+        "type": "object",
+        "required": ["new_email", "password"],
+        "properties": {
+          "new_email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "avatar_url": { "type": "string" },
+          "status": { "type": "string" },
+          "description": { "type": "string" },
+          "is_admin": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataUserResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/UserResponse" }
+        }
+      },
+      "CreateNotebookRequest": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" }
+        }
+      },
+      "UpdateNotebookRequest": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 255 },
+          "is_public": { "type": "boolean" }
+        }
+      },
+      "NotebookResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "owner_id": { "type": "integer", "format": "int64" },
+          "title": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "blocks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BlockResponse" }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataNotebookResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/NotebookResponse" }
+        }
+      },
+      "NotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "notebooks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/NotebookResponse" }
+          },
+          "total": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "DataNotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/NotebookListResponse" }
+        }
+      },
+      "CreateBlockRequest": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "description": "e.g. `code`, `text`" },
+          "language": { "type": "string", "description": "e.g. `python`, `markdown`" },
+          "content": { "type": "string" }
+        }
+      },
+      "UpdateBlockRequest": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "language": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      },
+      "BlockResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "type": { "type": "string" },
+          "language": { "type": "string" },
+          "content": { "type": "string" },
+          "position": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataBlockResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/BlockResponse" }
+        }
+      },
+      "GrantPermissionRequest": {
+        "type": "object",
+        "required": ["level"],
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["read", "write"],
+            "description": "Permission level to grant"
+          }
+        }
+      },
+      "GrantPermissionByIdentifierRequest": {
+        "type": "object",
+        "required": ["identifier", "level"],
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "description": "Email or username of the user to grant access to"
+          },
+          "level": {
+            "type": "string",
+            "enum": ["readonly", "editor"],
+            "description": "Permission level to grant"
+          }
+        }
+      },
+      "PermissionResponse": {
+        "type": "object",
+        "properties": {
+          "notebook_id": { "type": "integer", "format": "int64" },
+          "user_id": { "type": "integer", "format": "int64" },
+          "permission_level": { "type": "string", "enum": ["read", "write"] }
+        }
+      },
+      "DataPermissionResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PermissionResponse" }
+        }
+      },
+      "PermissionListResponse": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PermissionResponse" }
+          }
+        }
+      },
+      "DataPermissionListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PermissionListResponse" }
+        }
+      },
+      "ExecutionResult": {
+        "type": "object",
+        "properties": {
+          "block_id": { "type": "integer", "format": "int64" },
+          "position": { "type": "integer" },
+          "stdout": { "type": "array", "items": { "type": "string" } },
+          "stderr": { "type": "array", "items": { "type": "string" } },
+          "result": { "type": "string" },
+          "error": { "type": "string" },
+          "executed_at": { "type": "string", "format": "date-time" },
+          "duration": { "type": "string", "description": "Go Duration string, e.g. `125ms`" }
+        }
+      },
+      "DataExecutionResult": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/ExecutionResult" }
+        }
+      },
+      "DataExecutionResultList": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ExecutionResult" }
+          }
+        }
+      },
+      "TrackEventRequest": {
+        "type": "object",
+        "required": ["event_type"],
+        "properties": {
+          "event_type": { "type": "string" },
+          "metadata": { "type": "string", "description": "Arbitrary JSON-encoded metadata" }
+        }
+      },
+      "AdminUserListResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserResponse" }
+          },
+          "total": { "type": "integer" }
+        }
+      },
+      "DataAdminUserListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminUserListResponse" }
+        }
+      },
+      "AdminNotebookItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "owner_id": { "type": "integer", "format": "int64" },
+          "title": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AdminNotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "notebooks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminNotebookItem" }
+          },
+          "total": { "type": "integer" }
+        }
+      },
+      "DataAdminNotebookListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminNotebookListResponse" }
+        }
+      },
+      "AdminStatsResponse": {
+        "type": "object",
+        "properties": {
+          "total_users": { "type": "integer" },
+          "total_sessions": { "type": "integer" },
+          "dau": { "type": "integer", "description": "Daily active users" },
+          "mau": { "type": "integer", "description": "Monthly active users" }
+        }
+      },
+      "DataAdminStatsResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminStatsResponse" }
+        }
+      },
+      "CreateIssueRequest": {
+        "type": "object",
+        "required": ["category", "content"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["bug", "idea", "problem", "feedback"],
+            "description": "Type of issue as shown in the UI: Bug / Idea / Problem / Feedback"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Issue description"
+          }
+        }
+      },
+      "IssueMessage": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "integer", "format": "int64" },
+          "issue_id":   { "type": "integer", "format": "int64" },
+          "user_id":    { "type": "integer", "format": "int64" },
+          "username":   { "type": "string" },
+          "is_admin":   { "type": "boolean", "description": "True if the message was sent by an admin/support" },
+          "content":    { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataIssueMessageResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueMessage" }
+        }
+      },
+      "IssueResponse": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "integer", "format": "int64" },
+          "user_id":    { "type": "integer", "format": "int64" },
+          "category":   { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] },
+          "status":     { "type": "string", "enum": ["open", "in_progress", "closed"] },
+          "content":    { "type": "string" },
+          "messages":   { "type": "array", "items": { "$ref": "#/components/schemas/IssueMessage" }, "description": "Chat thread; populated only in detail view" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataIssueResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueResponse" }
+        }
+      },
+      "IssueListResponse": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IssueResponse" }
+          },
+          "total":  { "type": "integer" },
+          "limit":  { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "DataIssueListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueListResponse" }
+        }
+      },
+      "AdminIssueDetail": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "integer", "format": "int64" },
+          "user_id":    { "type": "integer", "format": "int64" },
+          "username":   { "type": "string", "description": "Username of the issue author" },
+          "category":   { "type": "string", "enum": ["bug", "idea", "problem", "feedback"] },
+          "status":     { "type": "string", "enum": ["open", "in_progress", "closed"] },
+          "content":    { "type": "string" },
+          "messages":   { "type": "array", "items": { "$ref": "#/components/schemas/IssueMessage" }, "description": "Chat thread between user and admin" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataAdminIssueDetailResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminIssueDetail" }
+        }
+      },
+      "AdminIssueListResponse": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminIssueDetail" }
+          },
+          "total":  { "type": "integer" },
+          "limit":  { "type": "integer" },
+          "offset": { "type": "integer" }
+        }
+      },
+      "DataAdminIssueListResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/AdminIssueListResponse" }
+        }
+      },
+      "PatchIssueStatusRequest": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["open", "in_progress", "closed"]
+          }
+        }
+      },
+      "AdminIssueResponseRequest": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Chat message text from the admin"
+          }
+        }
+      },
+      "IssueCategoryStats": {
+        "type": "object",
+        "properties": {
+          "bug":      { "type": "integer" },
+          "idea":     { "type": "integer" },
+          "problem":  { "type": "integer" },
+          "feedback": { "type": "integer" }
+        }
+      },
+      "IssueStatsResponse": {
+        "type": "object",
+        "properties": {
+          "total":       { "type": "integer", "description": "Total issue count" },
+          "open":        { "type": "integer" },
+          "in_progress": { "type": "integer" },
+          "closed":      { "type": "integer" },
+          "by_category": { "$ref": "#/components/schemas/IssueCategoryStats" }
+        }
+      },
+      "DataIssueStatsResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/IssueStatsResponse" }
+        }
+      },
+      "AddCommentRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Comment text"
+          }
+        }
+      },
+      "CommentResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "user_id": { "type": "integer", "format": "int64" },
+          "username": { "type": "string" },
+          "block_id": { "type": "integer", "format": "int64" },
+          "text": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DataCommentResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/CommentResponse" }
+        }
+      },
+      "DataCommentListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CommentResponse" }
+          }
+        }
+      }
+    }
+  }
+}
