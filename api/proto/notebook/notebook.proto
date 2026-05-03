@@ -30,6 +30,11 @@ service NotebookService {
   rpc SaveBlockOutputs(SaveBlockOutputsRequest) returns (SaveBlockOutputsResponse);
   rpc ReorderBlocks(ReorderBlocksRequest) returns (ReorderBlocksResponse);
   rpc ImportNotebook(ImportNotebookRequest) returns (NotebookResponse);
+
+  rpc AddComment(AddCommentRequest)                         returns (AddCommentResponse);
+  rpc DeleteComment(DeleteCommentRequest)                   returns (DeleteCommentResponse);
+  rpc ListCommentsByCell(ListCommentsByCellRequest)         returns (ListCommentsByCellResponse);
+  rpc ListCommentsByNotebook(ListCommentsByNotebookRequest) returns (ListCommentsByNotebookResponse);
 }
 
 message NotebookInfo {
@@ -209,13 +214,17 @@ message NotebookEvent {
     BLOCK_UPDATED    = 1;
     BLOCK_DELETED    = 2;
     NOTEBOOK_UPDATED = 3;
+    COMMENT_ADDED    = 4;
+    COMMENT_DELETED  = 5;
   }
   Type  type        = 1;
   int64 notebook_id = 2;
   int64 actor_id    = 3;
   oneof payload {
-    BlockInfo block          = 4;
-    int64 deleted_block_id   = 5;
+    BlockInfo   block              = 4;
+    int64       deleted_block_id   = 5;
+    CommentInfo comment            = 7;
+    int64       deleted_comment_id = 8;
   }
   int64 timestamp = 6;
 }
@@ -259,4 +268,51 @@ message ImportBlockInfo {
   string content = 3;
   int32 position = 4;
   repeated BlockOutputInfo outputs = 5;
+}
+
+message CommentInfo {
+  int64  id         = 1;
+  int64  user_id    = 2;
+  string username   = 3;
+  int64  block_id   = 4;
+  string text       = 5;
+  int64  created_at = 6;
+}
+
+message AddCommentRequest {
+  int64  user_id     = 1;
+  int64  notebook_id = 2;
+  int64  block_id    = 3;
+  string text        = 4;
+}
+
+message AddCommentResponse {
+  CommentInfo comment = 1;
+}
+
+message DeleteCommentRequest {
+  int64 user_id     = 1;
+  int64 notebook_id = 2;
+  int64 comment_id  = 3;
+}
+
+message DeleteCommentResponse {}
+
+message ListCommentsByCellRequest {
+  int64 user_id     = 1;
+  int64 notebook_id = 2;
+  int64 block_id    = 3;
+}
+
+message ListCommentsByCellResponse {
+  repeated CommentInfo comments = 1;
+}
+
+message ListCommentsByNotebookRequest {
+  int64 user_id     = 1;
+  int64 notebook_id = 2;
+}
+
+message ListCommentsByNotebookResponse {
+  repeated CommentInfo comments = 1;
 }

@@ -346,6 +346,56 @@ func (s *Server) ImportNotebook(ctx context.Context, req *pb.ImportNotebookReque
 	return &pb.NotebookResponse{Notebook: notebookToProto(nb)}, nil
 }
 
+func (s *Server) AddComment(ctx context.Context, req *pb.AddCommentRequest) (*pb.AddCommentResponse, error) {
+	c, err := s.notebookUC.AddComment(ctx, req.GetUserId(), req.GetNotebookId(), req.GetBlockId(), req.GetText())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.AddCommentResponse{Comment: commentToProto(c)}, nil
+}
+
+func (s *Server) DeleteComment(ctx context.Context, req *pb.DeleteCommentRequest) (*pb.DeleteCommentResponse, error) {
+	if err := s.notebookUC.DeleteComment(ctx, req.GetUserId(), req.GetNotebookId(), req.GetCommentId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.DeleteCommentResponse{}, nil
+}
+
+func (s *Server) ListCommentsByCell(ctx context.Context, req *pb.ListCommentsByCellRequest) (*pb.ListCommentsByCellResponse, error) {
+	comments, err := s.notebookUC.ListCommentsByCell(ctx, req.GetUserId(), req.GetNotebookId(), req.GetBlockId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	items := make([]*pb.CommentInfo, len(comments))
+	for i := range comments {
+		items[i] = commentToProto(&comments[i])
+	}
+	return &pb.ListCommentsByCellResponse{Comments: items}, nil
+}
+
+func (s *Server) ListCommentsByNotebook(ctx context.Context, req *pb.ListCommentsByNotebookRequest) (*pb.ListCommentsByNotebookResponse, error) {
+	comments, err := s.notebookUC.ListCommentsByNotebook(ctx, req.GetUserId(), req.GetNotebookId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	items := make([]*pb.CommentInfo, len(comments))
+	for i := range comments {
+		items[i] = commentToProto(&comments[i])
+	}
+	return &pb.ListCommentsByNotebookResponse{Comments: items}, nil
+}
+
+func commentToProto(c *domain.Comment) *pb.CommentInfo {
+	return &pb.CommentInfo{
+		Id:        c.ID,
+		UserId:    c.UserID,
+		Username:  c.Username,
+		BlockId:   c.BlockID,
+		Text:      c.Text,
+		CreatedAt: c.CreatedAt.UnixMilli(),
+	}
+}
+
 func (s *Server) ReorderBlocks(ctx context.Context, req *pb.ReorderBlocksRequest) (*pb.ReorderBlocksResponse, error) {
 	if err := s.notebookUC.ReorderBlocks(ctx, req.GetUserId(), req.GetNotebookId(), req.GetBlockIds()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)

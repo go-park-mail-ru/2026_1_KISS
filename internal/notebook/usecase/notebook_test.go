@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/mocks"
@@ -25,7 +26,7 @@ func TestCreate_DefaultTitle(t *testing.T) {
 			return 1, nil
 		})
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	nb, err := uc.Create(context.Background(), 1, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -47,7 +48,7 @@ func TestGetByID_Forbidden(t *testing.T) {
 	permRepo.EXPECT().GetPermission(gomock.Any(), int64(42), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.GetByID(context.Background(), 1, 42)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -65,7 +66,7 @@ func TestGetByID_PublicAccess(t *testing.T) {
 	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(42)).
 		Return([]domain.Block{}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	nb, err := uc.GetByID(context.Background(), 1, 42)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -84,7 +85,7 @@ func TestDelete_Forbidden(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
 		Return(&domain.Notebook{ID: 42, OwnerID: 2}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.Delete(context.Background(), 1, 42)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -109,7 +110,7 @@ func TestAddBlock_CorrectPosition(t *testing.T) {
 			return 3, nil
 		})
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	block, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -137,7 +138,7 @@ func TestAddBlock_TextDefaultsLanguageToPlain(t *testing.T) {
 			return 1, nil
 		})
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	block, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "text", Language: ""})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -165,7 +166,7 @@ func TestListByUser_NormalizesLimit(t *testing.T) {
 	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").
 		Return(0, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, total, err := uc.ListByUser(context.Background(), 1, 0, 0, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -187,7 +188,7 @@ func TestCreate_RepoError(t *testing.T) {
 	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
 		Return(int64(0), errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.Create(context.Background(), 1, "test")
 	if err == nil {
 		t.Error("expected error")
@@ -203,7 +204,7 @@ func TestGetByID_RepoError(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
 		Return(nil, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.GetByID(context.Background(), 1, 42)
 	if err == nil {
 		t.Error("expected error")
@@ -221,7 +222,7 @@ func TestGetByID_BlocksError(t *testing.T) {
 	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
 		Return(nil, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.GetByID(context.Background(), 1, 1)
 	if err == nil {
 		t.Error("expected error")
@@ -244,7 +245,7 @@ func TestListByUser_NegativeOffset(t *testing.T) {
 	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").
 		Return(0, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, _, err := uc.ListByUser(context.Background(), 1, 10, -5, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -270,7 +271,7 @@ func TestListByUser_SearchPropagates(t *testing.T) {
 			return 1, nil
 		})
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	notebooks, total, err := uc.ListByUser(context.Background(), 1, 10, 0, "test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -302,7 +303,7 @@ func TestListByUser_EmptySearchReturnsAll(t *testing.T) {
 	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").
 		Return(2, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	notebooks, total, err := uc.ListByUser(context.Background(), 1, 10, 0, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -323,7 +324,7 @@ func TestDelete_Success(t *testing.T) {
 	notebookRepo.EXPECT().Delete(gomock.Any(), int64(42)).
 		Return(nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.Delete(context.Background(), 1, 42)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -339,7 +340,7 @@ func TestDelete_GetByIDError(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
 		Return(nil, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.Delete(context.Background(), 1, 42)
 	if err == nil {
 		t.Error("expected error")
@@ -357,7 +358,7 @@ func TestDelete_RepoError(t *testing.T) {
 	notebookRepo.EXPECT().Delete(gomock.Any(), int64(42)).
 		Return(errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.Delete(context.Background(), 1, 42)
 	if err == nil {
 		t.Error("expected error")
@@ -373,7 +374,7 @@ func TestAddBlock_NotebookNotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 1, 42, &domain.Block{Type: "code"})
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -392,7 +393,7 @@ func TestAddBlock_Forbidden(t *testing.T) {
 	permRepo.EXPECT().GetPermission(gomock.Any(), int64(42), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 1, 42, &domain.Block{Type: "code"})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -410,7 +411,7 @@ func TestAddBlock_GetBlocksError(t *testing.T) {
 	blockRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
 		Return(nil, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err == nil {
 		t.Error("expected error")
@@ -430,7 +431,7 @@ func TestAddBlock_CreateError(t *testing.T) {
 	blockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
 		Return(int64(0), errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 1, 1, &domain.Block{Type: "code"})
 	if err == nil {
 		t.Error("expected error")
@@ -456,7 +457,7 @@ func TestUpdate_Success(t *testing.T) {
 			return nil
 		})
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	nb, err := uc.Update(context.Background(), 1, 42, "New Title", true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -472,7 +473,7 @@ func TestUpdate_EmptyTitle(t *testing.T) {
 	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
 	blockRepo := mocks.NewMockBlockRepository(ctrl)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.Update(context.Background(), 1, 42, "", false)
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
@@ -486,7 +487,7 @@ func TestUpdate_TooLongTitle(t *testing.T) {
 	blockRepo := mocks.NewMockBlockRepository(ctrl)
 
 	longTitle := string(make([]byte, 256))
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.Update(context.Background(), 1, 42, longTitle, false)
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
@@ -502,7 +503,7 @@ func TestUpdate_Forbidden(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
 		Return(&domain.Notebook{ID: 42, OwnerID: 2}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -518,7 +519,7 @@ func TestUpdate_NotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(42)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.Update(context.Background(), 1, 42, "Title", false)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -543,7 +544,7 @@ func TestUpdateBlock_Success(t *testing.T) {
 			return nil
 		})
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	block, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "new content", "markdown", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -562,7 +563,7 @@ func TestUpdateBlock_NotebookNotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -581,7 +582,7 @@ func TestUpdateBlock_Forbidden(t *testing.T) {
 	permRepo.EXPECT().GetPermission(gomock.Any(), int64(10), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -599,7 +600,7 @@ func TestUpdateBlock_BlockNotFound(t *testing.T) {
 	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -617,7 +618,7 @@ func TestUpdateBlock_WrongNotebook(t *testing.T) {
 	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
 		Return(&domain.Block{ID: 5, NotebookID: 999}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -637,7 +638,7 @@ func TestUpdateBlock_RepoError(t *testing.T) {
 	blockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).
 		Return(errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.UpdateBlock(context.Background(), 1, 10, 5, "c", "code", "py")
 	if err == nil {
 		t.Error("expected error")
@@ -657,7 +658,7 @@ func TestDeleteBlock_Success(t *testing.T) {
 	blockRepo.EXPECT().Delete(gomock.Any(), int64(5)).
 		Return(nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -673,7 +674,7 @@ func TestDeleteBlock_NotebookNotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(10)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -692,7 +693,7 @@ func TestDeleteBlock_Forbidden(t *testing.T) {
 	permRepo.EXPECT().GetPermission(gomock.Any(), int64(10), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -710,7 +711,7 @@ func TestDeleteBlock_BlockNotFound(t *testing.T) {
 	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -728,7 +729,7 @@ func TestDeleteBlock_WrongNotebook(t *testing.T) {
 	blockRepo.EXPECT().GetByID(gomock.Any(), int64(5)).
 		Return(&domain.Block{ID: 5, NotebookID: 999}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -748,7 +749,7 @@ func TestDeleteBlock_RepoError(t *testing.T) {
 	blockRepo.EXPECT().Delete(gomock.Any(), int64(5)).
 		Return(errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.DeleteBlock(context.Background(), 1, 10, 5)
 	if err == nil {
 		t.Error("expected error")
@@ -765,7 +766,7 @@ func TestListAll_Success(t *testing.T) {
 	notebookRepo.EXPECT().ListAll(gomock.Any(), 20, 0, "").
 		Return(notebooks, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	result, err := uc.ListAll(context.Background(), 0, 0, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -784,7 +785,7 @@ func TestCountAll_Success(t *testing.T) {
 	notebookRepo.EXPECT().CountAll(gomock.Any(), "").
 		Return(42, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	count, err := uc.CountAll(context.Background(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -803,7 +804,7 @@ func TestAdminDelete_Success(t *testing.T) {
 	notebookRepo.EXPECT().Delete(gomock.Any(), int64(42)).
 		Return(nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.AdminDelete(context.Background(), 42)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -821,7 +822,7 @@ func TestGrantPermission_Success(t *testing.T) {
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 	permRepo.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	err := uc.GrantPermission(context.Background(), 10, 1, 20, domain.PermissionEditor)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -834,7 +835,7 @@ func TestGrantPermission_InvalidLevel(t *testing.T) {
 	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
 	blockRepo := mocks.NewMockBlockRepository(ctrl)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.GrantPermission(context.Background(), 10, 1, 20, "invalid")
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
@@ -850,7 +851,7 @@ func TestGrantPermission_NotOwner(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.GrantPermission(context.Background(), 99, 1, 20, domain.PermissionEditor)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -866,7 +867,7 @@ func TestGrantPermission_SelfGrant(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.GrantPermission(context.Background(), 10, 1, 10, domain.PermissionEditor)
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
@@ -882,7 +883,7 @@ func TestGrantPermission_NotebookNotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.GrantPermission(context.Background(), 10, 1, 20, domain.PermissionEditor)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -900,7 +901,7 @@ func TestGrantPermission_UpsertError(t *testing.T) {
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 	permRepo.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	err := uc.GrantPermission(context.Background(), 10, 1, 20, domain.PermissionEditor)
 	if err == nil {
 		t.Error("expected error")
@@ -918,7 +919,7 @@ func TestRevokePermission_Success(t *testing.T) {
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 	permRepo.EXPECT().Delete(gomock.Any(), int64(1), int64(20)).Return(nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	err := uc.RevokePermission(context.Background(), 10, 1, 20)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -934,7 +935,7 @@ func TestRevokePermission_NotOwner(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.RevokePermission(context.Background(), 99, 1, 20)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -950,7 +951,7 @@ func TestRevokePermission_NotebookNotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	err := uc.RevokePermission(context.Background(), 10, 1, 20)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -971,7 +972,7 @@ func TestListPermissions_Success(t *testing.T) {
 			{NotebookID: 1, UserID: 2, PermissionLevel: "editor"},
 		}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	perms, err := uc.ListPermissions(context.Background(), 10, 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -990,7 +991,7 @@ func TestListPermissions_NotOwner(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(&domain.Notebook{ID: 1, OwnerID: 10}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.ListPermissions(context.Background(), 99, 1)
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -1006,7 +1007,7 @@ func TestListPermissions_NotebookNotFound(t *testing.T) {
 	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
 		Return(nil, domain.ErrNotFound)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.ListPermissions(context.Background(), 10, 1)
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("want ErrNotFound, got %v", err)
@@ -1024,7 +1025,7 @@ func TestListSharedWithUser_Success(t *testing.T) {
 	notebookRepo.EXPECT().CountSharedWithUser(gomock.Any(), int64(1)).
 		Return(1, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	notebooks, total, err := uc.ListSharedWithUser(context.Background(), 1, 0, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1046,7 +1047,7 @@ func TestListSharedWithUser_GetError(t *testing.T) {
 	notebookRepo.EXPECT().GetSharedWithUser(gomock.Any(), int64(1), 20, 0).
 		Return(nil, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, _, err := uc.ListSharedWithUser(context.Background(), 1, 0, 0)
 	if err == nil {
 		t.Error("expected error")
@@ -1064,7 +1065,7 @@ func TestListSharedWithUser_CountError(t *testing.T) {
 	notebookRepo.EXPECT().CountSharedWithUser(gomock.Any(), int64(1)).
 		Return(0, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, _, err := uc.ListSharedWithUser(context.Background(), 1, 0, 0)
 	if err == nil {
 		t.Error("expected error")
@@ -1086,7 +1087,7 @@ func TestRequireEditorAccess_EditorPermission(t *testing.T) {
 		Return([]domain.Block{}, nil)
 	blockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 5, 1, &domain.Block{Type: "code"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1105,7 +1106,7 @@ func TestRequireEditorAccess_ReadonlyPermission(t *testing.T) {
 	permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(5)).
 		Return(&domain.FilePermission{PermissionLevel: domain.PermissionReadOnly}, nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 5, 1, &domain.Block{Type: "code"})
 	if !errors.Is(err, domain.ErrForbidden) {
 		t.Errorf("want ErrForbidden, got %v", err)
@@ -1135,7 +1136,7 @@ func TestImportNotebook_Success(t *testing.T) {
 		})
 	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), gomock.Any()).Return(nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	blocks := []domain.Block{
 		{Type: "code", Content: "print('hi')", Outputs: []domain.BlockOutput{{OutputType: "stdout", Content: "hi"}}},
 		{Type: "text", Content: "# hello"},
@@ -1160,7 +1161,7 @@ func TestImportNotebook_CreateError(t *testing.T) {
 
 	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(int64(0), errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.ImportNotebook(context.Background(), 1, "Test", []domain.Block{{Type: "code"}})
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -1175,7 +1176,7 @@ func TestImportNotebook_EmptyBlocks(t *testing.T) {
 
 	notebookRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 
-	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl))
+	uc := usecase.New(notebookRepo, blockRepo, mocks.NewMockPermissionRepository(ctrl), mocks.NewMockCommentRepository(ctrl))
 	nb, err := uc.ImportNotebook(context.Background(), 1, "", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1197,9 +1198,160 @@ func TestRequireEditorAccess_RepoError(t *testing.T) {
 	permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(5)).
 		Return(nil, errors.New("db error"))
 
-	uc := usecase.New(notebookRepo, blockRepo, permRepo)
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, mocks.NewMockCommentRepository(ctrl))
 	_, err := uc.AddBlock(context.Background(), 5, 1, &domain.Block{Type: "code"})
 	if err == nil {
 		t.Error("expected error")
+	}
+}
+
+func TestAddComment_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	commentRepo.EXPECT().Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, c *domain.Comment) (int64, error) {
+			c.ID = 1
+			c.CreatedAt = time.Now()
+			c.Username = "alice"
+			return 1, nil
+		})
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	comment, err := uc.AddComment(context.Background(), 1, 1, 10, "hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if comment.ID != 1 {
+		t.Errorf("want ID=1, got %d", comment.ID)
+	}
+}
+
+func TestAddComment_EmptyText(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	_, err := uc.AddComment(context.Background(), 1, 1, 10, "")
+	if !errors.Is(err, domain.ErrInvalidInput) {
+		t.Errorf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestAddComment_Forbidden(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 2, IsPublic: false}, nil)
+	permRepo.EXPECT().GetPermission(gomock.Any(), int64(1), int64(1)).
+		Return(nil, domain.ErrNotFound)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	_, err := uc.AddComment(context.Background(), 1, 1, 10, "hello")
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestDeleteComment_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	commentRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Comment{ID: 1, UserID: 1, BlockID: 10}, nil)
+	commentRepo.EXPECT().Delete(gomock.Any(), int64(1)).
+		Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	err := uc.DeleteComment(context.Background(), 1, 1, 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDeleteComment_Forbidden(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 2}, nil)
+	commentRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Comment{ID: 1, UserID: 3, BlockID: 10}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	err := uc.DeleteComment(context.Background(), 1, 1, 1)
+	if !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestListCommentsByCell_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	commentRepo.EXPECT().GetByBlockID(gomock.Any(), int64(10)).
+		Return([]domain.Comment{{ID: 1, Text: "hi"}}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	comments, err := uc.ListCommentsByCell(context.Background(), 1, 1, 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(comments) != 1 {
+		t.Errorf("want 1 comment, got %d", len(comments))
+	}
+}
+
+func TestListCommentsByNotebook_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(&domain.Notebook{ID: 1, OwnerID: 1}, nil)
+	commentRepo.EXPECT().GetByNotebookID(gomock.Any(), int64(1)).
+		Return([]domain.Comment{{ID: 1, Text: "hi"}}, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	comments, err := uc.ListCommentsByNotebook(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(comments) != 1 {
+		t.Errorf("want 1 comment, got %d", len(comments))
 	}
 }

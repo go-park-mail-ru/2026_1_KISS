@@ -679,3 +679,335 @@ func TestUserRepo_ListAll_Empty(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestUserRepo_CountAll_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	rows := sqlmock.NewRows([]string{"count"}).AddRow(int64(42))
+
+	mock.ExpectQuery("SELECT COUNT").
+		WillReturnRows(rows)
+
+	count, err := repo.CountAll(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 42 {
+		t.Fatalf("expected 42, got %d", count)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_CountAll_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WillReturnError(errors.New("db error"))
+
+	_, err = repo.CountAll(context.Background())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestUserRepo_SetVerified_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET is_verified").
+		WithArgs(true, int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.SetVerified(context.Background(), 1, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_SetVerified_False(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET is_verified").
+		WithArgs(false, int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.SetVerified(context.Background(), 1, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_SetVerified_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET is_verified").
+		WithArgs(true, int64(1)).
+		WillReturnError(errors.New("db error"))
+
+	err = repo.SetVerified(context.Background(), 1, true)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestUserRepo_AdminUpdateUser_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET username").
+		WithArgs("newname", "new@example.com", int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.AdminUpdateUser(context.Background(), 1, "newname", "new@example.com")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_AdminUpdateUser_NotFound(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET username").
+		WithArgs("newname", "new@example.com", int64(999)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err = repo.AdminUpdateUser(context.Background(), 999, "newname", "new@example.com")
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_AdminUpdateUser_UniqueViolation(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET username").
+		WithArgs("taken", "taken@example.com", int64(1)).
+		WillReturnError(&pq.Error{Code: "23505"})
+
+	err = repo.AdminUpdateUser(context.Background(), 1, "taken", "taken@example.com")
+	if !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_UpdatePlan_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET plan").
+		WithArgs(domain.PlanAdmin, true, int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.UpdatePlan(context.Background(), 1, domain.PlanAdmin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_UpdatePlan_NotFound(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET plan").
+		WithArgs(domain.PlanPro, false, int64(999)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err = repo.UpdatePlan(context.Background(), 999, domain.PlanPro)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_UpdatePlan_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET plan").
+		WithArgs(domain.PlanFree, false, int64(1)).
+		WillReturnError(errors.New("db error"))
+
+	err = repo.UpdatePlan(context.Background(), 1, domain.PlanFree)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestUserRepo_UpdateLastActive_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	now := time.Now()
+
+	mock.ExpectExec("UPDATE users SET last_active_at").
+		WithArgs(now, int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.UpdateLastActive(context.Background(), 1, now)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_UpdateLastActive_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	now := time.Now()
+
+	mock.ExpectExec("UPDATE users SET last_active_at").
+		WithArgs(now, int64(1)).
+		WillReturnError(errors.New("db error"))
+
+	err = repo.UpdateLastActive(context.Background(), 1, now)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestUserRepo_IncrementTotalTime_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET total_time_seconds").
+		WithArgs(int64(3600), int64(1)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.IncrementTotalTime(context.Background(), 1, 3600)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_IncrementTotalTime_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+
+	mock.ExpectExec("UPDATE users SET total_time_seconds").
+		WithArgs(int64(100), int64(1)).
+		WillReturnError(errors.New("db error"))
+
+	err = repo.IncrementTotalTime(context.Background(), 1, 100)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}

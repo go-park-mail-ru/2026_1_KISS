@@ -43,16 +43,22 @@ type NotebookService interface {
 	SaveBlockOutputs(ctx context.Context, blockID int64, outputs []domain.BlockOutput) error
 	ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error
 	ImportNotebook(ctx context.Context, userID int64, title string, blocks []domain.Block) (*domain.Notebook, error)
+
+	AddComment(ctx context.Context, userID, notebookID, blockID int64, text string) (*domain.Comment, error)
+	DeleteComment(ctx context.Context, userID, notebookID, commentID int64) error
+	ListCommentsByCell(ctx context.Context, userID, notebookID, blockID int64) ([]domain.Comment, error)
+	ListCommentsByNotebook(ctx context.Context, userID, notebookID int64) ([]domain.Comment, error)
 }
 
 type notebookService struct {
 	notebookRepo repository.NotebookRepository
 	blockRepo    repository.BlockRepository
 	permRepo     repository.PermissionRepository
+	commentRepo  repository.CommentRepository
 	publisher    Publisher
 }
 
-func New(nr repository.NotebookRepository, br repository.BlockRepository, pr repository.PermissionRepository, pubs ...Publisher) NotebookService {
+func New(nr repository.NotebookRepository, br repository.BlockRepository, pr repository.PermissionRepository, cr repository.CommentRepository, pubs ...Publisher) NotebookService {
 	var pub Publisher = noopPublisher{}
 	if len(pubs) > 0 && pubs[0] != nil {
 		pub = pubs[0]
@@ -61,6 +67,7 @@ func New(nr repository.NotebookRepository, br repository.BlockRepository, pr rep
 		notebookRepo: nr,
 		blockRepo:    br,
 		permRepo:     pr,
+		commentRepo:  cr,
 		publisher:    pub,
 	}
 }
@@ -498,6 +505,124 @@ func (s *notebookService) SaveBlockOutputs(ctx context.Context, blockID int64, o
 		return err
 	}
 	return nil
+}
+
+func (s *notebookService) AddComment(ctx context.Context, userID, notebookID, blockID int64, text string) (*domain.Comment, error) {
+	logger.Info(ctx, "usecase.notebook.AddComment", "user_id", userID, "notebook_id", notebookID, "block_id", blockID)
+
+	text = sanitize.EscapeHTML(text)
+	if text == "" {
+		logger.Error(ctx, "usecase.notebook.AddComment", "error", domain.ErrInvalidInput)
+		return nil, domain.ErrInvalidInput
+	}
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.AddComment", "error", err)
+		return nil, err
+	}
+	if err := s.requireEditorAccess(ctx, nb, userID); err != nil {
+		logger.Error(ctx, "usecase.notebook.AddComment", "error", err)
+		return nil, err
+	}
+	c := &domain.Comment{UserID: userID, BlockID: blockID, Text: text}
+	id, err := s.commentRepo.Create(ctx, c)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.AddComment", "error", err)
+		return nil, err
+	}
+	c.ID = id
+	logger.Info(ctx, "usecase.notebook.AddComment", "comment_id", c.ID)
+	s.publisher.Publish(notebookID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_COMMENT_ADDED,
+		NotebookId: notebookID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+		Payload:    &pb.NotebookEvent_Comment{Comment: commentToProto(c)},
+	})
+	return c, nil
+}
+
+func (s *notebookService) DeleteComment(ctx context.Context, userID, notebookID, commentID int64) error {
+	logger.Info(ctx, "usecase.notebook.DeleteComment", "user_id", userID, "notebook_id", notebookID, "comment_id", commentID)
+
+	c, err := s.commentRepo.GetByID(ctx, commentID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.DeleteComment", "error", err)
+		return err
+	}
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.DeleteComment", "error", err)
+		return err
+	}
+	if c.UserID != userID && nb.OwnerID != userID {
+		logger.Error(ctx, "usecase.notebook.DeleteComment", "error", domain.ErrForbidden)
+		return domain.ErrForbidden
+	}
+	if err := s.commentRepo.Delete(ctx, commentID); err != nil {
+		logger.Error(ctx, "usecase.notebook.DeleteComment", "error", err)
+		return err
+	}
+	logger.Info(ctx, "usecase.notebook.DeleteComment", "comment_id", commentID, "status", "ok")
+	s.publisher.Publish(notebookID, &pb.NotebookEvent{
+		Type:       pb.NotebookEvent_COMMENT_DELETED,
+		NotebookId: notebookID,
+		ActorId:    userID,
+		Timestamp:  time.Now().UnixMilli(),
+		Payload:    &pb.NotebookEvent_DeletedCommentId{DeletedCommentId: commentID},
+	})
+	return nil
+}
+
+func (s *notebookService) ListCommentsByCell(ctx context.Context, userID, notebookID, blockID int64) ([]domain.Comment, error) {
+	logger.Info(ctx, "usecase.notebook.ListCommentsByCell", "user_id", userID, "notebook_id", notebookID, "block_id", blockID)
+
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ListCommentsByCell", "error", err)
+		return nil, err
+	}
+	if nb.OwnerID != userID && !nb.IsPublic {
+		if _, err := s.permRepo.GetPermission(ctx, notebookID, userID); err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				logger.Error(ctx, "usecase.notebook.ListCommentsByCell", "error", domain.ErrForbidden)
+				return nil, domain.ErrForbidden
+			}
+			return nil, err
+		}
+	}
+	return s.commentRepo.GetByBlockID(ctx, blockID)
+}
+
+func (s *notebookService) ListCommentsByNotebook(ctx context.Context, userID, notebookID int64) ([]domain.Comment, error) {
+	logger.Info(ctx, "usecase.notebook.ListCommentsByNotebook", "user_id", userID, "notebook_id", notebookID)
+
+	nb, err := s.notebookRepo.GetByID(ctx, notebookID)
+	if err != nil {
+		logger.Error(ctx, "usecase.notebook.ListCommentsByNotebook", "error", err)
+		return nil, err
+	}
+	if nb.OwnerID != userID && !nb.IsPublic {
+		if _, err := s.permRepo.GetPermission(ctx, notebookID, userID); err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				logger.Error(ctx, "usecase.notebook.ListCommentsByNotebook", "error", domain.ErrForbidden)
+				return nil, domain.ErrForbidden
+			}
+			return nil, err
+		}
+	}
+	return s.commentRepo.GetByNotebookID(ctx, notebookID)
+}
+
+func commentToProto(c *domain.Comment) *pb.CommentInfo {
+	return &pb.CommentInfo{
+		Id:        c.ID,
+		UserId:    c.UserID,
+		Username:  c.Username,
+		BlockId:   c.BlockID,
+		Text:      c.Text,
+		CreatedAt: c.CreatedAt.UnixMilli(),
+	}
 }
 
 func (s *notebookService) ReorderBlocks(ctx context.Context, userID, notebookID int64, blockIDs []int64) error {
