@@ -1355,3 +1355,159 @@ func TestListCommentsByNotebook_Success(t *testing.T) {
 		t.Errorf("want 1 comment, got %d", len(comments))
 	}
 }
+
+func TestGetUserResourceStats_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").Return(5, nil)
+	blockRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1)).Return(int64(20), nil)
+	blockRepo.EXPECT().SumExecutionsByOwnerID(gomock.Any(), int64(1)).Return(int64(100), nil)
+	blockRepo.EXPECT().CountExecutionsByOwnerByDay(gomock.Any(), int64(1), gomock.Any()).Return(nil, nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	nbCount, blockCount, totalExec, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nbCount != 5 {
+		t.Errorf("expected 5 notebooks, got %d", nbCount)
+	}
+	if blockCount != 20 {
+		t.Errorf("expected 20 blocks, got %d", blockCount)
+	}
+	if totalExec != 100 {
+		t.Errorf("expected 100 executions, got %d", totalExec)
+	}
+}
+
+func TestSaveBlockOutputs_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	outputs := []domain.BlockOutput{{Position: 0, OutputType: "stdout", Content: "hello"}}
+	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), outputs).Return(nil)
+	blockRepo.EXPECT().IncrementExecutionCount(gomock.Any(), int64(1)).Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	err := uc.SaveBlockOutputs(context.Background(), 1, outputs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSaveBlockOutputs_SaveError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	outputs := []domain.BlockOutput{{Position: 0, OutputType: "stdout", Content: "hello"}}
+	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), outputs).Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	err := uc.SaveBlockOutputs(context.Background(), 1, outputs)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestSaveBlockOutputs_IncrementError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	outputs := []domain.BlockOutput{{Position: 0, OutputType: "stdout", Content: "hello"}}
+	blockRepo.EXPECT().SaveOutputs(gomock.Any(), int64(1), outputs).Return(nil)
+	blockRepo.EXPECT().IncrementExecutionCount(gomock.Any(), int64(1)).Return(errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	err := uc.SaveBlockOutputs(context.Background(), 1, outputs)
+	if err != nil {
+		t.Fatal("increment error should not propagate")
+	}
+}
+
+func TestGetUserResourceStats_NotebookCountError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").Return(0, errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	_, _, _, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestGetUserResourceStats_SumExecError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").Return(5, nil)
+	blockRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1)).Return(int64(20), nil)
+	blockRepo.EXPECT().SumExecutionsByOwnerID(gomock.Any(), int64(1)).Return(int64(0), errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	_, _, _, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestGetUserResourceStats_BlockCountError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1), "").Return(5, nil)
+	blockRepo.EXPECT().CountByOwnerID(gomock.Any(), int64(1)).Return(int64(0), errors.New("db error"))
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	_, _, _, _, err := uc.GetUserResourceStats(context.Background(), 1, 30)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestSetAllPrivateByOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
+	blockRepo := mocks.NewMockBlockRepository(ctrl)
+	permRepo := mocks.NewMockPermissionRepository(ctrl)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+
+	notebookRepo.EXPECT().SetAllPrivateByOwner(gomock.Any(), int64(1)).Return(nil)
+
+	uc := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
+	err := uc.SetAllPrivateByOwner(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

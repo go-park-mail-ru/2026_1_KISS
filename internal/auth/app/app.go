@@ -27,13 +27,14 @@ import (
 )
 
 type App struct {
-	grpcServer *grpc.Server
-	listener   net.Listener
-	db         *sql.DB
-	rdb        *redisv9.Client
-	storConn   *grpc.ClientConn
-	notifConn  *grpc.ClientConn
-	metricsSrv *http.Server
+	grpcServer    *grpc.Server
+	listener      net.Listener
+	db            *sql.DB
+	rdb           *redisv9.Client
+	storConn      *grpc.ClientConn
+	notifConn     *grpc.ClientConn
+	metricsSrv    *http.Server
+	cancelCleanup context.CancelFunc
 }
 
 func New(cfg *config.Config, grpcPort string) (*App, error) {
@@ -80,6 +81,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	profileUC := authusecase.NewProfileUsecase(userRepo, uploader, cfg.Upload.MaxAvatarSize)
 	eventUC := authusecase.NewEventUsecase(eventRepo, userRepo)
 	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
+	statsUC := authusecase.NewStatsUsecase(userRepo, eventRepo)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -95,16 +97,20 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
-	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC))
+	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC, statsUC))
+
+	cleanupCtx, cancelCleanup := context.WithCancel(context.Background())
+	go authUC.StartCleanupLoop(cleanupCtx)
 
 	return &App{
-		grpcServer: srv,
-		listener:   lis,
-		db:         db,
-		rdb:        rdb,
-		storConn:   storConn,
-		notifConn:  notifConn,
-		metricsSrv: metricsSrv,
+		grpcServer:    srv,
+		listener:      lis,
+		db:            db,
+		rdb:           rdb,
+		storConn:      storConn,
+		notifConn:     notifConn,
+		metricsSrv:    metricsSrv,
+		cancelCleanup: cancelCleanup,
 	}, nil
 }
 
@@ -114,6 +120,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
+	a.cancelCleanup()
 	metrics.ShutdownMetricsServer(a.metricsSrv)
 	a.grpcServer.GracefulStop()
 	if err := a.db.Close(); err != nil {

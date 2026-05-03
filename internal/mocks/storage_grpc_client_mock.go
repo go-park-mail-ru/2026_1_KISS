@@ -142,6 +142,26 @@ func (mr *MockStorageServiceClientMockRecorder) GetStorageStats(ctx, in any, opt
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageStats", reflect.TypeOf((*MockStorageServiceClient)(nil).GetStorageStats), varargs...)
 }
 
+// GetUserStorageStats mocks base method.
+func (m *MockStorageServiceClient) GetUserStorageStats(ctx context.Context, in *storage.GetUserStorageStatsRequest, opts ...grpc.CallOption) (*storage.GetStorageStatsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserStorageStats", varargs...)
+	ret0, _ := ret[0].(*storage.GetStorageStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserStorageStats indicates an expected call of GetUserStorageStats.
+func (mr *MockStorageServiceClientMockRecorder) GetUserStorageStats(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserStorageStats", reflect.TypeOf((*MockStorageServiceClient)(nil).GetUserStorageStats), varargs...)
+}
+
 // ListFiles mocks base method.
 func (m *MockStorageServiceClient) ListFiles(ctx context.Context, in *storage.ListFilesRequest, opts ...grpc.CallOption) (*storage.ListFilesResponse, error) {
 	m.ctrl.T.Helper()

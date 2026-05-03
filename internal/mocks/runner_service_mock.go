@@ -56,6 +56,21 @@ func (mr *MockRunnerServiceMockRecorder) ExecuteBlock(ctx, notebookID, blockPosi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockRunnerService)(nil).ExecuteBlock), ctx, notebookID, blockPosition)
 }
 
+// ExecuteBlockStreaming mocks base method.
+func (m *MockRunnerService) ExecuteBlockStreaming(ctx context.Context, notebookID int64, blockPosition int, onChunk func(string, string)) (*domain.BlockExecutionResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecuteBlockStreaming", ctx, notebookID, blockPosition, onChunk)
+	ret0, _ := ret[0].(*domain.BlockExecutionResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExecuteBlockStreaming indicates an expected call of ExecuteBlockStreaming.
+func (mr *MockRunnerServiceMockRecorder) ExecuteBlockStreaming(ctx, notebookID, blockPosition, onChunk any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlockStreaming", reflect.TypeOf((*MockRunnerService)(nil).ExecuteBlockStreaming), ctx, notebookID, blockPosition, onChunk)
+}
+
 // ExecuteFromPosition mocks base method.
 func (m *MockRunnerService) ExecuteFromPosition(ctx context.Context, notebookID int64, startPosition int) ([]*domain.BlockExecutionResult, error) {
 	m.ctrl.T.Helper()
@@ -69,6 +84,21 @@ func (m *MockRunnerService) ExecuteFromPosition(ctx context.Context, notebookID 
 func (mr *MockRunnerServiceMockRecorder) ExecuteFromPosition(ctx, notebookID, startPosition any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteFromPosition", reflect.TypeOf((*MockRunnerService)(nil).ExecuteFromPosition), ctx, notebookID, startPosition)
+}
+
+// GetSessionStats mocks base method.
+func (m *MockRunnerService) GetSessionStats(ctx context.Context, notebookID int64) (*domain.ContainerResourceStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionStats", ctx, notebookID)
+	ret0, _ := ret[0].(*domain.ContainerResourceStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionStats indicates an expected call of GetSessionStats.
+func (mr *MockRunnerServiceMockRecorder) GetSessionStats(ctx, notebookID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionStats", reflect.TypeOf((*MockRunnerService)(nil).GetSessionStats), ctx, notebookID)
 }
 
 // StartIdleReaper mocks base method.

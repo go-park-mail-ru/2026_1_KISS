@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 
 	"google.golang.org/grpc"
 
@@ -18,6 +19,7 @@ import (
 type App struct {
 	grpcServer *grpc.Server
 	listener   net.Listener
+	metricsSrv *http.Server
 }
 
 func New(cfg *config.Config, grpcPort string) (*App, error) {
@@ -26,7 +28,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		return nil, fmt.Errorf("listen: %w", err)
 	}
 
-	metrics.StartMetricsServer(":" + cfg.Metrics.Port)
+	metricsSrv := metrics.StartMetricsServer(":" + cfg.Metrics.Port)
 
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -46,6 +48,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	return &App{
 		grpcServer: srv,
 		listener:   lis,
+		metricsSrv: metricsSrv,
 	}, nil
 }
 
@@ -55,5 +58,6 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
+	metrics.ShutdownMetricsServer(a.metricsSrv)
 	a.grpcServer.GracefulStop()
 }

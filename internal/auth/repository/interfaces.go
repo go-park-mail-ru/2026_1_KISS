@@ -26,6 +26,7 @@ type UserRepository interface {
 	UpdateLastActive(ctx context.Context, userID int64, t time.Time) error
 	IncrementTotalTime(ctx context.Context, userID int64, seconds int64) error
 	AdminUpdateUser(ctx context.Context, userID int64, username, email string) error
+	DeleteUnverifiedBefore(ctx context.Context, before time.Time) (int64, error)
 }
 
 type VerificationRepository interface {
@@ -45,4 +46,5 @@ type EventRepository interface {
 	CountActiveUsers(ctx context.Context, since time.Time) (int64, error)
 	CountActiveUsersByDay(ctx context.Context, since time.Time) ([]domain.DayCount, error)
 	CountActiveUsersByMonth(ctx context.Context, since time.Time) ([]domain.MonthCount, error)
+	CountUserActivityByDay(ctx context.Context, userID int64, since time.Time) ([]domain.DayCount, error)
 }

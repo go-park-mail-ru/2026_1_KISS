@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+import json
 import logging
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from .bridge import KernelBridge
 from .models import ExecuteRequest, ExecuteResponse
@@ -40,5 +42,19 @@ def create_app() -> FastAPI:
         except Exception as exc:
             logger.exception("Execution failed")
             raise HTTPException(status_code=500, detail="Internal execution error") from exc
+
+    @app.post("/execute/stream")
+    def execute_stream(payload: ExecuteRequest):
+        def generate():
+            try:
+                for chunk in bridge.execute_streaming(code=payload.code, timeout=payload.timeout):
+                    yield json.dumps(chunk, ensure_ascii=False) + "\n"
+            except RuntimeError as exc:
+                yield json.dumps({"type": "error", "data": str(exc)}) + "\n"
+            except Exception as exc:
+                logger.exception("Streaming execution failed")
+                yield json.dumps({"type": "error", "data": str(exc)}) + "\n"
+
+        return StreamingResponse(generate(), media_type="application/x-ndjson")
 
     return app

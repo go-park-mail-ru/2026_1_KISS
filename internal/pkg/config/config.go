@@ -153,8 +153,8 @@ func Load() *Config {
 			MaxFeedbackSize: getEnvInt64("UPLOAD_MAX_FEEDBACK_SIZE", 10*1024*1024),
 		},
 		Mail: MailConfig{
-			From:     getEnv("MAIL_FROM", "no-reply@kisscolab.ru"),
-			AppURL:   getEnv("APP_URL", "https://kisscolab.ru"),
+			From:     getEnv("MAIL_FROM", "noreply@colkiss.ru"),
+			AppURL:   getEnv("APP_URL", "https://colkiss.ru"),
 			SMTPHost: getEnv("MAIL_SMTP_HOST", "172.17.0.1"),
 			SMTPPort: getEnv("MAIL_SMTP_PORT", "25"),
 		},

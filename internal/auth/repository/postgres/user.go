@@ -425,6 +425,19 @@ func isUniqueViolation(err error) bool {
 	return false
 }
 
+func (r *UserRepo) DeleteUnverifiedBefore(ctx context.Context, before time.Time) (int64, error) {
+	start := time.Now()
+	const q = `DELETE FROM users WHERE is_verified = FALSE AND created_at < $1`
+	res, err := r.db.ExecContext(ctx, q, before)
+	if err != nil {
+		logger.Error(ctx, "repo.users.DeleteUnverifiedBefore", "error", err, "duration", time.Since(start))
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	logger.Info(ctx, "repo.users.DeleteUnverifiedBefore", "deleted", n, "duration", time.Since(start))
+	return n, nil
+}
+
 func (r *UserRepo) SetVerified(ctx context.Context, userID int64, isVerified bool) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE users SET is_verified = $1 WHERE id = $2`,

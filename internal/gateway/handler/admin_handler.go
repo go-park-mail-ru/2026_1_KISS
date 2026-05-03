@@ -11,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+	pbnotification "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notification"
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
@@ -18,10 +19,11 @@ type AdminHandler struct {
 	authClient     pbauth.AuthServiceClient
 	notebookClient pbnotebook.NotebookServiceClient
 	storageClient  pbstorage.StorageServiceClient
+	notifClient    pbnotification.NotificationServiceClient
 }
 
-func NewAdminHandler(authClient pbauth.AuthServiceClient, notebookClient pbnotebook.NotebookServiceClient, storageClient pbstorage.StorageServiceClient) *AdminHandler {
-	return &AdminHandler{authClient: authClient, notebookClient: notebookClient, storageClient: storageClient}
+func NewAdminHandler(authClient pbauth.AuthServiceClient, notebookClient pbnotebook.NotebookServiceClient, storageClient pbstorage.StorageServiceClient, notifClient pbnotification.NotificationServiceClient) *AdminHandler {
+	return &AdminHandler{authClient: authClient, notebookClient: notebookClient, storageClient: storageClient, notifClient: notifClient}
 }
 
 func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux, authMw, adminMw middleware.Middleware) {
@@ -40,6 +42,7 @@ func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux, authMw, adminMw middle
 	mux.Handle("GET /api/v1/admin/stats/activity", chain(h.GetActivityStats))
 	mux.Handle("GET /api/v1/admin/storage/stats", chain(h.GetStorageStats))
 	mux.Handle("GET /api/v1/admin/storage/files", chain(h.ListStorageFiles))
+	mux.Handle("POST /api/v1/admin/send-email", chain(h.SendEmail))
 }
 
 func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
@@ -373,4 +376,32 @@ func (h *AdminHandler) ListStorageFiles(w http.ResponseWriter, r *http.Request) 
 		"files": files,
 		"total": resp.GetTotal(),
 	})
+}
+
+func (h *AdminHandler) SendEmail(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		To      string `json:"to"`
+		Subject string `json:"subject"`
+		Body    string `json:"body"`
+	}
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.To == "" || req.Subject == "" || req.Body == "" {
+		httputil.Error(w, http.StatusBadRequest, "to, subject and body are required")
+		return
+	}
+
+	_, err := h.notifClient.SendEmail(r.Context(), &pbnotification.SendEmailRequest{
+		To:       req.To,
+		Subject:  req.Subject,
+		TextBody: req.Body,
+		HtmlBody: req.Body,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+	httputil.JSON(w, http.StatusOK, nil)
 }

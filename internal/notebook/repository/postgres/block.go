@@ -280,6 +280,79 @@ func (r *BlockRepo) CreateBatch(ctx context.Context, blocks []domain.Block) ([]i
 	return ids, nil
 }
 
+func (r *BlockRepo) CountByOwnerID(ctx context.Context, ownerID int64) (int64, error) {
+	start := time.Now()
+	var count int64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(b.id) FROM blocks b JOIN notebooks n ON b.notebook_id = n.id WHERE n.owner_id = $1`,
+		ownerID,
+	).Scan(&count)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.CountByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return 0, err
+	}
+	logger.Info(ctx, "repo.blocks.CountByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "count", count)
+	return count, nil
+}
+
+func (r *BlockRepo) SumExecutionsByOwnerID(ctx context.Context, ownerID int64) (int64, error) {
+	start := time.Now()
+	var total int64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COALESCE(SUM(b.execution_count), 0) FROM blocks b JOIN notebooks n ON b.notebook_id = n.id WHERE n.owner_id = $1`,
+		ownerID,
+	).Scan(&total)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.SumExecutionsByOwnerID", "error", err, "duration", time.Since(start), "owner_id", ownerID)
+		return 0, err
+	}
+	logger.Info(ctx, "repo.blocks.SumExecutionsByOwnerID", "duration", time.Since(start), "owner_id", ownerID, "total", total)
+	return total, nil
+}
+
+func (r *BlockRepo) CountExecutionsByOwnerByDay(ctx context.Context, ownerID int64, since time.Time) ([]domain.DayCount, error) {
+	start := time.Now()
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT DATE(bo.created_at) AS day, COUNT(DISTINCT bo.block_id)
+		 FROM block_outputs bo
+		 JOIN blocks b ON bo.block_id = b.id
+		 JOIN notebooks n ON b.notebook_id = n.id
+		 WHERE n.owner_id = $1 AND bo.created_at >= $2
+		 GROUP BY DATE(bo.created_at) ORDER BY day`,
+		ownerID, since,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.CountExecutionsByOwnerByDay", "error", err, "duration", time.Since(start))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []domain.DayCount
+	for rows.Next() {
+		var dc domain.DayCount
+		if err := rows.Scan(&dc.Date, &dc.Count); err != nil {
+			return nil, err
+		}
+		result = append(result, dc)
+	}
+	logger.Info(ctx, "repo.blocks.CountExecutionsByOwnerByDay", "duration", time.Since(start), "owner_id", ownerID, "entries", len(result))
+	return result, rows.Err()
+}
+
+func (r *BlockRepo) IncrementExecutionCount(ctx context.Context, blockID int64) error {
+	start := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE blocks SET execution_count = COALESCE(execution_count, 0) + 1 WHERE id = $1`,
+		blockID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.blocks.IncrementExecutionCount", "error", err, "duration", time.Since(start), "block_id", blockID)
+		return err
+	}
+	logger.Info(ctx, "repo.blocks.IncrementExecutionCount", "duration", time.Since(start), "block_id", blockID)
+	return nil
+}
+
 func (r *BlockRepo) ReorderBlocks(ctx context.Context, notebookID int64, blockIDs []int64) error {
 	start := time.Now()
 	tx, err := r.db.Begin()

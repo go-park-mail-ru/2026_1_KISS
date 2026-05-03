@@ -19,6 +19,18 @@ scrape_configs:
     static_configs:
       - targets: ["runner:9090"]
 
+  - job_name: storage
+    static_configs:
+      - targets: ["storage:9090"]
+
+  - job_name: issue
+    static_configs:
+      - targets: ["issue:9090"]
+
+  - job_name: notification
+    static_configs:
+      - targets: ["notification:9090"]
+
   - job_name: node-exporter
     static_configs:
       - targets: ["node-exporter:9100"]

@@ -157,6 +157,22 @@ func (a *BlockAdapter) CreateBatch(_ context.Context, _ []domain.Block) ([]int64
 	return nil, errNotSupported
 }
 
+func (a *BlockAdapter) CountByOwnerID(_ context.Context, _ int64) (int64, error) {
+	return 0, errNotSupported
+}
+
+func (a *BlockAdapter) SumExecutionsByOwnerID(_ context.Context, _ int64) (int64, error) {
+	return 0, errNotSupported
+}
+
+func (a *BlockAdapter) IncrementExecutionCount(_ context.Context, _ int64) error {
+	return errNotSupported
+}
+
+func (a *BlockAdapter) CountExecutionsByOwnerByDay(_ context.Context, _ int64, _ time.Time) ([]domain.DayCount, error) {
+	return nil, errNotSupported
+}
+
 func protoToNotebook(info *pb.NotebookInfo) *domain.Notebook {
 	if info == nil {
 		return nil

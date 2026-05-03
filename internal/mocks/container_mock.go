@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	domain "github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -79,6 +80,21 @@ func (m *MockManager) GetContainerAddress(ctx context.Context, sessionID string)
 func (mr *MockManagerMockRecorder) GetContainerAddress(ctx, sessionID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainerAddress", reflect.TypeOf((*MockManager)(nil).GetContainerAddress), ctx, sessionID)
+}
+
+// GetContainerStats mocks base method.
+func (m *MockManager) GetContainerStats(ctx context.Context, sessionID string) (*domain.ContainerResourceStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContainerStats", ctx, sessionID)
+	ret0, _ := ret[0].(*domain.ContainerResourceStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContainerStats indicates an expected call of GetContainerStats.
+func (mr *MockManagerMockRecorder) GetContainerStats(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainerStats", reflect.TypeOf((*MockManager)(nil).GetContainerStats), ctx, sessionID)
 }
 
 // StartSession mocks base method.

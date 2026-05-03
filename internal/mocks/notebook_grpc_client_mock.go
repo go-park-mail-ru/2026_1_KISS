@@ -242,6 +242,26 @@ func (mr *MockNotebookServiceClientMockRecorder) GetByID(ctx, in any, opts ...an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockNotebookServiceClient)(nil).GetByID), varargs...)
 }
 
+// GetUserStats mocks base method.
+func (m *MockNotebookServiceClient) GetUserStats(ctx context.Context, in *notebook.GetUserNotebookStatsRequest, opts ...grpc.CallOption) (*notebook.GetUserNotebookStatsResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserStats", varargs...)
+	ret0, _ := ret[0].(*notebook.GetUserNotebookStatsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserStats indicates an expected call of GetUserStats.
+func (mr *MockNotebookServiceClientMockRecorder) GetUserStats(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserStats", reflect.TypeOf((*MockNotebookServiceClient)(nil).GetUserStats), varargs...)
+}
+
 // GrantPermission mocks base method.
 func (m *MockNotebookServiceClient) GrantPermission(ctx context.Context, in *notebook.GrantPermissionRequest, opts ...grpc.CallOption) (*notebook.GrantPermissionResponse, error) {
 	m.ctrl.T.Helper()

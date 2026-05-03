@@ -86,6 +86,21 @@ func (mr *MockUserRepositoryMockRecorder) Create(ctx, user any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepository)(nil).Create), ctx, user)
 }
 
+// DeleteUnverifiedBefore mocks base method.
+func (m *MockUserRepository) DeleteUnverifiedBefore(ctx context.Context, before time.Time) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUnverifiedBefore", ctx, before)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteUnverifiedBefore indicates an expected call of DeleteUnverifiedBefore.
+func (mr *MockUserRepositoryMockRecorder) DeleteUnverifiedBefore(ctx, before any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnverifiedBefore", reflect.TypeOf((*MockUserRepository)(nil).DeleteUnverifiedBefore), ctx, before)
+}
+
 // GetByEmail mocks base method.
 func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	m.ctrl.T.Helper()
@@ -474,6 +489,21 @@ func (m *MockEventRepository) CountActiveUsersByMonth(ctx context.Context, since
 func (mr *MockEventRepositoryMockRecorder) CountActiveUsersByMonth(ctx, since any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountActiveUsersByMonth", reflect.TypeOf((*MockEventRepository)(nil).CountActiveUsersByMonth), ctx, since)
+}
+
+// CountUserActivityByDay mocks base method.
+func (m *MockEventRepository) CountUserActivityByDay(ctx context.Context, userID int64, since time.Time) ([]domain.DayCount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountUserActivityByDay", ctx, userID, since)
+	ret0, _ := ret[0].([]domain.DayCount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountUserActivityByDay indicates an expected call of CountUserActivityByDay.
+func (mr *MockEventRepositoryMockRecorder) CountUserActivityByDay(ctx, userID, since any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUserActivityByDay", reflect.TypeOf((*MockEventRepository)(nil).CountUserActivityByDay), ctx, userID, since)
 }
 
 // Create mocks base method.

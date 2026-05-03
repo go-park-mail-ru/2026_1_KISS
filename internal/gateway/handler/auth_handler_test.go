@@ -157,3 +157,21 @@ func TestAuthHandler_Me_Unauthorized(t *testing.T) {
 		t.Errorf("want 401, got %d", rec.Code)
 	}
 }
+
+func TestAuthHandler_ConfirmEmail_NoToken(t *testing.T) {
+	h := NewAuthHandler(nil, false, "http://localhost:3000")
+	req := httptest.NewRequest("GET", "/api/v1/auth/confirm", nil)
+	rec := httptest.NewRecorder()
+
+	h.ConfirmEmail(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Errorf("want 303, got %d", rec.Code)
+	}
+}
+
+func TestAuthHandler_RegisterRoutes(t *testing.T) {
+	h := NewAuthHandler(nil, false, "http://localhost:3000")
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+}

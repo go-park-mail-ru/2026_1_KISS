@@ -13,11 +13,12 @@ import (
 )
 
 type mockUserRepo struct {
-	createFn        func(ctx context.Context, user *domain.User) (int64, error)
-	getByIDFn       func(ctx context.Context, id int64) (*domain.User, error)
-	getByEmailFn    func(ctx context.Context, email string) (*domain.User, error)
-	getByUsernameFn func(ctx context.Context, username string) (*domain.User, error)
-	setVerifiedFn   func(ctx context.Context, userID int64, isVerified bool) error
+	createFn                 func(ctx context.Context, user *domain.User) (int64, error)
+	getByIDFn                func(ctx context.Context, id int64) (*domain.User, error)
+	getByEmailFn             func(ctx context.Context, email string) (*domain.User, error)
+	getByUsernameFn          func(ctx context.Context, username string) (*domain.User, error)
+	setVerifiedFn            func(ctx context.Context, userID int64, isVerified bool) error
+	deleteUnverifiedBeforeFn func(ctx context.Context, before time.Time) (int64, error)
 }
 
 func (m *mockUserRepo) CountAll(_ context.Context) (int64, error) {
@@ -75,6 +76,12 @@ func (m *mockUserRepo) ListAll(_ context.Context, _, _ int, _ string, _ *bool) (
 	return nil, 0, nil
 }
 func (m *mockUserRepo) SetBanned(_ context.Context, _ int64, _ bool) error { return nil }
+func (m *mockUserRepo) DeleteUnverifiedBefore(ctx context.Context, before time.Time) (int64, error) {
+	if m.deleteUnverifiedBeforeFn != nil {
+		return m.deleteUnverifiedBeforeFn(ctx, before)
+	}
+	return 0, nil
+}
 
 type mockVerificationRepo struct {
 	createFn func(ctx context.Context, v *domain.VerificationToken) error
@@ -427,4 +434,36 @@ func TestConfirmEmail_TokenExpired(t *testing.T) {
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Errorf("want ErrInvalidInput, got %v", err)
 	}
+}
+
+func TestCleanupUnverified_DeletesUsers(t *testing.T) {
+	var calledWith time.Time
+	userRepo := &mockUserRepo{
+		deleteUnverifiedBeforeFn: func(_ context.Context, before time.Time) (int64, error) {
+			calledWith = before
+			return 3, nil
+		},
+	}
+	uc := newUsecase(userRepo, &mockSessionRepo{}, &mockVerificationRepo{})
+
+	uc.CleanupUnverified(context.Background())
+
+	if calledWith.IsZero() {
+		t.Fatal("DeleteUnverifiedBefore was not called")
+	}
+	cutoff := time.Now().Add(-24 * time.Hour)
+	if calledWith.Sub(cutoff) > time.Second || cutoff.Sub(calledWith) > time.Second {
+		t.Errorf("cutoff should be ~24h ago, got %v", calledWith)
+	}
+}
+
+func TestCleanupUnverified_HandlesError(t *testing.T) {
+	userRepo := &mockUserRepo{
+		deleteUnverifiedBeforeFn: func(_ context.Context, _ time.Time) (int64, error) {
+			return 0, errors.New("db error")
+		},
+	}
+	uc := newUsecase(userRepo, &mockSessionRepo{}, &mockVerificationRepo{})
+
+	uc.CleanupUnverified(context.Background())
 }

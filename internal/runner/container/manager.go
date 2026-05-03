@@ -3,6 +3,7 @@ package container
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container/docker_adapter"
 )
@@ -34,6 +36,7 @@ type Manager interface {
 	StartSession(ctx context.Context, sessionID string, language string) (string, error)
 	StopSession(ctx context.Context, sessionID string) error
 	CleanupSessions(ctx context.Context)
+	GetContainerStats(ctx context.Context, sessionID string) (*domain.ContainerResourceStats, error)
 	Close() error
 }
 type manager struct {
@@ -189,6 +192,71 @@ func (m *manager) CleanupSessions(ctx context.Context) {
 			fmt.Printf("failed to remove container %s: %v\n", c.ID, err)
 		}
 	}
+}
+
+func (m *manager) GetContainerStats(ctx context.Context, sessionID string) (*domain.ContainerResourceStats, error) {
+	name := m.containerName(sessionID)
+
+	statsResp, err := m.docker.ContainerStats(ctx, name, false)
+	if err != nil {
+		return nil, fmt.Errorf("get container stats %s: %w", name, err)
+	}
+	defer statsResp.Body.Close()
+
+	var stats container.StatsResponse
+	if err := json.NewDecoder(statsResp.Body).Decode(&stats); err != nil {
+		return nil, fmt.Errorf("decode container stats %s: %w", name, err)
+	}
+
+	cpuPercent := 0.0
+	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage) - float64(stats.PreCPUStats.CPUUsage.TotalUsage)
+	systemDelta := float64(stats.CPUStats.SystemUsage) - float64(stats.PreCPUStats.SystemUsage)
+	if systemDelta > 0 && cpuDelta > 0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(stats.CPUStats.OnlineCPUs) * 100.0
+	}
+
+	memoryUsage := int64(stats.MemoryStats.Usage) //nolint:gosec
+	memoryLimit := int64(stats.MemoryStats.Limit) //nolint:gosec
+	memoryPercent := 0.0
+	if memoryLimit > 0 {
+		memoryPercent = float64(memoryUsage) / float64(memoryLimit) * 100.0
+	}
+
+	return &domain.ContainerResourceStats{
+		CPUPercent:     cpuPercent,
+		MemoryUsage:    memoryUsage,
+		MemoryLimit:    memoryLimit,
+		MemoryPercent:  memoryPercent,
+		CPUCores:       stats.CPUStats.OnlineCPUs,
+		DiskLimitBytes: parseTmpfsSize(m.cfg.TmpfsSize),
+		GPUAvailable:   false,
+	}, nil
+}
+
+func parseTmpfsSize(s string) int64 {
+	if s == "" {
+		return 0
+	}
+	multiplier := int64(1)
+	val := s
+	switch {
+	case s[len(s)-1] == 'm' || s[len(s)-1] == 'M':
+		multiplier = 1024 * 1024
+		val = s[:len(s)-1]
+	case s[len(s)-1] == 'g' || s[len(s)-1] == 'G':
+		multiplier = 1024 * 1024 * 1024
+		val = s[:len(s)-1]
+	case s[len(s)-1] == 'k' || s[len(s)-1] == 'K':
+		multiplier = 1024
+		val = s[:len(s)-1]
+	}
+	var n int64
+	for _, c := range val {
+		if c >= '0' && c <= '9' {
+			n = n*10 + int64(c-'0')
+		}
+	}
+	return n * multiplier
 }
 
 func (m *manager) inspectByName(ctx context.Context, name string) (container.InspectResponse, error) {

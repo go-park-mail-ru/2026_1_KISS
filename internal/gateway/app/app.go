@@ -20,6 +20,7 @@ import (
 	pbauth "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/auth"
 	pbissue "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/issue"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
+	pbnotification "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notification"
 	pbrunner "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
@@ -31,6 +32,7 @@ type App struct {
 	runConn   *grpc.ClientConn
 	storConn  *grpc.ClientConn
 	issueConn *grpc.ClientConn
+	notifConn *grpc.ClientConn
 	cancelMw  context.CancelFunc
 }
 
@@ -63,13 +65,23 @@ func New(cfg *config.Config) (*App, error) {
 		nbConn.Close()
 		runConn.Close()
 		storConn.Close()
-		return nil, fmt.Errorf("dial storage: %w", err)
+		return nil, fmt.Errorf("dial issue: %w", err)
+	}
+	notifConn, err := grpc.NewClient(cfg.GRPC.NotificationAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		authConn.Close()
+		nbConn.Close()
+		runConn.Close()
+		storConn.Close()
+		issueConn.Close()
+		return nil, fmt.Errorf("dial notification: %w", err)
 	}
 	authClient := pbauth.NewAuthServiceClient(authConn)
 	nbClient := pbnotebook.NewNotebookServiceClient(nbConn)
 	runClient := pbrunner.NewRunnerServiceClient(runConn)
 	storageClient := pbstorage.NewStorageServiceClient(storConn)
 	issueClient := pbissue.NewIssueServiceClient(issueConn)
+	notifClient := pbnotification.NewNotificationServiceClient(notifConn)
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.Mail.AppURL)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
@@ -78,8 +90,9 @@ func New(cfg *config.Config) (*App, error) {
 	fileHandler := handler.NewFileHandler(storageClient, cfg.Upload.MaxSize)
 	healthHandler := handler.NewHealthHandler()
 	eventHandler := handler.NewEventHandler(authClient)
-	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient)
-	wsHandler := handler.NewWSHandler(authClient, nbClient)
+	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient, notifClient)
+	wsHandler := handler.NewWSHandler(authClient, nbClient, runClient)
+	statsHandler := handler.NewStatsHandler(authClient, nbClient, storageClient)
 	issueHandler := handler.NewIssueHandler(issueClient, authClient)
 
 	mux := http.NewServeMux()
@@ -94,6 +107,7 @@ func New(cfg *config.Config) (*App, error) {
 	healthHandler.RegisterRoutes(mux)
 	eventHandler.RegisterRoutes(mux, authMw)
 	adminHandler.RegisterRoutes(mux, authMw, adminMw)
+	statsHandler.RegisterRoutes(mux, authMw)
 	wsHandler.RegisterRoutes(mux)
 	issueHandler.RegisterRoutes(mux, authMw, adminMw)
 
@@ -137,6 +151,7 @@ func New(cfg *config.Config) (*App, error) {
 		runConn:   runConn,
 		storConn:  storConn,
 		issueConn: issueConn,
+		notifConn: notifConn,
 		cancelMw:  cancelMw,
 	}, nil
 }
@@ -156,4 +171,5 @@ func (a *App) Shutdown(ctx context.Context) {
 	a.runConn.Close()
 	a.storConn.Close()
 	a.issueConn.Close()
+	a.notifConn.Close()
 }

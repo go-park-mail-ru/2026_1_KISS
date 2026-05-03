@@ -1011,3 +1011,54 @@ func TestUserRepo_IncrementTotalTime_Error(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestUserRepo_DeleteUnverifiedBefore_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+	cutoff := time.Now().Add(-24 * time.Hour)
+
+	mock.ExpectExec("DELETE FROM users WHERE is_verified = FALSE AND created_at").
+		WithArgs(cutoff).
+		WillReturnResult(sqlmock.NewResult(0, 5))
+
+	count, err := repo.DeleteUnverifiedBefore(context.Background(), cutoff)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 5 {
+		t.Fatalf("expected 5 deleted, got %d", count)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUserRepo_DeleteUnverifiedBefore_DBError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	repo := NewUserRepository(db)
+	cutoff := time.Now().Add(-24 * time.Hour)
+
+	mock.ExpectExec("DELETE FROM users WHERE is_verified = FALSE AND created_at").
+		WithArgs(cutoff).
+		WillReturnError(errors.New("connection refused"))
+
+	_, err = repo.DeleteUnverifiedBefore(context.Background(), cutoff)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -35,6 +35,8 @@ service NotebookService {
   rpc DeleteComment(DeleteCommentRequest)                   returns (DeleteCommentResponse);
   rpc ListCommentsByCell(ListCommentsByCellRequest)         returns (ListCommentsByCellResponse);
   rpc ListCommentsByNotebook(ListCommentsByNotebookRequest) returns (ListCommentsByNotebookResponse);
+
+  rpc GetUserStats(GetUserNotebookStatsRequest) returns (GetUserNotebookStatsResponse);
 }
 
 message NotebookInfo {
@@ -268,6 +270,23 @@ message ImportBlockInfo {
   string content = 3;
   int32 position = 4;
   repeated BlockOutputInfo outputs = 5;
+}
+
+message GetUserNotebookStatsRequest {
+  int64 user_id = 1;
+  int32 execution_days = 2;
+}
+
+message GetUserNotebookStatsResponse {
+  int64 notebook_count = 1;
+  int64 block_count = 2;
+  int64 total_executions = 3;
+  repeated ExecutionDayEntry daily_executions = 4;
+}
+
+message ExecutionDayEntry {
+  string date = 1;
+  int64 count = 2;
 }
 
 message CommentInfo {

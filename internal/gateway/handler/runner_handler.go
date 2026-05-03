@@ -23,6 +23,7 @@ func (h *RunnerHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Mid
 	mux.Handle("POST /api/v1/runner/{notebook_id}", authMw(http.HandlerFunc(h.ExecuteFromPosition)))
 	mux.Handle("POST /api/v1/runner/{notebook_id}/block", authMw(http.HandlerFunc(h.ExecuteBlock)))
 	mux.Handle("POST /api/v1/runner/{notebook_id}/stop", authMw(http.HandlerFunc(h.StopSession)))
+	mux.Handle("GET /api/v1/runner/{notebook_id}/stats", authMw(http.HandlerFunc(h.GetContainerStats)))
 }
 
 type outputItemResponse struct {
@@ -139,6 +140,39 @@ func (h *RunnerHandler) StopSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.JSON(w, http.StatusOK, nil)
+}
+
+func (h *RunnerHandler) GetContainerStats(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	notebookID, err := strconv.ParseInt(r.PathValue("notebook_id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	resp, err := h.client.GetSessionStats(r.Context(), &pb.GetSessionStatsRequest{
+		NotebookId: notebookID,
+		UserId:     user.ID,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, map[string]any{
+		"cpu_percent":      resp.GetCpuPercent(),
+		"memory_usage":     resp.GetMemoryUsage(),
+		"memory_limit":     resp.GetMemoryLimit(),
+		"memory_percent":   resp.GetMemoryPercent(),
+		"cpu_cores":        resp.GetCpuCores(),
+		"disk_limit_bytes": resp.GetDiskLimitBytes(),
+		"gpu_available":    resp.GetGpuAvailable(),
+	})
 }
 
 func protoResultToResponse(r *pb.BlockExecutionResult) executionResultResponse {

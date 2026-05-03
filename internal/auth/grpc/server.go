@@ -22,6 +22,7 @@ type Server struct {
 	profileUC ProfileUsecase
 	eventUC   *usecase.EventUsecase
 	adminUC   *usecase.AdminUsecase
+	statsUC   *usecase.StatsUsecase
 }
 
 type ProfileUsecase interface {
@@ -31,8 +32,8 @@ type ProfileUsecase interface {
 	ChangeEmail(ctx context.Context, userID int64, newEmail, password string) (*domain.User, error)
 }
 
-func NewServer(authUC *usecase.AuthUsecase, profileUC ProfileUsecase, eventUC *usecase.EventUsecase, adminUC *usecase.AdminUsecase) *Server {
-	return &Server{authUC: authUC, profileUC: profileUC, eventUC: eventUC, adminUC: adminUC}
+func NewServer(authUC *usecase.AuthUsecase, profileUC ProfileUsecase, eventUC *usecase.EventUsecase, adminUC *usecase.AdminUsecase, statsUC *usecase.StatsUsecase) *Server {
+	return &Server{authUC: authUC, profileUC: profileUC, eventUC: eventUC, adminUC: adminUC, statsUC: statsUC}
 }
 
 func (s *Server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
@@ -281,4 +282,35 @@ func userToProto(u *domain.User) *pb.UserInfo {
 		info.LastActiveAt = u.LastActiveAt.Unix()
 	}
 	return info
+}
+
+func (s *Server) GetUserStats(ctx context.Context, req *pb.GetUserStatsRequest) (*pb.GetUserStatsResponse, error) {
+	if req.GetUserId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	stats, err := s.statsUC.GetUserStats(ctx, req.GetUserId(), int(req.GetActivityDays()))
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+
+	resp := &pb.GetUserStatsResponse{
+		Plan:             stats.Plan,
+		TotalTimeSeconds: stats.TotalTimeSeconds,
+		TimeLimitSeconds: stats.TimeLimitSeconds,
+		CreatedAt:        stats.CreatedAt.Unix(),
+	}
+	if stats.LastActiveAt != nil {
+		resp.LastActiveAt = stats.LastActiveAt.Unix()
+	}
+
+	resp.DailyActivity = make([]*pb.DauEntry, len(stats.DailyActivity))
+	for i, dc := range stats.DailyActivity {
+		resp.DailyActivity[i] = &pb.DauEntry{
+			Date:  dc.Date.Format("2006-01-02"),
+			Count: dc.Count,
+		}
+	}
+
+	return resp, nil
 }

@@ -436,3 +436,23 @@ func blockToProto(b *domain.Block) *pb.BlockInfo {
 	}
 	return info
 }
+
+func (s *Server) GetUserStats(ctx context.Context, req *pb.GetUserNotebookStatsRequest) (*pb.GetUserNotebookStatsResponse, error) {
+	nbCount, blockCount, totalExec, dailyExec, err := s.notebookUC.GetUserResourceStats(ctx, req.GetUserId(), int(req.GetExecutionDays()))
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	resp := &pb.GetUserNotebookStatsResponse{
+		NotebookCount:   nbCount,
+		BlockCount:      blockCount,
+		TotalExecutions: totalExec,
+	}
+	resp.DailyExecutions = make([]*pb.ExecutionDayEntry, len(dailyExec))
+	for i, dc := range dailyExec {
+		resp.DailyExecutions[i] = &pb.ExecutionDayEntry{
+			Date:  dc.Date.Format("2006-01-02"),
+			Count: dc.Count,
+		}
+	}
+	return resp, nil
+}
