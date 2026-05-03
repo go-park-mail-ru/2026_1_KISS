@@ -212,6 +212,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-colab}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres/colab.conf:/etc/postgresql/postgresql.conf:ro
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
     networks:
       - app-network
     ports:
@@ -288,6 +292,17 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+
+postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
 
 networks:
   app-network:
