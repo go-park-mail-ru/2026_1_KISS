@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=../../mocks/notebook_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository NotebookRepository,BlockRepository,PermissionRepository
+//go:generate mockgen -destination=../../mocks/notebook_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository NotebookRepository,BlockRepository,PermissionRepository,CommentRepository
 package repository
 
 import (
@@ -43,4 +43,12 @@ type PermissionRepository interface {
 	Delete(ctx context.Context, notebookID, userID int64) error
 	GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.FilePermission, error)
 	GetPermission(ctx context.Context, notebookID, userID int64) (*domain.FilePermission, error)
+}
+
+type CommentRepository interface {
+	Create(ctx context.Context, comment *domain.Comment) (int64, error)
+	GetByBlockID(ctx context.Context, blockID int64) ([]domain.Comment, error)
+	GetByNotebookID(ctx context.Context, notebookID int64) ([]domain.Comment, error)
+	GetByID(ctx context.Context, commentID int64) (*domain.Comment, error)
+	Delete(ctx context.Context, commentID int64) error
 }

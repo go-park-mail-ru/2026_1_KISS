@@ -481,3 +481,83 @@ func (mr *MockNotebookServiceClientMockRecorder) UpdateBlock(ctx, in any, opts .
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBlock", reflect.TypeOf((*MockNotebookServiceClient)(nil).UpdateBlock), varargs...)
 }
+
+// AddComment mocks base method.
+func (m *MockNotebookServiceClient) AddComment(ctx context.Context, in *notebook.AddCommentRequest, opts ...grpc.CallOption) (*notebook.AddCommentResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AddComment", varargs...)
+	ret0, _ := ret[0].(*notebook.AddCommentResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddComment indicates an expected call of AddComment.
+func (mr *MockNotebookServiceClientMockRecorder) AddComment(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddComment", reflect.TypeOf((*MockNotebookServiceClient)(nil).AddComment), varargs...)
+}
+
+// DeleteComment mocks base method.
+func (m *MockNotebookServiceClient) DeleteComment(ctx context.Context, in *notebook.DeleteCommentRequest, opts ...grpc.CallOption) (*notebook.DeleteCommentResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteComment", varargs...)
+	ret0, _ := ret[0].(*notebook.DeleteCommentResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteComment indicates an expected call of DeleteComment.
+func (mr *MockNotebookServiceClientMockRecorder) DeleteComment(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteComment", reflect.TypeOf((*MockNotebookServiceClient)(nil).DeleteComment), varargs...)
+}
+
+// ListCommentsByCell mocks base method.
+func (m *MockNotebookServiceClient) ListCommentsByCell(ctx context.Context, in *notebook.ListCommentsByCellRequest, opts ...grpc.CallOption) (*notebook.ListCommentsByCellResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListCommentsByCell", varargs...)
+	ret0, _ := ret[0].(*notebook.ListCommentsByCellResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCommentsByCell indicates an expected call of ListCommentsByCell.
+func (mr *MockNotebookServiceClientMockRecorder) ListCommentsByCell(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCommentsByCell", reflect.TypeOf((*MockNotebookServiceClient)(nil).ListCommentsByCell), varargs...)
+}
+
+// ListCommentsByNotebook mocks base method.
+func (m *MockNotebookServiceClient) ListCommentsByNotebook(ctx context.Context, in *notebook.ListCommentsByNotebookRequest, opts ...grpc.CallOption) (*notebook.ListCommentsByNotebookResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListCommentsByNotebook", varargs...)
+	ret0, _ := ret[0].(*notebook.ListCommentsByNotebookResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCommentsByNotebook indicates an expected call of ListCommentsByNotebook.
+func (mr *MockNotebookServiceClientMockRecorder) ListCommentsByNotebook(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCommentsByNotebook", reflect.TypeOf((*MockNotebookServiceClient)(nil).ListCommentsByNotebook), varargs...)
+}

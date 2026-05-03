@@ -24,6 +24,7 @@ type testEnv struct {
 	notebookRepo *mocks.MockNotebookRepository
 	blockRepo    *mocks.MockBlockRepository
 	permRepo     *mocks.MockPermissionRepository
+	commentRepo  *mocks.MockCommentRepository
 	conn         *grpc.ClientConn
 }
 
@@ -34,7 +35,8 @@ func setup(t *testing.T) *testEnv {
 	notebookRepo := mocks.NewMockNotebookRepository(ctrl)
 	blockRepo := mocks.NewMockBlockRepository(ctrl)
 	permRepo := mocks.NewMockPermissionRepository(ctrl)
-	notebookUC := usecase.New(notebookRepo, blockRepo, permRepo)
+	commentRepo := mocks.NewMockCommentRepository(ctrl)
+	notebookUC := usecase.New(notebookRepo, blockRepo, permRepo, commentRepo)
 	srv := NewServer(notebookUC, blockRepo)
 
 	lis := bufconn.Listen(1024 * 1024)
@@ -67,6 +69,7 @@ func setup(t *testing.T) *testEnv {
 		notebookRepo: notebookRepo,
 		blockRepo:    blockRepo,
 		permRepo:     permRepo,
+		commentRepo:  commentRepo,
 		conn:         conn,
 	}
 }

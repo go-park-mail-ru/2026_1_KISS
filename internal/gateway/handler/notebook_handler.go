@@ -38,6 +38,11 @@ func (h *NotebookHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.M
 	mux.Handle("POST /api/v1/notebooks/{id}/permissions/invite", authMw(http.HandlerFunc(h.GrantPermissionByIdentifier)))
 	mux.Handle("PUT /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.GrantPermission)))
 	mux.Handle("DELETE /api/v1/notebooks/{id}/permissions/{userID}", authMw(http.HandlerFunc(h.RevokePermission)))
+
+	mux.Handle("GET /api/v1/notebooks/{id}/comments", authMw(http.HandlerFunc(h.ListCommentsByNotebook)))
+	mux.Handle("GET /api/v1/notebooks/{id}/blocks/{blockID}/comments", authMw(http.HandlerFunc(h.ListCommentsByCell)))
+	mux.Handle("POST /api/v1/notebooks/{id}/blocks/{blockID}/comments", authMw(http.HandlerFunc(h.AddComment)))
+	mux.Handle("DELETE /api/v1/notebooks/{id}/blocks/{blockID}/comments/{commentID}", authMw(http.HandlerFunc(h.DeleteComment)))
 }
 
 type createNotebookRequest struct {
@@ -659,6 +664,166 @@ func (h *NotebookHandler) RevokePermission(w http.ResponseWriter, r *http.Reques
 		RequesterId:  user.ID,
 		NotebookId:   id,
 		TargetUserId: targetUserID,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type addCommentRequest struct {
+	Text string `json:"text"`
+}
+
+type commentResponse struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Username  string    `json:"username"`
+	BlockID   int64     `json:"block_id"`
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func protoCommentToResponse(c *pb.CommentInfo) commentResponse {
+	return commentResponse{
+		ID:        c.GetId(),
+		UserID:    c.GetUserId(),
+		Username:  c.GetUsername(),
+		BlockID:   c.GetBlockId(),
+		Text:      c.GetText(),
+		CreatedAt: time.UnixMilli(c.GetCreatedAt()),
+	}
+}
+
+func (h *NotebookHandler) ListCommentsByNotebook(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	notebookID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	resp, err := h.client.ListCommentsByNotebook(r.Context(), &pb.ListCommentsByNotebookRequest{
+		UserId:     user.ID,
+		NotebookId: notebookID,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	items := make([]commentResponse, len(resp.GetComments()))
+	for i, c := range resp.GetComments() {
+		items[i] = protoCommentToResponse(c)
+	}
+	httputil.JSON(w, http.StatusOK, items)
+}
+
+func (h *NotebookHandler) ListCommentsByCell(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	notebookID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	blockID, err := strconv.ParseInt(r.PathValue("blockID"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid block id")
+		return
+	}
+
+	resp, err := h.client.ListCommentsByCell(r.Context(), &pb.ListCommentsByCellRequest{
+		UserId:     user.ID,
+		NotebookId: notebookID,
+		BlockId:    blockID,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	items := make([]commentResponse, len(resp.GetComments()))
+	for i, c := range resp.GetComments() {
+		items[i] = protoCommentToResponse(c)
+	}
+	httputil.JSON(w, http.StatusOK, items)
+}
+
+func (h *NotebookHandler) AddComment(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	notebookID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	blockID, err := strconv.ParseInt(r.PathValue("blockID"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid block id")
+		return
+	}
+
+	var req addCommentRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	resp, err := h.client.AddComment(r.Context(), &pb.AddCommentRequest{
+		UserId:     user.ID,
+		NotebookId: notebookID,
+		BlockId:    blockID,
+		Text:       req.Text,
+	})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	httputil.JSON(w, http.StatusCreated, protoCommentToResponse(resp.GetComment()))
+}
+
+func (h *NotebookHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	notebookID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid notebook id")
+		return
+	}
+
+	commentID, err := strconv.ParseInt(r.PathValue("commentID"), 10, 64)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, "invalid comment id")
+		return
+	}
+
+	_, err = h.client.DeleteComment(r.Context(), &pb.DeleteCommentRequest{
+		UserId:     user.ID,
+		NotebookId: notebookID,
+		CommentId:  commentID,
 	})
 	if err != nil {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
