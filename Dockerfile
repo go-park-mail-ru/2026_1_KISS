@@ -3,20 +3,22 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -o /app/server ./cmd/server
+RUN CGO_ENABLED=0 go build -o /app/migrator ./cmd/migrator
 
 # Runtime stage
 FROM alpine:3.19
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates && \
+    adduser -D -h /app appuser
 
 WORKDIR /app
-COPY --from=builder /app/server .
+COPY --from=builder /app/migrator .
+COPY migrations/ ./migrations/
 
-EXPOSE 8080
+USER appuser
 
-CMD ["/app/server"]
+CMD ["/app/migrator"]
