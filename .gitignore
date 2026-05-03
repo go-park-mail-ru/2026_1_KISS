@@ -4,11 +4,6 @@
 *.dll
 *.so
 *.dylib
-/auth
-/gateway
-/notebook
-/runner
-/server
 
 # Test binary, built with `go test -c`
 *.test
@@ -29,6 +24,7 @@ go.work.sum
 # IDE / AI assistants
 .claude/
 .cursor/
+CLAUDE.md
 CURSOR.md
 
 # Environment
@@ -51,11 +47,3 @@ Thumbs.db
 *.log
 tmp/
 temp/
-
-# Docs build artifacts
-docs/node_modules/
-docs/package-lock.json
-docs/package.json
-
-# Generated protobuf code
-pkg/api/**/*.pb.go
