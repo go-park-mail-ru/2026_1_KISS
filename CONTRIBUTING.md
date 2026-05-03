@@ -62,48 +62,17 @@ ci: add golangci-lint config
 
 ## Запуск локально
 
-**1. Настроить переменные окружения:**
+**Через Go:**
 ```bash
-cp .env.example .env
-# при необходимости отредактировать .env
+go run ./cmd/server
 ```
 
-**2. Через Docker (рекомендуется):**
+**Через Docker:**
 ```bash
-docker-compose up -d --build
-```
-
-Миграции применяются автоматически — сервис `migrator` запускается перед `app` и завершается сам.
-
-**3. Через Go (нужен запущенный PostgreSQL):**
-```bash
-go run ./cmd/migrator   # применить миграции
-go run ./cmd/server     # запустить сервер
-```
-
-Или через Make:
-```bash
-make migrate
-make run
+docker-compose up
 ```
 
 Приложение будет доступно на `http://localhost:8080`.
-
-## Полезные команды Make
-
-| Команда | Описание |
-|---------|----------|
-| `make run` | Запустить сервер локально |
-| `make test` | Тесты с race detector |
-| `make cover` | Тесты + открыть отчёт покрытия в браузере |
-| `make lint` | Запустить golangci-lint |
-| `make fmt` | Форматирование кода |
-| `make vet` | Статический анализ go vet |
-| `make ci` | lint + test (как в CI) |
-| `make migrate` | Применить миграции |
-| `make docker-up` | Поднять Docker-окружение |
-| `make docker-down` | Остановить Docker-окружение |
-| `make docs` | Пересобрать документацию API |
 
 ## Pre-commit
 
