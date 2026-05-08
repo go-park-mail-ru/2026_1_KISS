@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=../../mocks/notebook_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository NotebookRepository,BlockRepository,PermissionRepository,CommentRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/notebook_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/notebook/repository NotebookRepository,BlockRepository,PermissionRepository,CommentRepository
 package repository
 
 import (

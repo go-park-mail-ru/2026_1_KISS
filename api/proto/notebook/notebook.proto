@@ -48,6 +48,7 @@ message NotebookInfo {
   int64 created_at = 6;
   int64 updated_at = 7;
   string owner_name = 8;
+  string your_permission = 9;
 }
 
 message BlockInfo {

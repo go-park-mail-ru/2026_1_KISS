@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=../../mocks/session_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/session_repository ExecutionSessionRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/session_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/session_repository ExecutionSessionRepository
 package session_repository
 
 import (

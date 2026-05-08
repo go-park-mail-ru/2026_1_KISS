@@ -1,4 +1,4 @@
-//go:generate mockgen -source=docker_adapter.go -destination=../../../mocks/docker_adapter_mock.go -package=mocks
+//go:generate go run go.uber.org/mock/mockgen -source=docker_adapter.go -destination=../../../mocks/docker_adapter_mock.go -package=mocks
 package docker_adapter
 
 import (

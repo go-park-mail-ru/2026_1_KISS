@@ -100,16 +100,21 @@ func (s *notebookService) GetByID(ctx context.Context, userID, notebookID int64)
 		logger.Error(ctx, "usecase.notebook.GetByID", "error", err)
 		return nil, err
 	}
-	if nb.OwnerID != userID && !nb.IsPublic {
-		_, err := s.permRepo.GetPermission(ctx, notebookID, userID)
+	if nb.OwnerID == userID {
+		nb.YourPermission = "owner"
+	} else if nb.IsPublic {
+		nb.YourPermission = domain.PermissionReadOnly
+	} else {
+		perm, err := s.permRepo.GetPermission(ctx, notebookID, userID)
 		if err != nil {
-			if errors.Is(err, domain.ErrNotFound) {
-				logger.Error(ctx, "usecase.notebook.GetByID", "error", domain.ErrForbidden)
-				return nil, domain.ErrForbidden
+			if !errors.Is(err, domain.ErrNotFound) {
+				logger.Error(ctx, "usecase.notebook.GetByID", "error", err)
+				return nil, err
 			}
-			logger.Error(ctx, "usecase.notebook.GetByID", "error", err)
-			return nil, err
+			logger.Error(ctx, "usecase.notebook.GetByID", "error", domain.ErrForbidden)
+			return nil, domain.ErrForbidden
 		}
+		nb.YourPermission = perm.PermissionLevel
 	}
 	blocks, err := s.blockRepo.GetByNotebookID(ctx, notebookID)
 	if err != nil {
