@@ -1,4 +1,4 @@
-//go:generate mockgen -source=handler.go -destination=../mocks/health_mock.go -package=mocks
+//go:generate go run go.uber.org/mock/mockgen -source=handler.go -destination=../mocks/health_mock.go -package=mocks
 package health
 
 import (

@@ -26,7 +26,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/sanitize"
 )
 
-//go:generate mockgen -destination=../../../internal/mocks/file_uploader_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase FileUploader
+//go:generate go run go.uber.org/mock/mockgen -destination=../../../internal/mocks/file_uploader_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase FileUploader
 
 type FileUploader interface {
 	Upload(ctx context.Context, ownerID int64, category, filename string, data io.Reader, size int64) (string, error)

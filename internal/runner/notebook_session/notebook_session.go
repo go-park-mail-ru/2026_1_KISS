@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=../../mocks/notebook_session_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/notebook_session NotebookSession
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/notebook_session_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/notebook_session NotebookSession
 package notebook_session
 
 import (

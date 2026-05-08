@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=../../../internal/mocks/file_repository_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/storage/repository FileRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../../internal/mocks/file_repository_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/storage/repository FileRepository
 package repository
 
 import (

@@ -1,5 +1,5 @@
-//go:generate mockgen -destination=../../mocks/issue_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/issue/repository IssueRepository
-//go:generate mockgen -destination=../../mocks/issue_message_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/issue/repository IssueMessageRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/issue_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/issue/repository IssueRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/issue_message_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/issue/repository IssueMessageRepository
 
 package repository
 

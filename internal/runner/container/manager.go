@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=../../mocks/container_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container Manager
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/container_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/runner/container Manager
 package container
 
 import (

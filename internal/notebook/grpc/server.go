@@ -289,13 +289,14 @@ func notebookToProto(nb *domain.Notebook) *pb.NotebookInfo {
 		return nil
 	}
 	info := &pb.NotebookInfo{
-		Id:        nb.ID,
-		OwnerId:   nb.OwnerID,
-		OwnerName: nb.OwnerUsername,
-		Title:     nb.Title,
-		IsPublic:  nb.IsPublic,
-		CreatedAt: nb.CreatedAt.Unix(),
-		UpdatedAt: nb.UpdatedAt.Unix(),
+		Id:             nb.ID,
+		OwnerId:        nb.OwnerID,
+		OwnerName:      nb.OwnerUsername,
+		Title:          nb.Title,
+		IsPublic:       nb.IsPublic,
+		CreatedAt:      nb.CreatedAt.Unix(),
+		UpdatedAt:      nb.UpdatedAt.Unix(),
+		YourPermission: nb.YourPermission,
 	}
 	if len(nb.Blocks) > 0 {
 		info.Blocks = make([]*pb.BlockInfo, len(nb.Blocks))

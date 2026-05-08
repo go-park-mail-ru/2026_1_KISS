@@ -1,13 +1,17 @@
+# syntax=docker/dockerfile:1
 # Build stage
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/root/go/pkg/mod \
+    go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -o /app/migrator ./cmd/migrator
+RUN --mount=type=cache,target=/root/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o /app/migrator ./cmd/migrator
 
 # Runtime stage
 FROM alpine:3.19
