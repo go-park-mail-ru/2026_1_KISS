@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [develop]
+    branches: [master]
 
 concurrency:
   group: deploy-production
@@ -76,15 +76,15 @@ jobs:
             set -e
             cd /home/ubuntu/2026_1_KISS
 
-            git fetch origin develop
-            CHANGED=$(git diff --name-only HEAD origin/develop)
+            git fetch origin master
+            CHANGED=$(git diff --name-only HEAD origin/master)
 
             if [ -z "$CHANGED" ]; then
               echo "No changes detected, skipping deploy"
               exit 0
             fi
 
-            git reset --hard origin/develop
+            git reset --hard origin/master
 
             docker builder prune -f --filter "until=168h"
             docker image prune -af --filter "until=168h"
