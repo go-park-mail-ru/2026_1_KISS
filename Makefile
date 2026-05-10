@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
 
 build:
 	go build -o gateway ./cmd/gateway
@@ -6,6 +6,7 @@ build:
 	go build -o notebook ./cmd/notebook
 	go build -o runner ./cmd/runner
 	go build -o storage ./cmd/storage
+	go build -o payment ./cmd/payment
 
 run: run-gateway
 
@@ -57,6 +58,9 @@ run-issue:
 run-notification:
 	go run ./cmd/notification
 
+run-payment:
+	go run ./cmd/payment
+
 proto-tools:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -80,6 +84,9 @@ proto: proto-tools
 	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
 		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
 		api/proto/notification/notification.proto
+	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/go-park-mail-ru/2026_1_KISS \
+		api/proto/payment/payment.proto
 
 fmt:
 	go fmt ./...

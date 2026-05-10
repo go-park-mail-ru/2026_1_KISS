@@ -402,6 +402,26 @@ func (mr *MockAuthServiceClientMockRecorder) Register(ctx, in any, opts ...any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockAuthServiceClient)(nil).Register), varargs...)
 }
 
+// SetUserPlanInternal mocks base method.
+func (m *MockAuthServiceClient) SetUserPlanInternal(ctx context.Context, in *auth.SetUserPlanInternalRequest, opts ...grpc.CallOption) (*auth.SetUserPlanInternalResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SetUserPlanInternal", varargs...)
+	ret0, _ := ret[0].(*auth.SetUserPlanInternalResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetUserPlanInternal indicates an expected call of SetUserPlanInternal.
+func (mr *MockAuthServiceClientMockRecorder) SetUserPlanInternal(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserPlanInternal", reflect.TypeOf((*MockAuthServiceClient)(nil).SetUserPlanInternal), varargs...)
+}
+
 // TrackEvent mocks base method.
 func (m *MockAuthServiceClient) TrackEvent(ctx context.Context, in *auth.TrackEventRequest, opts ...grpc.CallOption) (*auth.TrackEventResponse, error) {
 	m.ctrl.T.Helper()

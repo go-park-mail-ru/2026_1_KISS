@@ -125,6 +125,13 @@ func (uc *AdminUsecase) AdminSetPlan(ctx context.Context, adminUserID, targetUse
 	return uc.userRepo.UpdatePlan(ctx, targetUserID, plan)
 }
 
+func (uc *AdminUsecase) SetUserPlanInternal(ctx context.Context, targetUserID int64, plan string) error {
+	if !domain.ValidPlans[plan] {
+		return fmt.Errorf("%w: invalid plan: %s", domain.ErrInvalidInput, plan)
+	}
+	return uc.userRepo.UpdatePlan(ctx, targetUserID, plan)
+}
+
 func (uc *AdminUsecase) GetActivityStats(ctx context.Context, adminUserID int64, dauDays, mauMonths int) ([]domain.DayCount, []domain.MonthCount, error) {
 	if err := uc.checkAdmin(ctx, adminUserID); err != nil {
 		return nil, nil, err

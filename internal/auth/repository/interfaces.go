@@ -1,4 +1,4 @@
-//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/auth_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository UserRepository,SessionRepository,VerificationRepository,EventRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/auth_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository UserRepository,SessionRepository,VerificationRepository,EventRepository,SubscriptionViewRepository
 
 package repository
 
@@ -47,4 +47,14 @@ type EventRepository interface {
 	CountActiveUsersByDay(ctx context.Context, since time.Time) ([]domain.DayCount, error)
 	CountActiveUsersByMonth(ctx context.Context, since time.Time) ([]domain.MonthCount, error)
 	CountUserActivityByDay(ctx context.Context, userID int64, since time.Time) ([]domain.DayCount, error)
+}
+
+type ActiveSubscription struct {
+	ID        int64
+	PlanName  string
+	ExpiresAt time.Time
+}
+
+type SubscriptionViewRepository interface {
+	GetActive(ctx context.Context, userID int64) (*ActiveSubscription, error)
 }

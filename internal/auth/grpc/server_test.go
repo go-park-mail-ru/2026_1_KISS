@@ -78,7 +78,7 @@ func setup(t *testing.T) *testEnv {
 
 	authUC := usecase.New(userRepo, sessionRepo, verificationRepo, mailSvc, 24*time.Hour)
 	eventRepo := mocks.NewMockEventRepository(ctrl)
-	eventUC := usecase.NewEventUsecase(eventRepo, userRepo)
+	eventUC := usecase.NewEventUsecase(eventRepo, userRepo, nil)
 	adminUC := usecase.NewAdminUsecase(userRepo, eventRepo)
 	statsUC := usecase.NewStatsUsecase(userRepo, eventRepo)
 	srv := NewServer(authUC, profileUC, eventUC, adminUC, statsUC)
