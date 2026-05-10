@@ -251,3 +251,49 @@ func TestWebhook_MissingYKID(t *testing.T) {
 		t.Errorf("expected ErrInvalidInput, got %v", err)
 	}
 }
+
+func TestListPlans(t *testing.T) {
+	uc, _, _, _, _, _ := newUC()
+	plans, err := uc.ListPlans(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(plans) != 2 {
+		t.Errorf("expected 2 plans, got %d", len(plans))
+	}
+}
+
+func TestGetMySubscription_None(t *testing.T) {
+	uc, _, _, _, _, _ := newUC()
+	_, err := uc.GetMySubscription(context.Background(), 42)
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestWebhook_Canceled(t *testing.T) {
+	uc, pays, _, _, yk, _ := newUC()
+	_, _ = uc.CreateSubscriptionPayment(context.Background(), CreateInput{UserID: 42, PlanName: "pro"})
+	yk.getStatus = paymentdomain.StatusCanceled
+
+	if err := uc.HandleWebhook(context.Background(), WebhookInput{YooKassaPaymentID: pays.created.YooKassaPaymentID, Status: "canceled"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pays.created.Status != paymentdomain.StatusCanceled {
+		t.Errorf("expected canceled, got %s", pays.created.Status)
+	}
+}
+
+func TestGetStatus_AlreadySucceededSkipsYK(t *testing.T) {
+	uc, pays, _, _, _, _ := newUC()
+	_, _ = uc.CreateSubscriptionPayment(context.Background(), CreateInput{UserID: 42, PlanName: "pro"})
+	pays.created.Status = paymentdomain.StatusSucceeded
+
+	p, err := uc.GetStatus(context.Background(), pays.created.ID, 42)
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if p.Status != paymentdomain.StatusSucceeded {
+		t.Errorf("expected succeeded, got %s", p.Status)
+	}
+}
