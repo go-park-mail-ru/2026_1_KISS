@@ -143,9 +143,9 @@ func New(cfg *config.Config) (*App, error) {
 		slog.Warn("CSRF protection is DISABLED (DISABLE_KISS_CSRF=true)")
 	} else {
 		csrfSkip := map[string]bool{
-			"/api/v1/auth/login":        true,
-			"/api/v1/auth/register":     true,
-			"/api/v1/payments/webhook":  true,
+			"/api/v1/auth/login":       true,
+			"/api/v1/auth/register":    true,
+			"/api/v1/payments/webhook": true,
 		}
 		mws = append(mws, middleware.CSRF(csrfSkip))
 	}
