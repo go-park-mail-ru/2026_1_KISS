@@ -133,7 +133,7 @@ func TestEventUsecase_Track_Success(t *testing.T) {
 	eventRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 	userRepo := mocks.NewMockUserRepository(ctrl)
-	uc := NewEventUsecase(eventRepo, userRepo)
+	uc := NewEventUsecase(eventRepo, userRepo, nil)
 	err := uc.Track(context.Background(), 1, "login", "{}")
 
 	if err != nil {
@@ -149,7 +149,7 @@ func TestEventUsecase_Track_EmptyMetadata(t *testing.T) {
 	eventRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 	userRepo := mocks.NewMockUserRepository(ctrl)
-	uc := NewEventUsecase(eventRepo, userRepo)
+	uc := NewEventUsecase(eventRepo, userRepo, nil)
 	err := uc.Track(context.Background(), 1, "logout", "")
 
 	if err != nil {
@@ -254,7 +254,7 @@ func TestEventUsecase_Track_Heartbeat_UpdatesActivity(t *testing.T) {
 	userRepo.EXPECT().IncrementTotalTime(gomock.Any(), int64(1), int64(60)).Return(nil)
 	userRepo.EXPECT().GetByID(gomock.Any(), int64(1)).Return(&domain.User{ID: 1, Plan: domain.PlanPro, TotalTimeSeconds: 100}, nil)
 
-	uc := NewEventUsecase(eventRepo, userRepo)
+	uc := NewEventUsecase(eventRepo, userRepo, nil)
 	err := uc.Track(context.Background(), 1, "heartbeat", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -330,7 +330,7 @@ func TestEventUsecase_Track_Heartbeat_AutoFreeze(t *testing.T) {
 	}, nil)
 	userRepo.EXPECT().UpdatePlan(gomock.Any(), int64(1), domain.PlanFreeze).Return(nil)
 
-	uc := NewEventUsecase(eventRepo, userRepo)
+	uc := NewEventUsecase(eventRepo, userRepo, nil)
 	err := uc.Track(context.Background(), 1, "heartbeat", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

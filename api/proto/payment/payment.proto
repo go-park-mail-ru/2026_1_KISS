@@ -1,0 +1,92 @@
+syntax = "proto3";
+package payment;
+option go_package = "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/payment";
+
+service PaymentService {
+  rpc CreateSubscriptionPayment(CreateSubscriptionPaymentRequest) returns (CreateSubscriptionPaymentResponse);
+  rpc GetPaymentStatus(GetPaymentStatusRequest) returns (GetPaymentStatusResponse);
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
+  rpc GetMySubscription(GetMySubscriptionRequest) returns (GetMySubscriptionResponse);
+
+  rpc HandleWebhook(WebhookEvent) returns (WebhookAck);
+}
+
+message Plan {
+  int64  id              = 1;
+  string name            = 2;
+  int64  price_kopeks    = 3;
+  int32  execution_quota = 4;
+  int32  duration_days   = 5;
+}
+
+message Subscription {
+  int64  id         = 1;
+  int64  user_id    = 2;
+  string plan_name  = 3;
+  int64  started_at = 4;
+  int64  expires_at = 5;
+  bool   active     = 6;
+}
+
+message Payment {
+  string id                  = 1;
+  int64  user_id             = 2;
+  string plan_name           = 3;
+  string yookassa_payment_id = 4;
+  string status              = 5;
+  int64  amount_kopeks       = 6;
+  string confirmation_token  = 7;
+  int64  created_at          = 8;
+  int64  paid_at             = 9;
+}
+
+message CreateSubscriptionPaymentRequest {
+  int64  user_id      = 1;
+  string user_email   = 2;
+  string plan_name    = 3;
+  string return_url   = 4;
+}
+
+message CreateSubscriptionPaymentResponse {
+  string id                 = 1;
+  string confirmation_token = 2;
+  int64  amount_kopeks      = 3;
+  string plan_name          = 4;
+}
+
+message GetPaymentStatusRequest {
+  string payment_id = 1;
+  int64  user_id    = 2;
+}
+
+message GetPaymentStatusResponse {
+  Payment payment = 1;
+}
+
+message ListPlansRequest {}
+
+message ListPlansResponse {
+  repeated Plan plans = 1;
+}
+
+message GetMySubscriptionRequest {
+  int64 user_id = 1;
+}
+
+message GetMySubscriptionResponse {
+  Subscription subscription = 1;
+  bool         has_active   = 2;
+}
+
+message WebhookEvent {
+  string event               = 1;
+  string yookassa_payment_id = 2;
+  string status              = 3;
+  int64  amount_kopeks       = 4;
+  string source_ip           = 5;
+  bytes  raw_body            = 6;
+}
+
+message WebhookAck {
+  bool processed = 1;
+}

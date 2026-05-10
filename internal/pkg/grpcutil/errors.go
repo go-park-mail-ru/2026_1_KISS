@@ -27,6 +27,10 @@ func DomainToGRPCError(err error) error {
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, domain.ErrForbidden):
 		return status.Error(codes.PermissionDenied, err.Error())
+	case errors.Is(err, domain.ErrPaymentFailed):
+		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, domain.ErrYooKassaUnavailable):
+		return status.Error(codes.Unavailable, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal server error")
 	}
@@ -54,6 +58,10 @@ func GRPCToDomainError(err error) error {
 		return domain.ErrInvalidInput
 	case codes.PermissionDenied:
 		return domain.ErrForbidden
+	case codes.FailedPrecondition:
+		return domain.ErrPaymentFailed
+	case codes.Unavailable:
+		return domain.ErrYooKassaUnavailable
 	default:
 		return err
 	}

@@ -21,19 +21,21 @@ import (
 	pbissue "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/issue"
 	pbnotebook "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notebook"
 	pbnotification "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/notification"
+	pbpayment "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/payment"
 	pbrunner "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/runner"
 	pbstorage "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
 type App struct {
-	srv       *http.Server
-	authConn  *grpc.ClientConn
-	nbConn    *grpc.ClientConn
-	runConn   *grpc.ClientConn
-	storConn  *grpc.ClientConn
-	issueConn *grpc.ClientConn
-	notifConn *grpc.ClientConn
-	cancelMw  context.CancelFunc
+	srv         *http.Server
+	authConn    *grpc.ClientConn
+	nbConn      *grpc.ClientConn
+	runConn     *grpc.ClientConn
+	storConn    *grpc.ClientConn
+	issueConn   *grpc.ClientConn
+	notifConn   *grpc.ClientConn
+	paymentConn *grpc.ClientConn
+	cancelMw    context.CancelFunc
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -76,12 +78,23 @@ func New(cfg *config.Config) (*App, error) {
 		issueConn.Close()
 		return nil, fmt.Errorf("dial notification: %w", err)
 	}
+	paymentConn, err := grpc.NewClient(cfg.GRPC.PaymentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		authConn.Close()
+		nbConn.Close()
+		runConn.Close()
+		storConn.Close()
+		issueConn.Close()
+		notifConn.Close()
+		return nil, fmt.Errorf("dial payment: %w", err)
+	}
 	authClient := pbauth.NewAuthServiceClient(authConn)
 	nbClient := pbnotebook.NewNotebookServiceClient(nbConn)
 	runClient := pbrunner.NewRunnerServiceClient(runConn)
 	storageClient := pbstorage.NewStorageServiceClient(storConn)
 	issueClient := pbissue.NewIssueServiceClient(issueConn)
 	notifClient := pbnotification.NewNotificationServiceClient(notifConn)
+	paymentClient := pbpayment.NewPaymentServiceClient(paymentConn)
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.Mail.AppURL)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
@@ -94,6 +107,7 @@ func New(cfg *config.Config) (*App, error) {
 	wsHandler := handler.NewWSHandler(authClient, nbClient, runClient)
 	statsHandler := handler.NewStatsHandler(authClient, nbClient, storageClient)
 	issueHandler := handler.NewIssueHandler(issueClient, authClient)
+	paymentHandler := handler.NewPaymentHandler(paymentClient, cfg.YooKassa.WebhookCIDR)
 
 	mux := http.NewServeMux()
 	authMw := gwmw.Auth(authClient)
@@ -110,6 +124,7 @@ func New(cfg *config.Config) (*App, error) {
 	statsHandler.RegisterRoutes(mux, authMw)
 	wsHandler.RegisterRoutes(mux)
 	issueHandler.RegisterRoutes(mux, authMw, adminMw)
+	paymentHandler.RegisterRoutes(mux, authMw)
 
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
 	mux.Handle("GET /metrics", promhttp.Handler())
@@ -128,8 +143,9 @@ func New(cfg *config.Config) (*App, error) {
 		slog.Warn("CSRF protection is DISABLED (DISABLE_KISS_CSRF=true)")
 	} else {
 		csrfSkip := map[string]bool{
-			"/api/v1/auth/login":    true,
-			"/api/v1/auth/register": true,
+			"/api/v1/auth/login":        true,
+			"/api/v1/auth/register":     true,
+			"/api/v1/payments/webhook":  true,
 		}
 		mws = append(mws, middleware.CSRF(csrfSkip))
 	}
@@ -145,14 +161,15 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	return &App{
-		srv:       srv,
-		authConn:  authConn,
-		nbConn:    nbConn,
-		runConn:   runConn,
-		storConn:  storConn,
-		issueConn: issueConn,
-		notifConn: notifConn,
-		cancelMw:  cancelMw,
+		srv:         srv,
+		authConn:    authConn,
+		nbConn:      nbConn,
+		runConn:     runConn,
+		storConn:    storConn,
+		issueConn:   issueConn,
+		notifConn:   notifConn,
+		paymentConn: paymentConn,
+		cancelMw:    cancelMw,
 	}, nil
 }
 
@@ -172,4 +189,7 @@ func (a *App) Shutdown(ctx context.Context) {
 	a.storConn.Close()
 	a.issueConn.Close()
 	a.notifConn.Close()
+	if a.paymentConn != nil {
+		a.paymentConn.Close()
+	}
 }

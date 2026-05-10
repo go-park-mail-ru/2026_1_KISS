@@ -24,6 +24,7 @@ type AuthUsecase struct {
 	sessionTTL       time.Duration
 	verificationRepo repository.VerificationRepository
 	mailService      mail.Sender
+	subRepo          repository.SubscriptionViewRepository
 }
 
 func New(
@@ -40,6 +41,11 @@ func New(
 		mailService:      mailService,
 		sessionTTL:       sessionTTL,
 	}
+}
+
+func (uc *AuthUsecase) WithSubscriptionView(subRepo repository.SubscriptionViewRepository) *AuthUsecase {
+	uc.subRepo = subRepo
+	return uc
 }
 
 func (uc *AuthUsecase) Register(ctx context.Context, username, email, password string) (*domain.User, error) {
@@ -227,6 +233,10 @@ func (uc *AuthUsecase) ValidateSession(ctx context.Context, sessionID string) (*
 	if err != nil {
 		logger.Error(ctx, "usecase.auth.ValidateSession", "error", err)
 		return nil, domain.ErrUnauthorized
+	}
+
+	if uc.subRepo != nil {
+		downgradeIfExpired(ctx, uc.userRepo, uc.subRepo, user, time.Now())
 	}
 
 	logger.Info(ctx, "usecase.auth.ValidateSession", "user_id", user.ID)

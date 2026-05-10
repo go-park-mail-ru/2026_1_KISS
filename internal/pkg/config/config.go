@@ -21,6 +21,15 @@ type Config struct {
 	Metrics     MetricsConfig
 	DisableCSRF bool
 	Mail        MailConfig
+	YooKassa    YooKassaConfig
+}
+
+type YooKassaConfig struct {
+	ShopID      string
+	SecretKey   string
+	APIBase     string
+	ReturnURL   string
+	WebhookCIDR []string
 }
 
 type MetricsConfig struct {
@@ -34,6 +43,7 @@ type GRPCConfig struct {
 	StorageAddr      string
 	IssueAddr        string
 	NotificationAddr string
+	PaymentAddr      string
 }
 
 type RateLimitConfig struct {
@@ -169,6 +179,15 @@ func Load() *Config {
 			StorageAddr:      getEnv("STORAGE_GRPC_ADDR", "localhost:9004"),
 			IssueAddr:        getEnv("ISSUE_GRPC_ADDR", "localhost:9005"),
 			NotificationAddr: getEnv("NOTIFICATION_GRPC_ADDR", "localhost:9006"),
+			PaymentAddr:      getEnv("PAYMENT_GRPC_ADDR", "localhost:9007"),
+		},
+		YooKassa: YooKassaConfig{
+			ShopID:    getEnv("YOOKASSA_SHOP_ID", ""),
+			SecretKey: getEnv("YOOKASSA_SECRET_KEY", ""),
+			APIBase:   getEnv("YOOKASSA_API_BASE", "https://api.yookassa.ru"),
+			ReturnURL: getEnv("YOOKASSA_RETURN_URL", "https://colkiss.ru/profile?section=subscription"),
+			WebhookCIDR: strings.Split(getEnv("YOOKASSA_WEBHOOK_CIDRS",
+				"185.71.76.0/27,185.71.77.0/27,77.75.153.0/25,77.75.154.128/25,77.75.156.11/32,77.75.156.35/32,2a02:5180::/32"), ","),
 		},
 		Metrics: MetricsConfig{
 			Port: getEnv("METRICS_PORT", "9090"),

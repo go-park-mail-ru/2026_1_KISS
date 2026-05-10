@@ -56,6 +56,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	sessionRepo := authredis.NewSessionRepository(rdb)
 	verificationRepo := authpg.NewVerificationRepository(db)
 	eventRepo := authpg.NewEventRepository(db)
+	subViewRepo := authpg.NewSubscriptionViewRepository(db)
 
 	notifConn, err := grpc.NewClient(cfg.GRPC.NotificationAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -70,7 +71,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		verificationRepo,
 		notifAdapter,
 		cfg.Auth.SessionTTL,
-	)
+	).WithSubscriptionView(subViewRepo)
 
 	storConn, err := grpc.NewClient(cfg.GRPC.StorageAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -79,7 +80,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	storageClient := pbstorage.NewStorageServiceClient(storConn)
 	uploader := authusecase.NewStorageUploader(storageClient)
 	profileUC := authusecase.NewProfileUsecase(userRepo, uploader, cfg.Upload.MaxAvatarSize)
-	eventUC := authusecase.NewEventUsecase(eventRepo, userRepo)
+	eventUC := authusecase.NewEventUsecase(eventRepo, userRepo, subViewRepo)
 	adminUC := authusecase.NewAdminUsecase(userRepo, eventRepo)
 	statsUC := authusecase.NewStatsUsecase(userRepo, eventRepo)
 

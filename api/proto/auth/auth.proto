@@ -27,6 +27,8 @@ service AuthService {
   rpc AdminSetPlan(AdminSetPlanRequest) returns (AdminSetPlanResponse);
   rpc AdminGetActivityStats(AdminGetActivityStatsRequest) returns (AdminGetActivityStatsResponse);
 
+  rpc SetUserPlanInternal(SetUserPlanInternalRequest) returns (SetUserPlanInternalResponse);
+
   rpc ConfirmEmail(ConfirmEmailRequest) returns (ConfirmEmailResponse);
 
   rpc GetUserStats(GetUserStatsRequest) returns (GetUserStatsResponse);
@@ -201,6 +203,14 @@ message AdminSetPlanRequest {
 }
 
 message AdminSetPlanResponse {}
+
+message SetUserPlanInternalRequest {
+  int64  user_id    = 1;
+  string plan       = 2;
+  int64  expires_at = 3;
+}
+
+message SetUserPlanInternalResponse {}
 
 message AdminGetActivityStatsRequest {
   int64 admin_user_id = 1;

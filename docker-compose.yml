@@ -19,6 +19,8 @@ services:
         condition: service_healthy
       notification:
         condition: service_healthy
+      payment:
+        condition: service_healthy
     environment:
       SERVER_PORT: "${SERVER_PORT:-8080}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
@@ -28,9 +30,11 @@ services:
       STORAGE_GRPC_ADDR: "storage:9004"
       ISSUE_GRPC_ADDR: "issue:9005"
       NOTIFICATION_GRPC_ADDR: "notification:9006"
+      PAYMENT_GRPC_ADDR: "payment:9007"
       AUTH_SESSION_TTL: "${AUTH_SESSION_TTL:-24h}"
       UPLOAD_DIR: /app/uploads
       RATE_LIMIT_MAX_REQUESTS: "${RATE_LIMIT_MAX_REQUESTS:-300}"
+      YOOKASSA_WEBHOOK_CIDRS: "${YOOKASSA_WEBHOOK_CIDRS:-185.71.76.0/27,185.71.77.0/27,77.75.153.0/25,77.75.154.128/25,77.75.156.11/32,77.75.156.35/32,2a02:5180::/32}"
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -188,6 +192,35 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads
+    networks:
+      - app-network
+
+  payment:
+    build:
+      context: .
+      dockerfile: deploy/payment/Dockerfile
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9007 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-colab}?sslmode=disable
+      GRPC_PORT: "9007"
+      METRICS_PORT: "9090"
+      AUTH_GRPC_ADDR: "auth:9001"
+      YOOKASSA_SHOP_ID: "${YOOKASSA_SHOP_ID}"
+      YOOKASSA_SECRET_KEY: "${YOOKASSA_SECRET_KEY}"
+      YOOKASSA_API_BASE: "${YOOKASSA_API_BASE:-https://api.yookassa.ru}"
+      YOOKASSA_RETURN_URL: "${YOOKASSA_RETURN_URL:-https://colkiss.ru/profile?section=subscription}"
     networks:
       - app-network
 

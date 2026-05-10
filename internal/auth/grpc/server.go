@@ -229,6 +229,16 @@ func (s *Server) AdminSetPlan(ctx context.Context, req *pb.AdminSetPlanRequest) 
 	return &pb.AdminSetPlanResponse{}, nil
 }
 
+func (s *Server) SetUserPlanInternal(ctx context.Context, req *pb.SetUserPlanInternalRequest) (*pb.SetUserPlanInternalResponse, error) {
+	if req.GetUserId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if err := s.adminUC.SetUserPlanInternal(ctx, req.GetUserId(), req.GetPlan()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.SetUserPlanInternalResponse{}, nil
+}
+
 func (s *Server) ConfirmEmail(ctx context.Context, req *pb.ConfirmEmailRequest) (*pb.ConfirmEmailResponse, error) {
 	if err := s.authUC.ConfirmEmail(ctx, req.GetToken()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
