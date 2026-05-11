@@ -12,6 +12,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/google/uuid"
+	"github.com/mailru/easyjson"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
@@ -152,6 +153,28 @@ type wsOutgoing struct {
 	Message string          `json:"message,omitempty"`
 }
 
+type wsBlock struct {
+	ID         int64  `json:"id"`
+	NotebookID int64  `json:"notebook_id"`
+	Type       string `json:"type"`
+	Language   string `json:"language"`
+	Content    string `json:"content"`
+	Position   int32  `json:"position"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+}
+
+type wsExecuteResult struct {
+	BlockID    int64    `json:"block_id"`
+	Position   int32    `json:"position"`
+	Stdout     []string `json:"stdout"`
+	Stderr     []string `json:"stderr"`
+	Result     string   `json:"result"`
+	Error      string   `json:"error"`
+	ExecutedAt int64    `json:"executed_at"`
+	DurationNs int64    `json:"duration_ns"`
+}
+
 func (h *WSHandler) readPump(ctx context.Context, conn *websocket.Conn, userID, notebookID int64, connID string) {
 	for {
 		var msg wsIncoming
@@ -248,15 +271,15 @@ func (h *WSHandler) handleExecuteBlock(ctx context.Context, conn *websocket.Conn
 		switch chunk.GetChunkType() {
 		case "complete":
 			result := chunk.GetFinalResult()
-			raw, _ := json.Marshal(map[string]any{
-				"block_id":    result.GetBlockId(),
-				"position":    result.GetPosition(),
-				"stdout":      result.GetStdout(),
-				"stderr":      result.GetStderr(),
-				"result":      result.GetResult(),
-				"error":       result.GetError(),
-				"executed_at": result.GetExecutedAt(),
-				"duration_ns": result.GetDurationNs(),
+			raw, _ := easyjson.Marshal(wsExecuteResult{
+				BlockID:    result.GetBlockId(),
+				Position:   result.GetPosition(),
+				Stdout:     result.GetStdout(),
+				Stderr:     result.GetStderr(),
+				Result:     result.GetResult(),
+				Error:      result.GetError(),
+				ExecutedAt: result.GetExecutedAt(),
+				DurationNs: result.GetDurationNs(),
 			})
 			_ = wsjson.Write(ctx, conn, wsOutgoing{Type: "execute_completed", Block: raw})
 			return
@@ -332,15 +355,15 @@ func marshalBlock(b *pb.BlockInfo) json.RawMessage {
 	if b == nil {
 		return nil
 	}
-	raw, _ := json.Marshal(map[string]any{
-		"id":          b.GetId(),
-		"notebook_id": b.GetNotebookId(),
-		"type":        b.GetType(),
-		"language":    b.GetLanguage(),
-		"content":     b.GetContent(),
-		"position":    b.GetPosition(),
-		"created_at":  b.GetCreatedAt(),
-		"updated_at":  b.GetUpdatedAt(),
+	raw, _ := easyjson.Marshal(wsBlock{
+		ID:         b.GetId(),
+		NotebookID: b.GetNotebookId(),
+		Type:       b.GetType(),
+		Language:   b.GetLanguage(),
+		Content:    b.GetContent(),
+		Position:   b.GetPosition(),
+		CreatedAt:  b.GetCreatedAt(),
+		UpdatedAt:  b.GetUpdatedAt(),
 	})
 	return raw
 }

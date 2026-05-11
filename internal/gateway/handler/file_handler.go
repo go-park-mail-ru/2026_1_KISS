@@ -130,10 +130,7 @@ func (h *FileHandler) List(w http.ResponseWriter, r *http.Request) {
 	for i, f := range resp.GetFiles() {
 		files[i] = fileInfoToResponse(f)
 	}
-	httputil.JSON(w, http.StatusOK, map[string]any{
-		"files": files,
-		"total": resp.GetTotal(),
-	})
+	httputil.JSON(w, http.StatusOK, fileListResponse{Files: files, Total: resp.GetTotal()})
 }
 
 func (h *FileHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -174,6 +171,11 @@ func (h *FileHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.JSON(w, http.StatusOK, nil)
+}
+
+type fileListResponse struct {
+	Files []fileResponse `json:"files"`
+	Total int32          `json:"total"`
 }
 
 type fileResponse struct {

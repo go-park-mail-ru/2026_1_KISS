@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate easyjson easyjson-install proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
 
 build:
 	go build -o gateway ./cmd/gateway
@@ -12,8 +12,9 @@ run: run-gateway
 
 test:
 	go test -race -coverprofile=coverage.out $$(go list ./... | grep -vE '(cmd/|internal/mocks|pkg/api/|/app$$|/grpc$$|internal/runner/container)')
-	@go tool cover -func=coverage.out
-	@TOTAL=$$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $$3}' | tr -d '%'); \
+	@grep -v '_easyjson.go:' coverage.out > coverage_filtered.out || true
+	@go tool cover -func=coverage_filtered.out
+	@TOTAL=$$(go tool cover -func=coverage_filtered.out | grep '^total:' | awk '{print $$3}' | tr -d '%'); \
 	echo "Total coverage: $${TOTAL}%"; \
 	awk "BEGIN { if ($${TOTAL}+0 < 70.0) { print \"FAIL: coverage $${TOTAL}% is below 70% threshold\"; exit 1 } }"
 
@@ -36,6 +37,17 @@ docs:
 
 generate:
 	go generate ./...
+
+easyjson-install:
+	go install github.com/mailru/easyjson/easyjson@v0.9.2
+
+easyjson:
+	go run github.com/mailru/easyjson/easyjson -all ./internal/domain/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/gateway/handler/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/payment/yookassa/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/pkg/dto/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/pkg/httputil/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/runner/notebook_session/
 
 run-gateway:
 	go run ./cmd/gateway

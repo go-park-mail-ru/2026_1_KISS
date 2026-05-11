@@ -1,11 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"strings"
+
+	"github.com/mailru/easyjson"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
@@ -47,6 +48,45 @@ type createSubscriptionRequest struct {
 	ReturnURL string `json:"return_url,omitempty"`
 }
 
+type createSubscriptionResponse struct {
+	PaymentID         string `json:"payment_id"`
+	ConfirmationToken string `json:"confirmation_token"`
+	AmountKopeks      int64  `json:"amount_kopeks"`
+	Plan              string `json:"plan"`
+}
+
+type paymentStatusResponse struct {
+	PaymentID    string `json:"payment_id"`
+	Status       string `json:"status"`
+	AmountKopeks int64  `json:"amount_kopeks"`
+	CreatedAt    int64  `json:"created_at"`
+	PaidAt       int64  `json:"paid_at"`
+}
+
+type planResponse struct {
+	ID             int64  `json:"id"`
+	Name           string `json:"name"`
+	PriceKopeks    int64  `json:"price_kopeks"`
+	ExecutionQuota int32  `json:"execution_quota"`
+	DurationDays   int32  `json:"duration_days"`
+}
+
+type listPlansResponse struct {
+	Plans []planResponse `json:"plans"`
+}
+
+type subscriptionMeResponse struct {
+	HasActive bool   `json:"has_active"`
+	Plan      string `json:"plan"`
+	StartedAt int64  `json:"started_at,omitempty"`
+	ExpiresAt int64  `json:"expires_at,omitempty"`
+}
+
+type webhookObject struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
 func (h *PaymentHandler) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if user == nil {
@@ -75,11 +115,11 @@ func (h *PaymentHandler) CreateSubscription(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	httputil.JSON(w, http.StatusCreated, map[string]any{
-		"payment_id":         resp.GetId(),
-		"confirmation_token": resp.GetConfirmationToken(),
-		"amount_kopeks":      resp.GetAmountKopeks(),
-		"plan":               resp.GetPlanName(),
+	httputil.JSON(w, http.StatusCreated, createSubscriptionResponse{
+		PaymentID:         resp.GetId(),
+		ConfirmationToken: resp.GetConfirmationToken(),
+		AmountKopeks:      resp.GetAmountKopeks(),
+		Plan:              resp.GetPlanName(),
 	})
 }
 
@@ -101,12 +141,12 @@ func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := resp.GetPayment()
-	httputil.JSON(w, http.StatusOK, map[string]any{
-		"payment_id":    p.GetId(),
-		"status":        p.GetStatus(),
-		"amount_kopeks": p.GetAmountKopeks(),
-		"created_at":    p.GetCreatedAt(),
-		"paid_at":       p.GetPaidAt(),
+	httputil.JSON(w, http.StatusOK, paymentStatusResponse{
+		PaymentID:    p.GetId(),
+		Status:       p.GetStatus(),
+		AmountKopeks: p.GetAmountKopeks(),
+		CreatedAt:    p.GetCreatedAt(),
+		PaidAt:       p.GetPaidAt(),
 	})
 }
 
@@ -116,17 +156,17 @@ func (h *PaymentHandler) ListPlans(w http.ResponseWriter, r *http.Request) {
 		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
 		return
 	}
-	plans := make([]map[string]any, 0, len(resp.GetPlans()))
+	plans := make([]planResponse, 0, len(resp.GetPlans()))
 	for _, p := range resp.GetPlans() {
-		plans = append(plans, map[string]any{
-			"id":              p.GetId(),
-			"name":            p.GetName(),
-			"price_kopeks":    p.GetPriceKopeks(),
-			"execution_quota": p.GetExecutionQuota(),
-			"duration_days":   p.GetDurationDays(),
+		plans = append(plans, planResponse{
+			ID:             p.GetId(),
+			Name:           p.GetName(),
+			PriceKopeks:    p.GetPriceKopeks(),
+			ExecutionQuota: p.GetExecutionQuota(),
+			DurationDays:   p.GetDurationDays(),
 		})
 	}
-	httputil.JSON(w, http.StatusOK, map[string]any{"plans": plans})
+	httputil.JSON(w, http.StatusOK, listPlansResponse{Plans: plans})
 }
 
 func (h *PaymentHandler) GetMine(w http.ResponseWriter, r *http.Request) {
@@ -141,28 +181,22 @@ func (h *PaymentHandler) GetMine(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !resp.GetHasActive() {
-		httputil.JSON(w, http.StatusOK, map[string]any{
-			"has_active": false,
-			"plan":       user.Plan,
-		})
+		httputil.JSON(w, http.StatusOK, subscriptionMeResponse{HasActive: false, Plan: user.Plan})
 		return
 	}
 	sub := resp.GetSubscription()
-	httputil.JSON(w, http.StatusOK, map[string]any{
-		"has_active": true,
-		"plan":       sub.GetPlanName(),
-		"started_at": sub.GetStartedAt(),
-		"expires_at": sub.GetExpiresAt(),
+	httputil.JSON(w, http.StatusOK, subscriptionMeResponse{
+		HasActive: true,
+		Plan:      sub.GetPlanName(),
+		StartedAt: sub.GetStartedAt(),
+		ExpiresAt: sub.GetExpiresAt(),
 	})
 }
 
 type webhookPayload struct {
-	Type   string `json:"type"`
-	Event  string `json:"event"`
-	Object struct {
-		ID     string `json:"id"`
-		Status string `json:"status"`
-	} `json:"object"`
+	Type   string        `json:"type"`
+	Event  string        `json:"event"`
+	Object webhookObject `json:"object"`
 }
 
 func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +214,7 @@ func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload webhookPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := easyjson.Unmarshal(body, &payload); err != nil {
 		httputil.Error(w, http.StatusBadRequest, "invalid json")
 		return
 	}

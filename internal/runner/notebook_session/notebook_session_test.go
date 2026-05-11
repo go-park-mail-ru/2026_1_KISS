@@ -171,6 +171,71 @@ func TestExecuteBlock_ServerError(t *testing.T) {
 	}
 }
 
+func TestExecuteBlockStreaming_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-ndjson")
+		w.WriteHeader(http.StatusOK)
+		chunks := []string{
+			`{"type":"stdout","data":"hello\n"}`,
+			`{"type":"stderr","data":"warn"}`,
+			`{"type":"result","data":"42"}`,
+			`{"type":"output","data":"img","mime_type":"image/png"}`,
+		}
+		for _, c := range chunks {
+			_, _ = w.Write([]byte(c + "\n"))
+		}
+	}))
+	defer server.Close()
+
+	blockStates := make(map[int64]*domain.BlockState)
+	session := NewNotebookSession(1, "session-stream", server.URL, 0, blockStates, 30*time.Second)
+
+	block := domain.Block{ID: 2, Position: 1, Type: "code", Content: "print(42)"}
+
+	var gotChunks []string
+	result, err := session.ExecuteBlockStreaming(context.Background(), block, func(chunkType, data string) {
+		gotChunks = append(gotChunks, chunkType+":"+data)
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.BlockID != 2 {
+		t.Errorf("expected block ID 2, got %d", result.BlockID)
+	}
+	if result.Result != "42" {
+		t.Errorf("expected result '42', got %q", result.Result)
+	}
+	if len(result.Stdout) == 0 || result.Stdout[0] != "hello\n" {
+		t.Errorf("unexpected stdout: %v", result.Stdout)
+	}
+	if len(result.Stderr) == 0 || result.Stderr[0] != "warn" {
+		t.Errorf("unexpected stderr: %v", result.Stderr)
+	}
+	if len(result.Outputs) == 0 || result.Outputs[0].MimeType != "image/png" {
+		t.Errorf("unexpected outputs: %v", result.Outputs)
+	}
+	if len(gotChunks) != 2 {
+		t.Errorf("expected 2 onChunk calls, got %d: %v", len(gotChunks), gotChunks)
+	}
+}
+
+func TestExecuteBlockStreaming_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("execution error"))
+	}))
+	defer server.Close()
+
+	blockStates := make(map[int64]*domain.BlockState)
+	session := NewNotebookSession(1, "session-stream-err", server.URL, 0, blockStates, 30*time.Second)
+
+	block := domain.Block{ID: 3, Position: 0, Type: "code", Content: "bad code"}
+	_, err := session.ExecuteBlockStreaming(context.Background(), block, func(_, _ string) {})
+	if err == nil {
+		t.Fatal("expected error for server error response")
+	}
+}
+
 func TestExecuteFromPosition_EmptyBlocks(t *testing.T) {
 	blockStates := make(map[int64]*domain.BlockState)
 	session := NewNotebookSession(

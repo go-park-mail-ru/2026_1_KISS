@@ -31,6 +31,16 @@ type outputItemResponse struct {
 	Data     string `json:"data"`
 }
 
+type containerStatsResponse struct {
+	CPUPercent     float64 `json:"cpu_percent"`
+	MemoryUsage    int64   `json:"memory_usage"`
+	MemoryLimit    int64   `json:"memory_limit"`
+	MemoryPercent  float64 `json:"memory_percent"`
+	CPUCores       uint32  `json:"cpu_cores"`
+	DiskLimitBytes int64   `json:"disk_limit_bytes"`
+	GPUAvailable   bool    `json:"gpu_available"`
+}
+
 type executionResultResponse struct {
 	BlockID    int64                `json:"block_id"`
 	Position   int                  `json:"position"`
@@ -164,14 +174,14 @@ func (h *RunnerHandler) GetContainerStats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	httputil.JSON(w, http.StatusOK, map[string]any{
-		"cpu_percent":      resp.GetCpuPercent(),
-		"memory_usage":     resp.GetMemoryUsage(),
-		"memory_limit":     resp.GetMemoryLimit(),
-		"memory_percent":   resp.GetMemoryPercent(),
-		"cpu_cores":        resp.GetCpuCores(),
-		"disk_limit_bytes": resp.GetDiskLimitBytes(),
-		"gpu_available":    resp.GetGpuAvailable(),
+	httputil.JSON(w, http.StatusOK, containerStatsResponse{
+		CPUPercent:     resp.GetCpuPercent(),
+		MemoryUsage:    resp.GetMemoryUsage(),
+		MemoryLimit:    resp.GetMemoryLimit(),
+		MemoryPercent:  resp.GetMemoryPercent(),
+		CPUCores:       resp.GetCpuCores(),
+		DiskLimitBytes: resp.GetDiskLimitBytes(),
+		GPUAvailable:   resp.GetGpuAvailable(),
 	})
 }
 
