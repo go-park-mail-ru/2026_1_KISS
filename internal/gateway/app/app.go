@@ -97,6 +97,7 @@ func New(cfg *config.Config) (*App, error) {
 	paymentClient := pbpayment.NewPaymentServiceClient(paymentConn)
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.Mail.AppURL)
+	oauthHandler := handler.NewOAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.OAuth.FrontendURL)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
 	notebookHandler := handler.NewNotebookHandler(nbClient, authClient)
 	runnerHandler := handler.NewRunnerHandler(runClient)
@@ -114,6 +115,7 @@ func New(cfg *config.Config) (*App, error) {
 	adminMw := gwmw.AdminOnly()
 
 	authHandler.RegisterRoutes(mux)
+	oauthHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
 	runnerHandler.RegisterRoutes(mux, authMw)
 	profileHandler.RegisterRoutes(mux, authMw)
