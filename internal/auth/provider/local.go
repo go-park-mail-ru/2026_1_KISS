@@ -37,6 +37,11 @@ func (p *LocalProvider) Authenticate(ctx context.Context, credentials map[string
 		return nil, domain.ErrUnauthorized
 	}
 
+	if user.PasswordHash == "" {
+		logger.Error(ctx, "provider.local.Authenticate", "error", "oauth-only user attempted password login")
+		return nil, domain.ErrUnauthorized
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		logger.Error(ctx, "provider.local.Authenticate", "error", domain.ErrUnauthorized)
 		return nil, domain.ErrUnauthorized
