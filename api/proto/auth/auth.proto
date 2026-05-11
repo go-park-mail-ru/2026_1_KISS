@@ -15,8 +15,14 @@ service AuthService {
   rpc ChangeEmail(ChangeEmailRequest) returns (UserResponse);
   rpc UploadAvatar(stream UploadAvatarChunk) returns (UserResponse);
 
-  rpc GetOAuthURL(GetOAuthURLRequest) returns (GetOAuthURLResponse);
-  rpc OAuthLogin(OAuthLoginRequest) returns (LoginResponse);
+  rpc GetOAuthURL(GetOAuthURLRequest) returns (GetOAuthURLResponse) {
+    option deprecated = true;
+  }
+  rpc OAuthLogin(OAuthLoginRequest) returns (LoginResponse) {
+    option deprecated = true;
+  }
+  rpc OAuthStart(OAuthStartRequest) returns (OAuthStartResponse);
+  rpc OAuthCallback(OAuthCallbackRequest) returns (LoginResponse);
 
   rpc TrackEvent(TrackEventRequest) returns (TrackEventResponse);
   rpc AdminListUsers(AdminListUsersRequest) returns (AdminListUsersResponse);
@@ -138,6 +144,22 @@ message OAuthLoginRequest {
   string provider = 1;
   string code = 2;
   string redirect_uri = 3;
+}
+
+message OAuthStartRequest {
+  string provider = 1;
+}
+
+message OAuthStartResponse {
+  string auth_url = 1;
+  string state = 2;
+  int64 expires_at = 3;
+}
+
+message OAuthCallbackRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
 }
 
 message TrackEventRequest {
