@@ -23,6 +23,7 @@ type Server struct {
 	eventUC   *usecase.EventUsecase
 	adminUC   *usecase.AdminUsecase
 	statsUC   *usecase.StatsUsecase
+	oauthUC   *usecase.OAuthUsecase
 }
 
 type ProfileUsecase interface {
@@ -34,6 +35,47 @@ type ProfileUsecase interface {
 
 func NewServer(authUC *usecase.AuthUsecase, profileUC ProfileUsecase, eventUC *usecase.EventUsecase, adminUC *usecase.AdminUsecase, statsUC *usecase.StatsUsecase) *Server {
 	return &Server{authUC: authUC, profileUC: profileUC, eventUC: eventUC, adminUC: adminUC, statsUC: statsUC}
+}
+
+func (s *Server) WithOAuthUsecase(oauthUC *usecase.OAuthUsecase) *Server {
+	s.oauthUC = oauthUC
+	return s
+}
+
+func (s *Server) OAuthStart(ctx context.Context, req *pb.OAuthStartRequest) (*pb.OAuthStartResponse, error) {
+	if s.oauthUC == nil {
+		return nil, status.Error(codes.Unimplemented, "oauth usecase is not configured")
+	}
+	if req.GetProvider() == "" {
+		return nil, status.Error(codes.InvalidArgument, "provider is required")
+	}
+	authURL, state, expiresAt, err := s.oauthUC.Start(ctx, req.GetProvider())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.OAuthStartResponse{
+		AuthUrl:   authURL,
+		State:     state,
+		ExpiresAt: expiresAt.Unix(),
+	}, nil
+}
+
+func (s *Server) OAuthCallback(ctx context.Context, req *pb.OAuthCallbackRequest) (*pb.LoginResponse, error) {
+	if s.oauthUC == nil {
+		return nil, status.Error(codes.Unimplemented, "oauth usecase is not configured")
+	}
+	if req.GetProvider() == "" || req.GetCode() == "" || req.GetState() == "" {
+		return nil, status.Error(codes.InvalidArgument, "provider, code, state are required")
+	}
+	session, user, err := s.oauthUC.Callback(ctx, req.GetProvider(), req.GetCode(), req.GetState())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.LoginResponse{
+		SessionId: session.ID,
+		ExpiresAt: session.ExpiresAt.Unix(),
+		User:      userToProto(user),
+	}, nil
 }
 
 func (s *Server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
