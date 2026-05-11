@@ -22,6 +22,25 @@ type Config struct {
 	DisableCSRF bool
 	Mail        MailConfig
 	YooKassa    YooKassaConfig
+	OAuth       OAuthConfig
+}
+
+type OAuthProviderConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+}
+
+func (c OAuthProviderConfig) Enabled() bool {
+	return c.ClientID != "" && c.ClientSecret != ""
+}
+
+type OAuthConfig struct {
+	StateTTL    time.Duration
+	FrontendURL string
+	Google      OAuthProviderConfig
+	Yandex      OAuthProviderConfig
+	VKID        OAuthProviderConfig
 }
 
 type YooKassaConfig struct {
@@ -191,6 +210,25 @@ func Load() *Config {
 		},
 		Metrics: MetricsConfig{
 			Port: getEnv("METRICS_PORT", "9090"),
+		},
+		OAuth: OAuthConfig{
+			StateTTL:    getEnvDuration("OAUTH_STATE_TTL", 10*time.Minute),
+			FrontendURL: getEnv("OAUTH_FRONTEND_URL", getEnv("APP_URL", "https://colkiss.ru")),
+			Google: OAuthProviderConfig{
+				ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+				ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("GOOGLE_REDIRECT_URL", ""),
+			},
+			Yandex: OAuthProviderConfig{
+				ClientID:     getEnv("YANDEX_CLIENT_ID", ""),
+				ClientSecret: getEnv("YANDEX_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("YANDEX_REDIRECT_URL", ""),
+			},
+			VKID: OAuthProviderConfig{
+				ClientID:     getEnv("VKID_CLIENT_ID", ""),
+				ClientSecret: getEnv("VKID_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("VKID_REDIRECT_URL", ""),
+			},
 		},
 		DisableCSRF: getEnvBool("DISABLE_KISS_CSRF", false),
 	}
