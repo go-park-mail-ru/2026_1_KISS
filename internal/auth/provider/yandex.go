@@ -14,7 +14,7 @@ import (
 
 const (
 	yandexDefaultAuthURL     = "https://oauth.yandex.ru/authorize"
-	yandexDefaultTokenURL    = "https://oauth.yandex.ru/token"
+	yandexDefaultTokenURL    = "https://oauth.yandex.ru/token" //nolint:gosec // G101 false positive: this is a public endpoint URL, not a secret
 	yandexDefaultUserInfoURL = "https://login.yandex.ru/info"
 	yandexScope              = "login:email login:info"
 )

@@ -332,6 +332,7 @@ func TestChangeEmail_Success(t *testing.T) {
 func TestGetOAuthURL_Unimplemented(t *testing.T) {
 	env := setup(t)
 
+	//nolint:staticcheck // SA1019: intentionally exercising the deprecated stub to ensure it still returns Unimplemented
 	_, err := env.client.GetOAuthURL(context.Background(), &pb.GetOAuthURLRequest{
 		Provider: "yandex",
 	})

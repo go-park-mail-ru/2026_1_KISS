@@ -15,7 +15,7 @@ import (
 
 const (
 	vkidDefaultAuthURL     = "https://id.vk.com/authorize"
-	vkidDefaultTokenURL    = "https://id.vk.com/oauth2/auth"
+	vkidDefaultTokenURL    = "https://id.vk.com/oauth2/auth" //nolint:gosec // G101 false positive: this is a public endpoint URL, not a secret
 	vkidDefaultUserInfoURL = "https://id.vk.com/oauth2/user_info"
 	vkidScope              = "email"
 )

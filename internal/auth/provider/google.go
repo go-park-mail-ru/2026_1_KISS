@@ -14,7 +14,7 @@ import (
 
 const (
 	googleDefaultAuthURL     = "https://accounts.google.com/o/oauth2/v2/auth"
-	googleDefaultTokenURL    = "https://oauth2.googleapis.com/token"
+	googleDefaultTokenURL    = "https://oauth2.googleapis.com/token" //nolint:gosec // G101 false positive: this is a public endpoint URL, not a secret
 	googleDefaultUserInfoURL = "https://openidconnect.googleapis.com/v1/userinfo"
 	googleScope              = "openid email profile"
 )
