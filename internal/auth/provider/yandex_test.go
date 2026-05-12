@@ -44,7 +44,7 @@ func TestYandexProvider_Exchange_Success(t *testing.T) {
 	})
 	p, _ := newYandexTestProvider(t, mux)
 
-	info, err := p.Exchange(context.Background(), "code", "verifier")
+	info, err := p.Exchange(context.Background(), "code", "verifier", "")
 	if err != nil {
 		t.Fatalf("Exchange: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestYandexProvider_Exchange_NoAvatar(t *testing.T) {
 	})
 	p, _ := newYandexTestProvider(t, mux)
 
-	info, err := p.Exchange(context.Background(), "c", "v")
+	info, err := p.Exchange(context.Background(), "c", "v", "")
 	if err != nil {
 		t.Fatalf("Exchange: %v", err)
 	}

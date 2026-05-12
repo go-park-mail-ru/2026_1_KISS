@@ -61,7 +61,7 @@ func TestGoogleProvider_Exchange_Success(t *testing.T) {
 	})
 	p, _ := newGoogleTestProvider(t, mux)
 
-	info, err := p.Exchange(context.Background(), "the-code", "the-verifier")
+	info, err := p.Exchange(context.Background(), "the-code", "the-verifier", "")
 	if err != nil {
 		t.Fatalf("Exchange: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestGoogleProvider_Exchange_TokenError(t *testing.T) {
 	})
 	p, _ := newGoogleTestProvider(t, mux)
 
-	if _, err := p.Exchange(context.Background(), "x", "y"); err == nil {
+	if _, err := p.Exchange(context.Background(), "x", "y", ""); err == nil {
 		t.Fatalf("expected error on bad token response")
 	}
 }

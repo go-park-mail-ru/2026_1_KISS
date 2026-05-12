@@ -59,7 +59,7 @@ func (p *YandexProvider) AuthorizationURL(state, codeChallenge string) string {
 	return p.authURL + "?" + q.Encode()
 }
 
-func (p *YandexProvider) Exchange(ctx context.Context, code, codeVerifier string) (*domain.ExternalUserInfo, error) {
+func (p *YandexProvider) Exchange(ctx context.Context, code, codeVerifier, _ string) (*domain.ExternalUserInfo, error) {
 	form := url.Values{}
 	form.Set("client_id", p.clientID)
 	form.Set("client_secret", p.clientSecret)

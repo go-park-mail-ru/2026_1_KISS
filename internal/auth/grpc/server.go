@@ -67,7 +67,7 @@ func (s *Server) OAuthCallback(ctx context.Context, req *pb.OAuthCallbackRequest
 	if req.GetProvider() == "" || req.GetCode() == "" || req.GetState() == "" {
 		return nil, status.Error(codes.InvalidArgument, "provider, code, state are required")
 	}
-	session, user, err := s.oauthUC.Callback(ctx, req.GetProvider(), req.GetCode(), req.GetState())
+	session, user, err := s.oauthUC.Callback(ctx, req.GetProvider(), req.GetCode(), req.GetState(), req.GetDeviceId())
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}

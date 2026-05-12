@@ -60,7 +60,7 @@ func (p *GoogleProvider) AuthorizationURL(state, codeChallenge string) string {
 	return p.authURL + "?" + q.Encode()
 }
 
-func (p *GoogleProvider) Exchange(ctx context.Context, code, codeVerifier string) (*domain.ExternalUserInfo, error) {
+func (p *GoogleProvider) Exchange(ctx context.Context, code, codeVerifier, _ string) (*domain.ExternalUserInfo, error) {
 	form := url.Values{}
 	form.Set("client_id", p.clientID)
 	form.Set("client_secret", p.clientSecret)
