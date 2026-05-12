@@ -26,10 +26,14 @@ Run a single test:
 go test -v -run TestFunctionName ./internal/path/to/package/...
 ```
 
-The Python runner image must be built before first `docker compose up`:
+The Python runner image must be built before first `docker compose up` (or use `make docker-up`, which builds it automatically):
 ```bash
-docker build -t kiss-python-runner -f build/py-runner/Dockerfile build/runner/
+make build-runner-image
+# or, directly:
+docker build -t kiss-python-runner -f build/py-runner/Dockerfile build/
 ```
+
+Note: the Dockerfile expects the build context to be `build/` (it `COPY`s from `py-runner/` and `runner/` subdirectories). The image is created on-demand by the runner service when a notebook session starts, so it is **not** held by any long-running container — `docker image prune -a` will remove it. The deploy workflow and `make docker-up` rebuild it explicitly.
 
 ## Architecture
 
