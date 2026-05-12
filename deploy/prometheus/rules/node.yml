@@ -1,0 +1,57 @@
+groups:
+  - name: node-disk
+    interval: 30s
+    rules:
+      - alert: HostDiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"^(tmpfs|overlay|squashfs|devtmpfs|ramfs)$"}
+            /
+            node_filesystem_size_bytes{fstype!~"^(tmpfs|overlay|squashfs|devtmpfs|ramfs)$"}
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space below 15% on {{ $labels.instance }}:{{ $labels.mountpoint }}"
+          description: |
+            Free space on {{ $labels.mountpoint }} ({{ $labels.device }}) is
+            {{ $value | humanizePercentage }}. Investigate before it hits
+            the 5% critical threshold, which historically caused Postgres to
+            stop writing logs and Docker exec to fail.
+
+      - alert: HostDiskSpaceCritical
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"^(tmpfs|overlay|squashfs|devtmpfs|ramfs)$"}
+            /
+            node_filesystem_size_bytes{fstype!~"^(tmpfs|overlay|squashfs|devtmpfs|ramfs)$"}
+          ) < 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space CRITICAL (<5%) on {{ $labels.instance }}:{{ $labels.mountpoint }}"
+          description: |
+            Free space on {{ $labels.mountpoint }} ({{ $labels.device }}) is
+            {{ $value | humanizePercentage }}. Service degradation imminent:
+            Docker json-log will start dropping log entries, Postgres pg_log
+            writer will fail with ENOSPC. Free space NOW.
+
+      - alert: HostInodesLow
+        expr: |
+          (
+            node_filesystem_files_free{fstype!~"^(tmpfs|overlay|squashfs|devtmpfs|ramfs)$"}
+            /
+            node_filesystem_files{fstype!~"^(tmpfs|overlay|squashfs|devtmpfs|ramfs)$"}
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Inodes below 15% on {{ $labels.instance }}:{{ $labels.mountpoint }}"
+          description: |
+            Free inodes on {{ $labels.mountpoint }} ({{ $labels.device }}) are
+            {{ $value | humanizePercentage }}. A filesystem can run out of
+            inodes long before running out of bytes (e.g. perf_test/bodies/
+            creates 100k tiny .json files per run).
