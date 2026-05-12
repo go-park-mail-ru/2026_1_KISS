@@ -162,9 +162,14 @@ func (uc *OAuthUsecase) createOAuthUser(ctx context.Context, providerName string
 		return nil, err
 	}
 
+	email := info.Email
+	if email == "" {
+		email = fmt.Sprintf("%s-%s@oauth.local", providerName, info.ProviderID)
+	}
+
 	user := &domain.User{
 		Username:     username,
-		Email:        info.Email,
+		Email:        email,
 		PasswordHash: "",
 		IsVerified:   info.EmailVerified || info.Email == "",
 		AvatarURL:    info.AvatarURL,
