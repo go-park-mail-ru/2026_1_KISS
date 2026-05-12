@@ -81,7 +81,7 @@ func (uc *OAuthUsecase) Start(ctx context.Context, providerName string) (string,
 	return authURL, state, expiresAt, nil
 }
 
-func (uc *OAuthUsecase) Callback(ctx context.Context, providerName, code, state string) (*domain.Session, *domain.User, error) {
+func (uc *OAuthUsecase) Callback(ctx context.Context, providerName, code, state, deviceID string) (*domain.Session, *domain.User, error) {
 	if code == "" || state == "" {
 		return nil, nil, fmt.Errorf("%w: code and state are required", domain.ErrInvalidInput)
 	}
@@ -102,7 +102,7 @@ func (uc *OAuthUsecase) Callback(ctx context.Context, providerName, code, state 
 		return nil, nil, fmt.Errorf("%w: state/provider mismatch", domain.ErrUnauthorized)
 	}
 
-	info, err := p.Exchange(ctx, code, stState.CodeVerifier)
+	info, err := p.Exchange(ctx, code, stState.CodeVerifier, deviceID)
 	if err != nil {
 		logger.Error(ctx, "usecase.oauth.Callback", "step", "exchange", "error", err, "provider", providerName)
 		return nil, nil, fmt.Errorf("%w: oauth exchange failed", domain.ErrUnauthorized)

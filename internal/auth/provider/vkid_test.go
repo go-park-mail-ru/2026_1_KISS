@@ -45,7 +45,7 @@ func TestVKIDProvider_Exchange_Success(t *testing.T) {
 	})
 	p, _ := newVKIDTestProvider(t, mux)
 
-	info, err := p.Exchange(context.Background(), "c", "v")
+	info, err := p.Exchange(context.Background(), "c", "v", "")
 	if err != nil {
 		t.Fatalf("Exchange: %v", err)
 	}
@@ -64,12 +64,51 @@ func TestVKIDProvider_Exchange_NoEmail(t *testing.T) {
 	})
 	p, _ := newVKIDTestProvider(t, mux)
 
-	info, err := p.Exchange(context.Background(), "c", "v")
+	info, err := p.Exchange(context.Background(), "c", "v", "")
 	if err != nil {
 		t.Fatalf("Exchange: %v", err)
 	}
 	if info.Email != "" || info.EmailVerified {
 		t.Errorf("expected empty unverified email, got %+v", info)
+	}
+}
+
+func TestVKIDProvider_Exchange_EmptyAccessTokenDumpsBody(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/token", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"error":"invalid_request","error_description":"missing device_id"}`))
+	})
+	p, _ := newVKIDTestProvider(t, mux)
+
+	_, err := p.Exchange(context.Background(), "c", "v", "")
+	if err == nil {
+		t.Fatal("expected error on empty access_token")
+	}
+	if !strings.Contains(err.Error(), "missing device_id") {
+		t.Errorf("expected error to include response body, got: %v", err)
+	}
+}
+
+func TestVKIDProvider_Exchange_PassesDeviceID(t *testing.T) {
+	var captured string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Fatalf("parse form: %v", err)
+		}
+		captured = r.FormValue("device_id")
+		_, _ = w.Write([]byte(`{"access_token":"t","user_id":1}`))
+	})
+	mux.HandleFunc("/user_info", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"user":{"user_id":"1","first_name":"X"}}`))
+	})
+	p, _ := newVKIDTestProvider(t, mux)
+
+	if _, err := p.Exchange(context.Background(), "c", "v", "dev-42"); err != nil {
+		t.Fatalf("Exchange: %v", err)
+	}
+	if captured != "dev-42" {
+		t.Errorf("expected device_id=dev-42 in token form, got %q", captured)
 	}
 }
 
@@ -83,7 +122,7 @@ func TestVKIDProvider_Exchange_FallbackUserIDFromToken(t *testing.T) {
 	})
 	p, _ := newVKIDTestProvider(t, mux)
 
-	info, err := p.Exchange(context.Background(), "c", "v")
+	info, err := p.Exchange(context.Background(), "c", "v", "")
 	if err != nil {
 		t.Fatalf("Exchange: %v", err)
 	}

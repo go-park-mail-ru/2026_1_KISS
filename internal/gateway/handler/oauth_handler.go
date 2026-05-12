@@ -93,6 +93,7 @@ func (h *OAuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		Provider: providerName,
 		Code:     code,
 		State:    state,
+		DeviceId: r.URL.Query().Get("device_id"),
 	})
 	if err != nil {
 		domainErr := grpcutil.GRPCToDomainError(err)

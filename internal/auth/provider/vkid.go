@@ -59,7 +59,7 @@ func (p *VKIDProvider) AuthorizationURL(state, codeChallenge string) string {
 	return p.authURL + "?" + q.Encode()
 }
 
-func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier string) (*domain.ExternalUserInfo, error) {
+func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier, deviceID string) (*domain.ExternalUserInfo, error) {
 	form := url.Values{}
 	form.Set("client_id", p.clientID)
 	form.Set("client_secret", p.clientSecret)
@@ -67,6 +67,9 @@ func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier string) 
 	form.Set("code_verifier", codeVerifier)
 	form.Set("grant_type", "authorization_code")
 	form.Set("redirect_uri", p.redirectURL)
+	if deviceID != "" {
+		form.Set("device_id", deviceID)
+	}
 
 	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -85,15 +88,19 @@ func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier string) 
 		return nil, fmt.Errorf("vkid token exchange: status %d: %s", tokenResp.StatusCode, string(body))
 	}
 
+	tokenBody, err := io.ReadAll(io.LimitReader(tokenResp.Body, 4096))
+	if err != nil {
+		return nil, fmt.Errorf("vkid read token body: %w", err)
+	}
 	var token struct {
 		AccessToken string `json:"access_token"`
 		UserID      int64  `json:"user_id"`
 	}
-	if err := json.NewDecoder(tokenResp.Body).Decode(&token); err != nil {
-		return nil, fmt.Errorf("vkid decode token: %w", err)
+	if err := json.Unmarshal(tokenBody, &token); err != nil {
+		return nil, fmt.Errorf("vkid decode token: %w (body=%s)", err, string(tokenBody))
 	}
 	if token.AccessToken == "" {
-		return nil, fmt.Errorf("vkid token exchange: empty access_token")
+		return nil, fmt.Errorf("vkid token exchange: empty access_token (body=%s)", string(tokenBody))
 	}
 
 	infoForm := url.Values{}
@@ -116,6 +123,10 @@ func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier string) 
 		return nil, fmt.Errorf("vkid userinfo: status %d: %s", infoResp.StatusCode, string(body))
 	}
 
+	infoBody, err := io.ReadAll(io.LimitReader(infoResp.Body, 4096))
+	if err != nil {
+		return nil, fmt.Errorf("vkid read userinfo body: %w", err)
+	}
 	var info struct {
 		User struct {
 			UserID    string `json:"user_id"`
@@ -125,8 +136,8 @@ func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier string) 
 			Avatar    string `json:"avatar"`
 		} `json:"user"`
 	}
-	if err := json.NewDecoder(infoResp.Body).Decode(&info); err != nil {
-		return nil, fmt.Errorf("vkid decode userinfo: %w", err)
+	if err := json.Unmarshal(infoBody, &info); err != nil {
+		return nil, fmt.Errorf("vkid decode userinfo: %w (body=%s)", err, string(infoBody))
 	}
 
 	providerID := info.User.UserID

@@ -160,6 +160,7 @@ message OAuthCallbackRequest {
   string provider = 1;
   string code = 2;
   string state = 3;
+  string device_id = 4;
 }
 
 message TrackEventRequest {
