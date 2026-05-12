@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate proto proto-tools build-runner-image run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
 
 build:
 	go build -o gateway ./cmd/gateway
@@ -22,7 +22,10 @@ lint:
 
 ci: proto generate lint test
 
-docker-up:
+build-runner-image:
+	docker build -t kiss-python-runner -f build/py-runner/Dockerfile build/
+
+docker-up: build-runner-image
 	docker-compose up -d --build
 
 docker-down:

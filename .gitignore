@@ -52,6 +52,10 @@ Thumbs.db
 tmp/
 temp/
 
+# Perf test outputs (vegeta binary dumps can reach tens of GB)
+perf_test/results/
+perf_test/bodies/
+
 # Docs build artifacts
 docs/node_modules/
 docs/package-lock.json
