@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/smtp"
 	"time"
 
@@ -89,6 +90,12 @@ func (s *Server) SendEmail(_ context.Context, req *pb.SendEmailRequest) (*pb.Sen
 	}
 	if req.GetTextBody() == "" && req.GetHtmlBody() == "" {
 		return nil, status.Error(codes.InvalidArgument, "at least one of text_body or html_body is required")
+	}
+
+	if s.smtpHost == "" {
+		slog.Info("notification.SendEmail stub (no SMTP_HOST configured)",
+			"to", req.GetTo(), "subject", req.GetSubject())
+		return &pb.SendEmailResponse{}, nil
 	}
 
 	msg := s.buildMessage(req)

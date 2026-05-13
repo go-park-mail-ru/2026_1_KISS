@@ -110,6 +110,7 @@ func (d DatabaseConfig) DSN() string {
 type AuthConfig struct {
 	SessionTTL   time.Duration
 	CookieSecure bool
+	AutoVerify   bool
 }
 
 type CORSConfig struct {
@@ -154,6 +155,7 @@ func Load() *Config {
 		Auth: AuthConfig{
 			SessionTTL:   getEnvDuration("AUTH_SESSION_TTL", 24*time.Hour),
 			CookieSecure: getEnvBool("COOKIE_SECURE", true),
+			AutoVerify:   getEnvBool("AUTH_AUTO_VERIFY", false),
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),

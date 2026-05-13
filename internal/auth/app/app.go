@@ -75,7 +75,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		verificationRepo,
 		notifAdapter,
 		cfg.Auth.SessionTTL,
-	).WithSubscriptionView(subViewRepo)
+	).WithSubscriptionView(subViewRepo).WithAutoVerify(cfg.Auth.AutoVerify)
 
 	storConn, err := grpc.NewClient(cfg.GRPC.StorageAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

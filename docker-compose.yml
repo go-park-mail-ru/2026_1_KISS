@@ -154,6 +154,7 @@ services:
       context: .
       dockerfile: deploy/notification/Dockerfile
     env_file: .env
+    restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9006 || exit 1"]
       interval: 5s
@@ -163,7 +164,7 @@ services:
       GRPC_PORT: "9006"
       METRICS_PORT: "9090"
       MAIL_FROM: "${MAIL_FROM:-noreply@colkiss.ru}"
-      MAIL_SMTP_HOST: "${MAIL_SMTP_HOST}"
+      MAIL_SMTP_HOST: "${MAIL_SMTP_HOST:-}"
       MAIL_SMTP_PORT: "${MAIL_SMTP_PORT:-25}"
     networks:
       - app-network
