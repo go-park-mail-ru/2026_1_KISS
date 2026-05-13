@@ -9,6 +9,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/httputil"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/quota"
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
@@ -24,6 +25,7 @@ func NewFileHandler(storageClient pb.StorageServiceClient, maxFileSize int64) *F
 func (h *FileHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Middleware) {
 	mux.Handle("POST /api/v1/files/upload", authMw(http.HandlerFunc(h.Upload)))
 	mux.Handle("GET /api/v1/files", authMw(http.HandlerFunc(h.List)))
+	mux.Handle("GET /api/v1/files/usage", authMw(http.HandlerFunc(h.Usage)))
 	mux.Handle("GET /api/v1/files/{id}", authMw(http.HandlerFunc(h.Get)))
 	mux.Handle("DELETE /api/v1/files/{id}", authMw(http.HandlerFunc(h.Delete)))
 }
@@ -52,6 +54,19 @@ func (h *FileHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
 		return
+	}
+
+	limit := quota.LimitFor(user.Plan)
+	if !quota.IsUnlimited(user.Plan) {
+		stats, statsErr := h.storageClient.GetUserStorageStats(r.Context(), &pb.GetUserStorageStatsRequest{UserId: user.ID})
+		if statsErr != nil {
+			httputil.MapDomainError(w, grpcutil.GRPCToDomainError(statsErr))
+			return
+		}
+		if stats.GetTotalSizeBytes()+header.Size > limit {
+			httputil.Error(w, http.StatusInsufficientStorage, "storage quota exceeded")
+			return
+		}
 	}
 
 	data, err := io.ReadAll(file)
@@ -154,6 +169,32 @@ func (h *FileHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.JSON(w, http.StatusOK, fileInfoToResponse(resp.GetFile()))
+}
+
+func (h *FileHandler) Usage(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		httputil.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	stats, err := h.storageClient.GetUserStorageStats(r.Context(), &pb.GetUserStorageStatsRequest{UserId: user.ID})
+	if err != nil {
+		httputil.MapDomainError(w, grpcutil.GRPCToDomainError(err))
+		return
+	}
+
+	limit := quota.LimitFor(user.Plan)
+	unlimited := quota.IsUnlimited(user.Plan)
+
+	resp := map[string]any{
+		"used":        stats.GetTotalSizeBytes(),
+		"limit":       limit,
+		"unlimited":   unlimited,
+		"plan":        user.Plan,
+		"files_count": stats.GetTotalFiles(),
+	}
+	httputil.JSON(w, http.StatusOK, resp)
 }
 
 func (h *FileHandler) Delete(w http.ResponseWriter, r *http.Request) {
