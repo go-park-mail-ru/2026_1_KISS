@@ -25,6 +25,7 @@ type AuthUsecase struct {
 	verificationRepo repository.VerificationRepository
 	mailService      mail.Sender
 	subRepo          repository.SubscriptionViewRepository
+	autoVerify       bool
 }
 
 func New(
@@ -45,6 +46,11 @@ func New(
 
 func (uc *AuthUsecase) WithSubscriptionView(subRepo repository.SubscriptionViewRepository) *AuthUsecase {
 	uc.subRepo = subRepo
+	return uc
+}
+
+func (uc *AuthUsecase) WithAutoVerify(enabled bool) *AuthUsecase {
+	uc.autoVerify = enabled
 	return uc
 }
 
@@ -99,7 +105,7 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, email, password s
 		Username:     sanitize.EscapeHTML(username),
 		Email:        email,
 		PasswordHash: string(hash),
-		IsVerified:   false,
+		IsVerified:   uc.autoVerify,
 	}
 
 	id, err := uc.userRepo.Create(ctx, user)
@@ -117,6 +123,11 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, email, password s
 	)
 
 	user.ID = id
+
+	if uc.autoVerify {
+		logger.Info(ctx, "REGISTER SUCCESS (auto-verify)", "user_id", user.ID)
+		return user, nil
+	}
 
 	// 6. verification token
 	token := uuid.New().String()
