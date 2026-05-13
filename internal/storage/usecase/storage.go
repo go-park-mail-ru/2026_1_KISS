@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filevalidate"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/storage/repository"
 )
@@ -52,6 +53,11 @@ func (uc *StorageUsecase) UploadFile(ctx context.Context, ownerID int64, categor
 	}
 	sniffBuf = sniffBuf[:n]
 	mimeType := strings.Split(http.DetectContentType(sniffBuf), ";")[0]
+
+	if err := filevalidate.Validate(category, filename, mimeType); err != nil {
+		logger.Info(ctx, "usecase.storage.UploadFile.reject", "reason", err.Error())
+		return nil, err
+	}
 
 	combined := io.MultiReader(
 		strings.NewReader(string(sniffBuf)),
