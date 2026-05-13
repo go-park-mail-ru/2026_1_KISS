@@ -125,6 +125,11 @@ func (uc *AuthUsecase) Register(ctx context.Context, username, email, password s
 	user.ID = id
 
 	if uc.autoVerify {
+		if err := uc.userRepo.SetVerified(ctx, user.ID, true); err != nil {
+			logger.Error(ctx, "REGISTER auto-verify SetVerified failed", "error", err, "user_id", user.ID)
+			return nil, err
+		}
+		user.IsVerified = true
 		logger.Info(ctx, "REGISTER SUCCESS (auto-verify)", "user_id", user.ID)
 		return user, nil
 	}
