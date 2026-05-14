@@ -135,9 +135,9 @@ func TestFileShareRepo_ListByUserID(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url",
 			"mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at",
-			"downloads_count", "permission_level",
+			"downloads_count", "permission_level", "owner_email",
 		}).AddRow("f-1", int64(1), nil, "files", "doc.txt", "files/uuid.txt", "/uploads/files/uuid.txt",
-			"text/plain", int64(123), now, false, nil, nil, int64(0), "download"))
+			"text/plain", int64(123), now, false, nil, nil, int64(0), "download", "owner@x.com"))
 
 	files, total, err := repo.ListByUserID(context.Background(), 2, 20, 0)
 	if err != nil {

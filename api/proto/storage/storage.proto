@@ -54,6 +54,7 @@ message FileInfo {
   int64 downloads_count = 13;
   string your_permission = 14;
   string storage_key = 15;
+  string owner_email = 16;
 }
 
 message FileResponse {

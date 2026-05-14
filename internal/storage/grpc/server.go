@@ -189,6 +189,7 @@ func fileToProto(f *domain.File) *pb.FileInfo {
 		DownloadsCount: f.DownloadsCount,
 		YourPermission: f.YourPermission,
 		StorageKey:     f.StorageKey,
+		OwnerEmail:     f.OwnerEmail,
 	}
 	if f.NotebookID != nil {
 		info.NotebookId = f.NotebookID
