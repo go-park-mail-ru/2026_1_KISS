@@ -122,7 +122,7 @@ func TestProfileHandler_RegisterRoutes(t *testing.T) {
 }
 
 func TestFileHandler_RegisterRoutes(t *testing.T) {
-	h := NewFileHandler(nil, 0)
+	h := NewFileHandler(nil, nil, 0, "")
 	mux := http.NewServeMux()
 	identity := func(next http.Handler) http.Handler { return next }
 	h.RegisterRoutes(mux, identity)
