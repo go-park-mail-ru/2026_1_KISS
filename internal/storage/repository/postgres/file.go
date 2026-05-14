@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 )
+
+const fileSelectColumns = `id, owner_id, notebook_id, category, filename, storage_key, url, mime_type, size, created_at, is_public, share_token, share_expires_at, downloads_count`
 
 type FileRepo struct {
 	db *sql.DB
@@ -37,12 +40,10 @@ func (r *FileRepo) Create(ctx context.Context, file *domain.File) error {
 func (r *FileRepo) GetByID(ctx context.Context, id string) (*domain.File, error) {
 	logger.Info(ctx, "repo.file.GetByID", "id", id)
 
-	var f domain.File
-	var cat string
-	err := r.db.QueryRowContext(ctx,
-		`SELECT id, owner_id, notebook_id, category, filename, storage_key, url, mime_type, size, created_at
-		 FROM files WHERE id = $1`, id,
-	).Scan(&f.ID, &f.OwnerID, &f.NotebookID, &cat, &f.Filename, &f.StorageKey, &f.URL, &f.MIMEType, &f.Size, &f.CreatedAt)
+	row := r.db.QueryRowContext(ctx,
+		`SELECT `+fileSelectColumns+` FROM files WHERE id = $1`, id,
+	)
+	f, err := scanFile(row)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrNotFound
 	}
@@ -50,8 +51,24 @@ func (r *FileRepo) GetByID(ctx context.Context, id string) (*domain.File, error)
 		logger.Error(ctx, "repo.file.GetByID", "error", err)
 		return nil, fmt.Errorf("get file: %w", err)
 	}
-	f.Category = domain.FileCategory(cat)
-	return &f, nil
+	return f, nil
+}
+
+func (r *FileRepo) GetByShareToken(ctx context.Context, token string) (*domain.File, error) {
+	logger.Info(ctx, "repo.file.GetByShareToken")
+
+	row := r.db.QueryRowContext(ctx,
+		`SELECT `+fileSelectColumns+` FROM files WHERE share_token = $1`, token,
+	)
+	f, err := scanFile(row)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		logger.Error(ctx, "repo.file.GetByShareToken", "error", err)
+		return nil, fmt.Errorf("get file by share token: %w", err)
+	}
+	return f, nil
 }
 
 func (r *FileRepo) ListByOwner(ctx context.Context, ownerID int64, category string, limit, offset int) ([]domain.File, int, error) {
@@ -78,14 +95,12 @@ func (r *FileRepo) ListByOwner(ctx context.Context, ownerID int64, category stri
 	var err error
 	if category != "" {
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT id, owner_id, notebook_id, category, filename, storage_key, url, mime_type, size, created_at
-			 FROM files WHERE owner_id = $1 AND category = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`,
+			`SELECT `+fileSelectColumns+` FROM files WHERE owner_id = $1 AND category = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`,
 			ownerID, category, limit, offset,
 		)
 	} else {
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT id, owner_id, notebook_id, category, filename, storage_key, url, mime_type, size, created_at
-			 FROM files WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+			`SELECT `+fileSelectColumns+` FROM files WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 			ownerID, limit, offset,
 		)
 	}
@@ -214,7 +229,7 @@ func (r *FileRepo) ListAll(ctx context.Context, category string, ownerID int64, 
 	}
 
 	selectQuery := fmt.Sprintf( //nolint:gosec
-		`SELECT id, owner_id, notebook_id, category, filename, storage_key, url, mime_type, size, created_at FROM files%s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`,
+		`SELECT `+fileSelectColumns+` FROM files%s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`,
 		where, idx, idx+1,
 	)
 	selectArgs := append(filterArgs, limit, offset) //nolint:gocritic
@@ -228,15 +243,106 @@ func (r *FileRepo) ListAll(ctx context.Context, category string, ownerID int64, 
 	return scanFiles(rows, total)
 }
 
+func (r *FileRepo) SetPublic(ctx context.Context, fileID string, ownerID int64, isPublic bool, token *string, expiresAt *time.Time) error {
+	logger.Info(ctx, "repo.file.SetPublic", "id", fileID, "is_public", isPublic)
+
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE files SET is_public = $1, share_token = $2, share_expires_at = $3
+		 WHERE id = $4 AND owner_id = $5`,
+		isPublic, token, expiresAt, fileID, ownerID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.file.SetPublic", "error", err)
+		return fmt.Errorf("set public: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+func (r *FileRepo) IncrementDownloads(ctx context.Context, fileID string) error {
+	logger.Info(ctx, "repo.file.IncrementDownloads", "id", fileID)
+
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE files SET downloads_count = downloads_count + 1 WHERE id = $1`,
+		fileID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.file.IncrementDownloads", "error", err)
+		return fmt.Errorf("increment downloads: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+func (r *FileRepo) Rename(ctx context.Context, fileID string, ownerID int64, newName string) error {
+	logger.Info(ctx, "repo.file.Rename", "id", fileID)
+
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE files SET filename = $1 WHERE id = $2 AND owner_id = $3`,
+		newName, fileID, ownerID,
+	)
+	if err != nil {
+		logger.Error(ctx, "repo.file.Rename", "error", err)
+		return fmt.Errorf("rename: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+func scanFile(row *sql.Row) (*domain.File, error) {
+	var f domain.File
+	var cat string
+	var token sql.NullString
+	var expires sql.NullTime
+	if err := row.Scan(
+		&f.ID, &f.OwnerID, &f.NotebookID, &cat, &f.Filename, &f.StorageKey, &f.URL,
+		&f.MIMEType, &f.Size, &f.CreatedAt, &f.IsPublic, &token, &expires, &f.DownloadsCount,
+	); err != nil {
+		return nil, err
+	}
+	f.Category = domain.FileCategory(cat)
+	if token.Valid {
+		v := token.String
+		f.ShareToken = &v
+	}
+	if expires.Valid {
+		v := expires.Time
+		f.ShareExpiresAt = &v
+	}
+	return &f, nil
+}
+
 func scanFiles(rows *sql.Rows, total int) ([]domain.File, int, error) {
 	var files []domain.File
 	for rows.Next() {
 		var f domain.File
 		var cat string
-		if err := rows.Scan(&f.ID, &f.OwnerID, &f.NotebookID, &cat, &f.Filename, &f.StorageKey, &f.URL, &f.MIMEType, &f.Size, &f.CreatedAt); err != nil {
+		var token sql.NullString
+		var expires sql.NullTime
+		if err := rows.Scan(
+			&f.ID, &f.OwnerID, &f.NotebookID, &cat, &f.Filename, &f.StorageKey, &f.URL,
+			&f.MIMEType, &f.Size, &f.CreatedAt, &f.IsPublic, &token, &expires, &f.DownloadsCount,
+		); err != nil {
 			return nil, 0, fmt.Errorf("scan file: %w", err)
 		}
 		f.Category = domain.FileCategory(cat)
+		if token.Valid {
+			v := token.String
+			f.ShareToken = &v
+		}
+		if expires.Valid {
+			v := expires.Time
+			f.ShareExpiresAt = &v
+		}
 		files = append(files, f)
 	}
 	if err := rows.Err(); err != nil {

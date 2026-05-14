@@ -36,6 +36,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	}
 
 	fileRepo := storagepg.NewFileRepository(db)
+	shareRepo := storagepg.NewFileShareRepository(db)
 	fs := filestorage.NewLocalStorage(cfg.Upload.Dir, "/uploads/")
 
 	maxSizes := map[domain.FileCategory]int64{
@@ -45,7 +46,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		domain.FileCategoryGeneral:  cfg.Upload.MaxSize,
 	}
 
-	storageUC := storageusecase.New(fileRepo, fs, maxSizes)
+	storageUC := storageusecase.New(fileRepo, shareRepo, fs, maxSizes)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
