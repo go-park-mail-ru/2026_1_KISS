@@ -112,9 +112,10 @@ func (r *FileShareRepo) ListByUserID(ctx context.Context, userID int64, limit, o
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT f.id, f.owner_id, f.notebook_id, f.category, f.filename, f.storage_key, f.url,
 		        f.mime_type, f.size, f.created_at, f.is_public, f.share_token, f.share_expires_at,
-		        f.downloads_count, fs.permission_level
+		        f.downloads_count, fs.permission_level, COALESCE(u.email, '')
 		 FROM file_shares fs
 		 INNER JOIN files f ON f.id = fs.file_id
+		 LEFT JOIN users u ON u.id = f.owner_id
 		 WHERE fs.user_id = $1
 		 ORDER BY fs.created_at DESC
 		 LIMIT $2 OFFSET $3`,
@@ -132,9 +133,10 @@ func (r *FileShareRepo) ListByUserID(ctx context.Context, userID int64, limit, o
 		var token sql.NullString
 		var expires sql.NullTime
 		var level string
+		var ownerEmail string
 		if err := rows.Scan(
 			&f.ID, &f.OwnerID, &f.NotebookID, &cat, &f.Filename, &f.StorageKey, &f.URL,
-			&f.MIMEType, &f.Size, &f.CreatedAt, &f.IsPublic, &token, &expires, &f.DownloadsCount, &level,
+			&f.MIMEType, &f.Size, &f.CreatedAt, &f.IsPublic, &token, &expires, &f.DownloadsCount, &level, &ownerEmail,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan shared file: %w", err)
 		}
@@ -148,6 +150,7 @@ func (r *FileShareRepo) ListByUserID(ctx context.Context, userID int64, limit, o
 			f.ShareExpiresAt = &v
 		}
 		f.YourPermission = level
+		f.OwnerEmail = ownerEmail
 		files = append(files, f)
 	}
 	return files, total, rows.Err()

@@ -36,6 +36,7 @@ type File struct {
 	ShareExpiresAt *time.Time
 	DownloadsCount int64
 	YourPermission string
+	OwnerEmail     string
 }
 
 type StorageStats struct {
