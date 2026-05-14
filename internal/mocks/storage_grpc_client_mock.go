@@ -102,6 +102,26 @@ func (mr *MockStorageServiceClientMockRecorder) DeleteFileByURL(ctx, in any, opt
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileByURL", reflect.TypeOf((*MockStorageServiceClient)(nil).DeleteFileByURL), varargs...)
 }
 
+// GetDownloadable mocks base method.
+func (m *MockStorageServiceClient) GetDownloadable(ctx context.Context, in *storage.GetDownloadableRequest, opts ...grpc.CallOption) (*storage.GetDownloadableResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetDownloadable", varargs...)
+	ret0, _ := ret[0].(*storage.GetDownloadableResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDownloadable indicates an expected call of GetDownloadable.
+func (mr *MockStorageServiceClientMockRecorder) GetDownloadable(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDownloadable", reflect.TypeOf((*MockStorageServiceClient)(nil).GetDownloadable), varargs...)
+}
+
 // GetFile mocks base method.
 func (m *MockStorageServiceClient) GetFile(ctx context.Context, in *storage.GetFileRequest, opts ...grpc.CallOption) (*storage.FileResponse, error) {
 	m.ctrl.T.Helper()
@@ -120,6 +140,26 @@ func (mr *MockStorageServiceClientMockRecorder) GetFile(ctx, in any, opts ...any
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFile", reflect.TypeOf((*MockStorageServiceClient)(nil).GetFile), varargs...)
+}
+
+// GetSharedFileByToken mocks base method.
+func (m *MockStorageServiceClient) GetSharedFileByToken(ctx context.Context, in *storage.GetSharedFileByTokenRequest, opts ...grpc.CallOption) (*storage.FileResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetSharedFileByToken", varargs...)
+	ret0, _ := ret[0].(*storage.FileResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSharedFileByToken indicates an expected call of GetSharedFileByToken.
+func (mr *MockStorageServiceClientMockRecorder) GetSharedFileByToken(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSharedFileByToken", reflect.TypeOf((*MockStorageServiceClient)(nil).GetSharedFileByToken), varargs...)
 }
 
 // GetStorageStats mocks base method.
@@ -162,6 +202,26 @@ func (mr *MockStorageServiceClientMockRecorder) GetUserStorageStats(ctx, in any,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserStorageStats", reflect.TypeOf((*MockStorageServiceClient)(nil).GetUserStorageStats), varargs...)
 }
 
+// IncrementDownloadCount mocks base method.
+func (m *MockStorageServiceClient) IncrementDownloadCount(ctx context.Context, in *storage.IncrementDownloadCountRequest, opts ...grpc.CallOption) (*storage.IncrementDownloadCountResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IncrementDownloadCount", varargs...)
+	ret0, _ := ret[0].(*storage.IncrementDownloadCountResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IncrementDownloadCount indicates an expected call of IncrementDownloadCount.
+func (mr *MockStorageServiceClientMockRecorder) IncrementDownloadCount(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementDownloadCount", reflect.TypeOf((*MockStorageServiceClient)(nil).IncrementDownloadCount), varargs...)
+}
+
 // ListFiles mocks base method.
 func (m *MockStorageServiceClient) ListFiles(ctx context.Context, in *storage.ListFilesRequest, opts ...grpc.CallOption) (*storage.ListFilesResponse, error) {
 	m.ctrl.T.Helper()
@@ -180,6 +240,126 @@ func (mr *MockStorageServiceClientMockRecorder) ListFiles(ctx, in any, opts ...a
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFiles", reflect.TypeOf((*MockStorageServiceClient)(nil).ListFiles), varargs...)
+}
+
+// ListSharedWithMe mocks base method.
+func (m *MockStorageServiceClient) ListSharedWithMe(ctx context.Context, in *storage.ListSharedWithMeRequest, opts ...grpc.CallOption) (*storage.ListFilesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListSharedWithMe", varargs...)
+	ret0, _ := ret[0].(*storage.ListFilesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSharedWithMe indicates an expected call of ListSharedWithMe.
+func (mr *MockStorageServiceClientMockRecorder) ListSharedWithMe(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSharedWithMe", reflect.TypeOf((*MockStorageServiceClient)(nil).ListSharedWithMe), varargs...)
+}
+
+// ListShares mocks base method.
+func (m *MockStorageServiceClient) ListShares(ctx context.Context, in *storage.ListSharesRequest, opts ...grpc.CallOption) (*storage.ListSharesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListShares", varargs...)
+	ret0, _ := ret[0].(*storage.ListSharesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListShares indicates an expected call of ListShares.
+func (mr *MockStorageServiceClientMockRecorder) ListShares(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListShares", reflect.TypeOf((*MockStorageServiceClient)(nil).ListShares), varargs...)
+}
+
+// RenameFile mocks base method.
+func (m *MockStorageServiceClient) RenameFile(ctx context.Context, in *storage.RenameFileRequest, opts ...grpc.CallOption) (*storage.FileResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RenameFile", varargs...)
+	ret0, _ := ret[0].(*storage.FileResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RenameFile indicates an expected call of RenameFile.
+func (mr *MockStorageServiceClientMockRecorder) RenameFile(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameFile", reflect.TypeOf((*MockStorageServiceClient)(nil).RenameFile), varargs...)
+}
+
+// RevokeShare mocks base method.
+func (m *MockStorageServiceClient) RevokeShare(ctx context.Context, in *storage.RevokeShareRequest, opts ...grpc.CallOption) (*storage.RevokeShareResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RevokeShare", varargs...)
+	ret0, _ := ret[0].(*storage.RevokeShareResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokeShare indicates an expected call of RevokeShare.
+func (mr *MockStorageServiceClientMockRecorder) RevokeShare(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeShare", reflect.TypeOf((*MockStorageServiceClient)(nil).RevokeShare), varargs...)
+}
+
+// SetFilePublic mocks base method.
+func (m *MockStorageServiceClient) SetFilePublic(ctx context.Context, in *storage.SetFilePublicRequest, opts ...grpc.CallOption) (*storage.FileResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SetFilePublic", varargs...)
+	ret0, _ := ret[0].(*storage.FileResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetFilePublic indicates an expected call of SetFilePublic.
+func (mr *MockStorageServiceClientMockRecorder) SetFilePublic(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFilePublic", reflect.TypeOf((*MockStorageServiceClient)(nil).SetFilePublic), varargs...)
+}
+
+// ShareFile mocks base method.
+func (m *MockStorageServiceClient) ShareFile(ctx context.Context, in *storage.ShareFileRequest, opts ...grpc.CallOption) (*storage.ShareFileResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ShareFile", varargs...)
+	ret0, _ := ret[0].(*storage.ShareFileResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ShareFile indicates an expected call of ShareFile.
+func (mr *MockStorageServiceClientMockRecorder) ShareFile(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShareFile", reflect.TypeOf((*MockStorageServiceClient)(nil).ShareFile), varargs...)
 }
 
 // UploadFile mocks base method.
