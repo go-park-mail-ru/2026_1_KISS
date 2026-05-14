@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -176,17 +177,127 @@ func fileToProto(f *domain.File) *pb.FileInfo {
 		return nil
 	}
 	info := &pb.FileInfo{
-		Id:        f.ID,
-		OwnerId:   f.OwnerID,
-		Category:  string(f.Category),
-		Filename:  f.Filename,
-		Url:       f.URL,
-		MimeType:  f.MIMEType,
-		Size:      f.Size,
-		CreatedAt: f.CreatedAt.Unix(),
+		Id:             f.ID,
+		OwnerId:        f.OwnerID,
+		Category:       string(f.Category),
+		Filename:       f.Filename,
+		Url:            f.URL,
+		MimeType:       f.MIMEType,
+		Size:           f.Size,
+		CreatedAt:      f.CreatedAt.Unix(),
+		IsPublic:       f.IsPublic,
+		DownloadsCount: f.DownloadsCount,
+		YourPermission: f.YourPermission,
+		StorageKey:     f.StorageKey,
 	}
 	if f.NotebookID != nil {
 		info.NotebookId = f.NotebookID
 	}
+	if f.ShareToken != nil {
+		info.ShareToken = *f.ShareToken
+	}
+	if f.ShareExpiresAt != nil {
+		info.ShareExpiresAt = f.ShareExpiresAt.Unix()
+	}
 	return info
+}
+
+func shareToProto(s *domain.FileShare) *pb.FileShareInfo {
+	if s == nil {
+		return nil
+	}
+	return &pb.FileShareInfo{
+		FileId:          s.FileID,
+		UserId:          s.UserID,
+		Email:           s.Email,
+		PermissionLevel: s.Level,
+		CreatedAt:       s.CreatedAt.Unix(),
+	}
+}
+
+func (s *Server) ShareFile(ctx context.Context, req *pb.ShareFileRequest) (*pb.ShareFileResponse, error) {
+	share, err := s.uc.ShareFile(ctx, req.GetRequesterId(), req.GetFileId(), req.GetTargetUserId(), req.GetPermissionLevel())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.ShareFileResponse{Share: shareToProto(share)}, nil
+}
+
+func (s *Server) RevokeShare(ctx context.Context, req *pb.RevokeShareRequest) (*pb.RevokeShareResponse, error) {
+	if err := s.uc.RevokeShare(ctx, req.GetRequesterId(), req.GetFileId(), req.GetTargetUserId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.RevokeShareResponse{}, nil
+}
+
+func (s *Server) ListShares(ctx context.Context, req *pb.ListSharesRequest) (*pb.ListSharesResponse, error) {
+	shares, err := s.uc.ListShares(ctx, req.GetRequesterId(), req.GetFileId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	pbShares := make([]*pb.FileShareInfo, len(shares))
+	for i := range shares {
+		pbShares[i] = shareToProto(&shares[i])
+	}
+	return &pb.ListSharesResponse{Shares: pbShares}, nil
+}
+
+func (s *Server) ListSharedWithMe(ctx context.Context, req *pb.ListSharedWithMeRequest) (*pb.ListFilesResponse, error) {
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = defaultPageSize
+	}
+	files, total, err := s.uc.ListSharedWithMe(ctx, req.GetUserId(), limit, int(req.GetOffset()))
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	pbFiles := make([]*pb.FileInfo, len(files))
+	for i := range files {
+		pbFiles[i] = fileToProto(&files[i])
+	}
+	return &pb.ListFilesResponse{Files: pbFiles, Total: int32(total)}, nil //nolint:gosec
+}
+
+func (s *Server) SetFilePublic(ctx context.Context, req *pb.SetFilePublicRequest) (*pb.FileResponse, error) {
+	var expiresAt *time.Time
+	if req.GetExpiresAt() > 0 {
+		t := time.Unix(req.GetExpiresAt(), 0)
+		expiresAt = &t
+	}
+	file, err := s.uc.SetFilePublic(ctx, req.GetRequesterId(), req.GetFileId(), req.GetIsPublic(), expiresAt)
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.FileResponse{File: fileToProto(file)}, nil
+}
+
+func (s *Server) GetSharedFileByToken(ctx context.Context, req *pb.GetSharedFileByTokenRequest) (*pb.FileResponse, error) {
+	file, err := s.uc.GetSharedFileByToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.FileResponse{File: fileToProto(file)}, nil
+}
+
+func (s *Server) IncrementDownloadCount(ctx context.Context, req *pb.IncrementDownloadCountRequest) (*pb.IncrementDownloadCountResponse, error) {
+	if err := s.uc.IncrementDownloadCount(ctx, req.GetFileId()); err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.IncrementDownloadCountResponse{}, nil
+}
+
+func (s *Server) RenameFile(ctx context.Context, req *pb.RenameFileRequest) (*pb.FileResponse, error) {
+	file, err := s.uc.RenameFile(ctx, req.GetRequesterId(), req.GetFileId(), req.GetFilename())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.FileResponse{File: fileToProto(file)}, nil
+}
+
+func (s *Server) GetDownloadable(ctx context.Context, req *pb.GetDownloadableRequest) (*pb.GetDownloadableResponse, error) {
+	file, allowed, err := s.uc.GetDownloadable(ctx, req.GetFileId(), req.GetUserId())
+	if err != nil {
+		return nil, grpcutil.DomainToGRPCError(err)
+	}
+	return &pb.GetDownloadableResponse{File: fileToProto(file), Allowed: allowed}, nil
 }
