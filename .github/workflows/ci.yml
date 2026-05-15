@@ -52,7 +52,8 @@ jobs:
 
       - name: Check coverage
         run: |
-          go tool cover -func=coverage.out
-          TOTAL=$(go tool cover -func=coverage.out | grep '^total:' | awk '{print $3}' | tr -d '%')
+          grep -v '_easyjson.go:' coverage.out > coverage_filtered.out || true
+          go tool cover -func=coverage_filtered.out
+          TOTAL=$(go tool cover -func=coverage_filtered.out | grep '^total:' | awk '{print $3}' | tr -d '%')
           echo "Total coverage: ${TOTAL}%"
           awk "BEGIN { if (${TOTAL}+0 < 70.0) { print \"FAIL: coverage ${TOTAL}% is below 70% threshold\"; exit 1 } }"

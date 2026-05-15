@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/mailru/easyjson"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 )
@@ -54,7 +55,7 @@ func (c *Client) authHeader() string {
 }
 
 func (c *Client) CreatePayment(ctx context.Context, idempotenceKey string, body CreatePaymentRequest) (*Payment, error) {
-	buf, err := json.Marshal(body)
+	buf, err := easyjson.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
@@ -83,7 +84,7 @@ func (c *Client) CreatePayment(ctx context.Context, idempotenceKey string, body 
 	}
 
 	var payment Payment
-	if err := json.Unmarshal(respBody, &payment); err != nil {
+	if err := easyjson.Unmarshal(respBody, &payment); err != nil {
 		return nil, fmt.Errorf("unmarshal payment: %w", err)
 	}
 	return &payment, nil
@@ -115,7 +116,7 @@ func (c *Client) GetPayment(ctx context.Context, paymentID string) (*Payment, er
 	}
 
 	var payment Payment
-	if err := json.Unmarshal(respBody, &payment); err != nil {
+	if err := easyjson.Unmarshal(respBody, &payment); err != nil {
 		return nil, fmt.Errorf("unmarshal payment: %w", err)
 	}
 	return &payment, nil

@@ -2,9 +2,9 @@
 package notebook_session
 
 import (
+	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,9 +15,17 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mailru/easyjson"
+
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/utils"
 )
+
+type streamChunk struct {
+	Type     string `json:"type"`
+	Data     string `json:"data"`
+	MimeType string `json:"mime_type,omitempty"`
+}
 
 type NotebookSession interface {
 	GetSessionID() string
@@ -166,7 +174,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 		Timeout: s.execTimeout.Seconds(),
 	}
 
-	jsonData, err := json.Marshal(req)
+	jsonData, err := easyjson.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -201,7 +209,7 @@ func (s *notebookSession) ExecuteBlock(ctx context.Context, block domain.Block) 
 	}
 
 	var execResp domain.ExecuteResponse
-	if err := json.Unmarshal(body, &execResp); err != nil {
+	if err := easyjson.Unmarshal(body, &execResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
@@ -235,7 +243,7 @@ func (s *notebookSession) ExecuteBlockStreaming(ctx context.Context, block domai
 		Timeout: s.execTimeout.Seconds(),
 	}
 
-	jsonData, err := json.Marshal(req)
+	jsonData, err := easyjson.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -269,15 +277,11 @@ func (s *notebookSession) ExecuteBlockStreaming(ctx context.Context, block domai
 	var resultText string
 	var outputs []domain.OutputItem
 
-	decoder := json.NewDecoder(resp.Body)
-	for {
-		var chunk struct {
-			Type     string `json:"type"`
-			Data     string `json:"data"`
-			MimeType string `json:"mime_type,omitempty"`
-		}
-		if err := decoder.Decode(&chunk); err != nil {
-			break // EOF or read error
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		var chunk streamChunk
+		if err := easyjson.Unmarshal(scanner.Bytes(), &chunk); err != nil {
+			break
 		}
 		switch chunk.Type {
 		case "stdout":

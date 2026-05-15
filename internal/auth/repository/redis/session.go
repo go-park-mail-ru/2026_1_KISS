@@ -2,11 +2,11 @@ package redis
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/mailru/easyjson"
 	redisv9 "github.com/redis/go-redis/v9"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
@@ -39,7 +39,7 @@ func (r *SessionRepo) Create(ctx context.Context, session *domain.Session) error
 		session.CreatedAt = time.Now().UTC()
 	}
 
-	payload, err := json.Marshal(session)
+	payload, err := easyjson.Marshal(session)
 	if err != nil {
 		logger.Error(ctx, "repo.redis.sessions.Create", "error", err, "duration", time.Since(start), "session_id", session.ID)
 		return fmt.Errorf("marshal session: %w", err)
@@ -72,7 +72,7 @@ func (r *SessionRepo) GetByID(ctx context.Context, id string) (*domain.Session, 
 	}
 
 	s := &domain.Session{}
-	if err := json.Unmarshal([]byte(value), s); err != nil {
+	if err := easyjson.Unmarshal([]byte(value), s); err != nil {
 		logger.Error(ctx, "repo.redis.sessions.GetByID", "error", err, "duration", time.Since(start), "session_id", id)
 		return nil, fmt.Errorf("unmarshal session: %w", err)
 	}

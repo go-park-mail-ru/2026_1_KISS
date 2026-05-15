@@ -26,6 +26,50 @@ func (h *StatsHandler) RegisterRoutes(mux *http.ServeMux, authMw middleware.Midd
 	mux.Handle("GET /api/v1/users/me/stats", authMw(http.HandlerFunc(h.GetMyStats)))
 }
 
+type statsResponse struct {
+	Quota     quotaStats    `json:"quota"`
+	Activity  activityStats `json:"activity"`
+	Resources resourceStats `json:"resources"`
+	Storage   storageStats  `json:"storage"`
+}
+
+type quotaStats struct {
+	Plan             string  `json:"plan"`
+	TotalTimeSeconds int64   `json:"total_time_seconds"`
+	TimeLimitSeconds int64   `json:"time_limit_seconds"`
+	UsagePercent     float64 `json:"usage_percent"`
+}
+
+type activityStats struct {
+	LastActiveAt  string    `json:"last_active_at"`
+	CreatedAt     string    `json:"created_at"`
+	DailyActivity []dauItem `json:"daily_activity"`
+}
+
+type dauItem struct {
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
+}
+
+type resourceStats struct {
+	NotebookCount   int64      `json:"notebook_count"`
+	BlockCount      int64      `json:"block_count"`
+	TotalExecutions int64      `json:"total_executions"`
+	DailyExecutions []execItem `json:"daily_executions"`
+}
+
+type execItem struct {
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
+}
+
+type storageStats struct {
+	TotalFiles      int64            `json:"total_files"`
+	TotalSizeBytes  int64            `json:"total_size_bytes"`
+	FilesByCategory map[string]int64 `json:"files_by_category"`
+	SizeByCategory  map[string]int64 `json:"size_by_category"`
+}
+
 func (h *StatsHandler) GetMyStats(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if user == nil {
@@ -63,82 +107,72 @@ func (h *StatsHandler) GetMyStats(w http.ResponseWriter, r *http.Request) {
 	}()
 	wg.Wait()
 
-	quota := map[string]any{
-		"plan":               "",
-		"total_time_seconds": int64(0),
-		"time_limit_seconds": int64(0),
-		"usage_percent":      0.0,
+	resp := statsResponse{
+		Quota: quotaStats{
+			Plan:             "",
+			TotalTimeSeconds: 0,
+			TimeLimitSeconds: 0,
+			UsagePercent:     0,
+		},
+		Activity: activityStats{
+			LastActiveAt:  "",
+			CreatedAt:     "",
+			DailyActivity: []dauItem{},
+		},
+		Resources: resourceStats{
+			NotebookCount:   0,
+			BlockCount:      0,
+			TotalExecutions: 0,
+			DailyExecutions: []execItem{},
+		},
+		Storage: storageStats{
+			TotalFiles:      0,
+			TotalSizeBytes:  0,
+			FilesByCategory: map[string]int64{},
+			SizeByCategory:  map[string]int64{},
+		},
 	}
-	activity := map[string]any{
-		"last_active_at": "",
-		"created_at":     "",
-		"daily_activity": []any{},
-	}
+
 	if authResp != nil {
 		usagePercent := 0.0
 		if authResp.GetTimeLimitSeconds() > 0 {
 			usagePercent = float64(authResp.GetTotalTimeSeconds()) / float64(authResp.GetTimeLimitSeconds()) * 100.0
 		}
-		quota["plan"] = authResp.GetPlan()
-		quota["total_time_seconds"] = authResp.GetTotalTimeSeconds()
-		quota["time_limit_seconds"] = authResp.GetTimeLimitSeconds()
-		quota["usage_percent"] = usagePercent
+		resp.Quota.Plan = authResp.GetPlan()
+		resp.Quota.TotalTimeSeconds = authResp.GetTotalTimeSeconds()
+		resp.Quota.TimeLimitSeconds = authResp.GetTimeLimitSeconds()
+		resp.Quota.UsagePercent = usagePercent
 
 		if authResp.GetLastActiveAt() > 0 {
-			activity["last_active_at"] = time.Unix(authResp.GetLastActiveAt(), 0).Format(time.RFC3339)
+			resp.Activity.LastActiveAt = time.Unix(authResp.GetLastActiveAt(), 0).Format(time.RFC3339)
 		}
-		activity["created_at"] = time.Unix(authResp.GetCreatedAt(), 0).Format(time.RFC3339)
+		resp.Activity.CreatedAt = time.Unix(authResp.GetCreatedAt(), 0).Format(time.RFC3339)
 
-		type dauItem struct {
-			Date  string `json:"date"`
-			Count int64  `json:"count"`
-		}
 		dau := make([]dauItem, len(authResp.GetDailyActivity()))
 		for i, d := range authResp.GetDailyActivity() {
 			dau[i] = dauItem{Date: d.GetDate(), Count: d.GetCount()}
 		}
-		activity["daily_activity"] = dau
+		resp.Activity.DailyActivity = dau
 	}
 
-	resources := map[string]any{
-		"notebook_count":   int64(0),
-		"block_count":      int64(0),
-		"total_executions": int64(0),
-		"daily_executions": []any{},
-	}
 	if nbResp != nil {
-		resources["notebook_count"] = nbResp.GetNotebookCount()
-		resources["block_count"] = nbResp.GetBlockCount()
-		resources["total_executions"] = nbResp.GetTotalExecutions()
+		resp.Resources.NotebookCount = nbResp.GetNotebookCount()
+		resp.Resources.BlockCount = nbResp.GetBlockCount()
+		resp.Resources.TotalExecutions = nbResp.GetTotalExecutions()
 
-		type execDay struct {
-			Date  string `json:"date"`
-			Count int64  `json:"count"`
-		}
-		de := make([]execDay, len(nbResp.GetDailyExecutions()))
+		de := make([]execItem, len(nbResp.GetDailyExecutions()))
 		for i, d := range nbResp.GetDailyExecutions() {
-			de[i] = execDay{Date: d.GetDate(), Count: d.GetCount()}
+			de[i] = execItem{Date: d.GetDate(), Count: d.GetCount()}
 		}
-		resources["daily_executions"] = de
+		resp.Resources.DailyExecutions = de
 	}
 
-	storage := map[string]any{
-		"total_files":       int64(0),
-		"total_size_bytes":  int64(0),
-		"files_by_category": map[string]int64{},
-		"size_by_category":  map[string]int64{},
-	}
 	if storResp != nil {
-		storage["total_files"] = storResp.GetTotalFiles()
-		storage["total_size_bytes"] = storResp.GetTotalSizeBytes()
-		storage["files_by_category"] = storResp.GetFilesByCategory()
-		storage["size_by_category"] = storResp.GetSizeByCategory()
+		resp.Storage.TotalFiles = storResp.GetTotalFiles()
+		resp.Storage.TotalSizeBytes = storResp.GetTotalSizeBytes()
+		resp.Storage.FilesByCategory = storResp.GetFilesByCategory()
+		resp.Storage.SizeByCategory = storResp.GetSizeByCategory()
 	}
 
-	httputil.JSON(w, http.StatusOK, map[string]any{
-		"quota":     quota,
-		"activity":  activity,
-		"resources": resources,
-		"storage":   storage,
-	})
+	httputil.JSON(w, http.StatusOK, resp)
 }

@@ -19,6 +19,20 @@ const (
 	googleScope              = "openid email profile"
 )
 
+type googleTokenResp struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+}
+
+type googleUserInfoResp struct {
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	Picture       string `json:"picture"`
+}
+
 type GoogleProvider struct {
 	clientID     string
 	clientSecret string
@@ -86,10 +100,7 @@ func (p *GoogleProvider) Exchange(ctx context.Context, code, codeVerifier, _ str
 		return nil, fmt.Errorf("google token exchange: status %d: %s", tokenResp.StatusCode, string(body))
 	}
 
-	var token struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-	}
+	var token googleTokenResp
 	if err := json.NewDecoder(tokenResp.Body).Decode(&token); err != nil {
 		return nil, fmt.Errorf("google decode token: %w", err)
 	}
@@ -114,14 +125,7 @@ func (p *GoogleProvider) Exchange(ctx context.Context, code, codeVerifier, _ str
 		return nil, fmt.Errorf("google userinfo: status %d: %s", infoResp.StatusCode, string(body))
 	}
 
-	var info struct {
-		Sub           string `json:"sub"`
-		Email         string `json:"email"`
-		EmailVerified bool   `json:"email_verified"`
-		Name          string `json:"name"`
-		GivenName     string `json:"given_name"`
-		Picture       string `json:"picture"`
-	}
+	var info googleUserInfoResp
 	if err := json.NewDecoder(infoResp.Body).Decode(&info); err != nil {
 		return nil, fmt.Errorf("google decode userinfo: %w", err)
 	}

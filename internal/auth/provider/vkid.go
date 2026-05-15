@@ -20,6 +20,23 @@ const (
 	vkidScope              = "email"
 )
 
+type vkidTokenResp struct {
+	AccessToken string `json:"access_token"`
+	UserID      int64  `json:"user_id"`
+}
+
+type vkidUserResp struct {
+	UserID    string `json:"user_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Avatar    string `json:"avatar"`
+}
+
+type vkidUserInfoResp struct {
+	User vkidUserResp `json:"user"`
+}
+
 type VKIDProvider struct {
 	clientID     string
 	clientSecret string
@@ -92,10 +109,7 @@ func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier, deviceI
 	if err != nil {
 		return nil, fmt.Errorf("vkid read token body: %w", err)
 	}
-	var token struct {
-		AccessToken string `json:"access_token"`
-		UserID      int64  `json:"user_id"`
-	}
+	var token vkidTokenResp
 	if err := json.Unmarshal(tokenBody, &token); err != nil {
 		return nil, fmt.Errorf("vkid decode token: %w (body=%s)", err, string(tokenBody))
 	}
@@ -127,15 +141,7 @@ func (p *VKIDProvider) Exchange(ctx context.Context, code, codeVerifier, deviceI
 	if err != nil {
 		return nil, fmt.Errorf("vkid read userinfo body: %w", err)
 	}
-	var info struct {
-		User struct {
-			UserID    string `json:"user_id"`
-			FirstName string `json:"first_name"`
-			LastName  string `json:"last_name"`
-			Email     string `json:"email"`
-			Avatar    string `json:"avatar"`
-		} `json:"user"`
-	}
+	var info vkidUserInfoResp
 	if err := json.Unmarshal(infoBody, &info); err != nil {
 		return nil, fmt.Errorf("vkid decode userinfo: %w (body=%s)", err, string(infoBody))
 	}

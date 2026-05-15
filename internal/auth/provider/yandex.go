@@ -19,6 +19,22 @@ const (
 	yandexScope              = "login:email login:info"
 )
 
+type yandexTokenResp struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+}
+
+type yandexUserInfoResp struct {
+	ID              string `json:"id"`
+	Login           string `json:"login"`
+	DefaultEmail    string `json:"default_email"`
+	DisplayName     string `json:"display_name"`
+	RealName        string `json:"real_name"`
+	FirstName       string `json:"first_name"`
+	DefaultAvatarID string `json:"default_avatar_id"`
+	IsAvatarEmpty   bool   `json:"is_avatar_empty"`
+}
+
 type YandexProvider struct {
 	clientID     string
 	clientSecret string
@@ -84,10 +100,7 @@ func (p *YandexProvider) Exchange(ctx context.Context, code, codeVerifier, _ str
 		return nil, fmt.Errorf("yandex token exchange: status %d: %s", tokenResp.StatusCode, string(body))
 	}
 
-	var token struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-	}
+	var token yandexTokenResp
 	if err := json.NewDecoder(tokenResp.Body).Decode(&token); err != nil {
 		return nil, fmt.Errorf("yandex decode token: %w", err)
 	}
@@ -113,16 +126,7 @@ func (p *YandexProvider) Exchange(ctx context.Context, code, codeVerifier, _ str
 		return nil, fmt.Errorf("yandex userinfo: status %d: %s", infoResp.StatusCode, string(body))
 	}
 
-	var info struct {
-		ID              string `json:"id"`
-		Login           string `json:"login"`
-		DefaultEmail    string `json:"default_email"`
-		DisplayName     string `json:"display_name"`
-		RealName        string `json:"real_name"`
-		FirstName       string `json:"first_name"`
-		DefaultAvatarID string `json:"default_avatar_id"`
-		IsAvatarEmpty   bool   `json:"is_avatar_empty"`
-	}
+	var info yandexUserInfoResp
 	if err := json.NewDecoder(infoResp.Body).Decode(&info); err != nil {
 		return nil, fmt.Errorf("yandex decode userinfo: %w", err)
 	}

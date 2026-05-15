@@ -18,9 +18,14 @@ func TestJSON(t *testing.T) {
 	if ct := w.Header().Get("Content-Type"); ct != "application/json" {
 		t.Errorf("expected Content-Type application/json, got %s", ct)
 	}
-	var resp response
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+	var wrapped struct {
+		Data map[string]string `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &wrapped); err != nil {
 		t.Fatalf("failed to parse response: %v", err)
+	}
+	if wrapped.Data["key"] != "value" {
+		t.Errorf("expected data.key='value', got %q", wrapped.Data["key"])
 	}
 }
 
@@ -34,7 +39,7 @@ func TestError(t *testing.T) {
 	if ct := w.Header().Get("Content-Type"); ct != "application/json" {
 		t.Errorf("expected Content-Type application/json, got %s", ct)
 	}
-	var resp response
+	var resp errorResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("failed to parse response: %v", err)
 	}

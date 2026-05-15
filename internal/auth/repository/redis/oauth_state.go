@@ -2,11 +2,11 @@ package redis
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/mailru/easyjson"
 	redisv9 "github.com/redis/go-redis/v9"
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
@@ -40,7 +40,7 @@ func (r *OAuthStateRepo) Save(ctx context.Context, st *domain.OAuthState, ttl ti
 		st.CreatedAt = time.Now().UTC()
 	}
 
-	payload, err := json.Marshal(st)
+	payload, err := easyjson.Marshal(st)
 	if err != nil {
 		logger.Error(ctx, "repo.redis.oauth_state.Save", "error", err, "duration", time.Since(start))
 		return fmt.Errorf("marshal oauth state: %w", err)
@@ -77,7 +77,7 @@ func (r *OAuthStateRepo) Consume(ctx context.Context, state string) (*domain.OAu
 	}
 
 	st := &domain.OAuthState{}
-	if err := json.Unmarshal([]byte(value), st); err != nil {
+	if err := easyjson.Unmarshal([]byte(value), st); err != nil {
 		logger.Error(ctx, "repo.redis.oauth_state.Consume", "error", err, "duration", time.Since(start))
 		return nil, fmt.Errorf("unmarshal oauth state: %w", err)
 	}
