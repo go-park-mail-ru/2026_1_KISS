@@ -86,15 +86,15 @@ jobs:
 
             git reset --hard origin/master
 
-            docker builder prune -f --filter "until=168h"
-            docker image prune -af --filter "until=168h"
-
             if echo "$CHANGED" | grep -q '^build/'; then
               echo "Python runner image changed, rebuilding..."
               cd build
               docker build -t kiss-python-runner -f py-runner/Dockerfile .
               cd ..
             fi
+
+            docker builder prune -f --filter "until=168h"
+            docker image prune -f --filter "until=168h"
 
             if echo "$CHANGED" | grep -qE '(docker-compose\.yml|Dockerfile)'; then
               echo "Infrastructure changed, full rebuild..."

@@ -13,15 +13,21 @@ import (
 )
 
 func newTestUsecase(ctrl *gomock.Controller) (*StorageUsecase, *mocks.MockFileRepository, *mocks.MockFileStorage) {
+	uc, repo, fs, _ := newTestUsecaseWithShare(ctrl)
+	return uc, repo, fs
+}
+
+func newTestUsecaseWithShare(ctrl *gomock.Controller) (*StorageUsecase, *mocks.MockFileRepository, *mocks.MockFileStorage, *mocks.MockFileShareRepository) {
 	repo := mocks.NewMockFileRepository(ctrl)
+	shareRepo := mocks.NewMockFileShareRepository(ctrl)
 	fs := mocks.NewMockFileStorage(ctrl)
 	maxSizes := map[domain.FileCategory]int64{
 		domain.FileCategoryGeneral: 10 * 1024 * 1024,
 		domain.FileCategoryDataset: 50 * 1024 * 1024,
 		domain.FileCategoryAvatar:  2 * 1024 * 1024,
 	}
-	uc := New(repo, fs, maxSizes)
-	return uc, repo, fs
+	uc := New(repo, shareRepo, fs, maxSizes)
+	return uc, repo, fs, shareRepo
 }
 
 func TestUploadFile_Success(t *testing.T) {
@@ -70,12 +76,13 @@ func TestUploadFile_FileTooLarge(t *testing.T) {
 
 func TestGetFile_Forbidden(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	uc, repo, _ := newTestUsecase(ctrl)
+	uc, repo, _, shareRepo := newTestUsecaseWithShare(ctrl)
 
 	repo.EXPECT().GetByID(gomock.Any(), "file-1").Return(&domain.File{
 		ID:      "file-1",
 		OwnerID: 99,
 	}, nil)
+	shareRepo.EXPECT().GetPermission(gomock.Any(), "file-1", int64(1)).Return(nil, domain.ErrNotFound)
 
 	_, err := uc.GetFile(context.Background(), "file-1", 1)
 	if err != domain.ErrForbidden {

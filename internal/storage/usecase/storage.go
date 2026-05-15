@@ -12,19 +12,22 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filestorage"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/filevalidate"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/storage/repository"
 )
 
 type StorageUsecase struct {
 	fileRepo    repository.FileRepository
+	shareRepo   repository.FileShareRepository
 	fileStorage filestorage.FileStorage
 	maxSizes    map[domain.FileCategory]int64
 }
 
-func New(fileRepo repository.FileRepository, fs filestorage.FileStorage, maxSizes map[domain.FileCategory]int64) *StorageUsecase {
+func New(fileRepo repository.FileRepository, shareRepo repository.FileShareRepository, fs filestorage.FileStorage, maxSizes map[domain.FileCategory]int64) *StorageUsecase {
 	return &StorageUsecase{
 		fileRepo:    fileRepo,
+		shareRepo:   shareRepo,
 		fileStorage: fs,
 		maxSizes:    maxSizes,
 	}
@@ -52,6 +55,11 @@ func (uc *StorageUsecase) UploadFile(ctx context.Context, ownerID int64, categor
 	}
 	sniffBuf = sniffBuf[:n]
 	mimeType := strings.Split(http.DetectContentType(sniffBuf), ";")[0]
+
+	if err := filevalidate.Validate(category, filename, mimeType); err != nil {
+		logger.Info(ctx, "usecase.storage.UploadFile.reject", "reason", err.Error())
+		return nil, err
+	}
 
 	combined := io.MultiReader(
 		strings.NewReader(string(sniffBuf)),
@@ -98,9 +106,11 @@ func (uc *StorageUsecase) GetFile(ctx context.Context, fileID string, userID int
 		return nil, err
 	}
 
-	if file.OwnerID != userID {
+	perm := uc.computePermission(ctx, file, userID)
+	if perm == "" {
 		return nil, domain.ErrForbidden
 	}
+	file.YourPermission = perm
 	return file, nil
 }
 

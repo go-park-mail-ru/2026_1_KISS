@@ -76,8 +76,8 @@ func TestFileRepo_GetByID_Success(t *testing.T) {
 	mock.ExpectQuery(`SELECT .+ FROM files WHERE id`).
 		WithArgs("file-1").
 		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at"},
-		).AddRow("file-1", int64(1), nil, "datasets", "data.csv", "datasets/uuid.csv", "/uploads/datasets/uuid.csv", "text/csv", int64(500), now))
+			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
+		).AddRow("file-1", int64(1), nil, "datasets", "data.csv", "datasets/uuid.csv", "/uploads/datasets/uuid.csv", "text/csv", int64(500), now, false, nil, nil, int64(0)))
 
 	file, err := repo.GetByID(context.Background(), "file-1")
 	if err != nil {
@@ -146,8 +146,8 @@ func TestFileRepo_ListByOwner_WithCategory(t *testing.T) {
 	mock.ExpectQuery(`SELECT .+ FROM files WHERE owner_id`).
 		WithArgs(int64(1), "datasets", 20, 0).
 		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at"},
-		).AddRow("f-1", int64(1), nil, "datasets", "data.csv", "datasets/uuid.csv", "/uploads/datasets/uuid.csv", "text/csv", int64(500), now))
+			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
+		).AddRow("f-1", int64(1), nil, "datasets", "data.csv", "datasets/uuid.csv", "/uploads/datasets/uuid.csv", "text/csv", int64(500), now, false, nil, nil, int64(0)))
 
 	files, total, err := repo.ListByOwner(context.Background(), 1, "datasets", 20, 0)
 	if err != nil {
@@ -180,7 +180,7 @@ func TestFileRepo_ListByOwner_AllCategories(t *testing.T) {
 	mock.ExpectQuery(`SELECT .+ FROM files WHERE owner_id`).
 		WithArgs(int64(1), 20, 0).
 		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at"},
+			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
 		))
 
 	files, total, err := repo.ListByOwner(context.Background(), 1, "", 20, 0)
@@ -212,10 +212,10 @@ func TestFileRepo_ListAll(t *testing.T) {
 	mock.ExpectQuery(`SELECT .+ FROM files WHERE`).
 		WithArgs("datasets", int64(1), 10, 0).
 		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at"},
+			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
 		).
-			AddRow("f-1", int64(1), nil, "datasets", "a.csv", "datasets/a.csv", "/uploads/datasets/a.csv", "text/csv", int64(100), now).
-			AddRow("f-2", int64(1), nil, "datasets", "b.csv", "datasets/b.csv", "/uploads/datasets/b.csv", "text/csv", int64(200), now))
+			AddRow("f-1", int64(1), nil, "datasets", "a.csv", "datasets/a.csv", "/uploads/datasets/a.csv", "text/csv", int64(100), now, false, nil, nil, int64(0)).
+			AddRow("f-2", int64(1), nil, "datasets", "b.csv", "datasets/b.csv", "/uploads/datasets/b.csv", "text/csv", int64(200), now, false, nil, nil, int64(0)))
 
 	files, total, err := repo.ListAll(context.Background(), "datasets", 1, 10, 0)
 	if err != nil {
@@ -244,7 +244,7 @@ func TestFileRepo_ListAll_NoFilters(t *testing.T) {
 	mock.ExpectQuery(`SELECT .+ FROM files WHERE`).
 		WithArgs(10, 0).
 		WillReturnRows(sqlmock.NewRows(
-			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at"},
+			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
 		))
 
 	files, total, err := repo.ListAll(context.Background(), "", 0, 10, 0)

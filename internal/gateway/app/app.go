@@ -97,10 +97,11 @@ func New(cfg *config.Config) (*App, error) {
 	paymentClient := pbpayment.NewPaymentServiceClient(paymentConn)
 
 	authHandler := handler.NewAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.Mail.AppURL)
+	oauthHandler := handler.NewOAuthHandler(authClient, cfg.Auth.CookieSecure, cfg.OAuth.FrontendURL)
 	profileHandler := handler.NewProfileHandler(authClient, cfg.Upload.MaxSize)
 	notebookHandler := handler.NewNotebookHandler(nbClient, authClient)
 	runnerHandler := handler.NewRunnerHandler(runClient)
-	fileHandler := handler.NewFileHandler(storageClient, cfg.Upload.MaxSize)
+	fileHandler := handler.NewFileHandler(storageClient, authClient, cfg.Upload.MaxSize, cfg.Upload.Dir)
 	healthHandler := handler.NewHealthHandler()
 	eventHandler := handler.NewEventHandler(authClient)
 	adminHandler := handler.NewAdminHandler(authClient, nbClient, storageClient, notifClient)
@@ -114,6 +115,7 @@ func New(cfg *config.Config) (*App, error) {
 	adminMw := gwmw.AdminOnly()
 
 	authHandler.RegisterRoutes(mux)
+	oauthHandler.RegisterRoutes(mux)
 	notebookHandler.RegisterRoutes(mux, authMw)
 	runnerHandler.RegisterRoutes(mux, authMw)
 	profileHandler.RegisterRoutes(mux, authMw)
@@ -126,7 +128,9 @@ func New(cfg *config.Config) (*App, error) {
 	issueHandler.RegisterRoutes(mux, authMw, adminMw)
 	paymentHandler.RegisterRoutes(mux, authMw)
 
-	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir))))
+	uploadsFS := http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.Upload.Dir)))
+	mux.Handle("GET /uploads/avatars/", uploadsFS)
+	mux.Handle("GET /uploads/feedback/", uploadsFS)
 	mux.Handle("GET /metrics", promhttp.Handler())
 
 	mwCtx, cancelMw := context.WithCancel(context.Background())

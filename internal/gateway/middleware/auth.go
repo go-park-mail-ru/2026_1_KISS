@@ -36,6 +36,7 @@ func Auth(authClient pb.AuthServiceClient) mw.Middleware {
 				Description: info.GetDescription(),
 				IsVerified:  info.GetIsVerified(),
 				IsAdmin:     info.GetIsAdmin(),
+				Plan:        info.GetPlan(),
 				CreatedAt:   time.Unix(info.GetCreatedAt(), 0),
 				UpdatedAt:   time.Unix(info.GetUpdatedAt(), 0),
 			}

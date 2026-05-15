@@ -1,4 +1,4 @@
-.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate easyjson easyjson-install proto proto-tools run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
+.PHONY: build run test lint ci docker-up docker-down migrate docs fmt vet cover system-up generate easyjson easyjson-install proto proto-tools build-runner-image run-gateway run-auth run-notebook run-runner run-storage run-issue run-notification run-payment
 
 build:
 	go build -o gateway ./cmd/gateway
@@ -23,7 +23,10 @@ lint:
 
 ci: proto generate lint test
 
-docker-up:
+build-runner-image:
+	docker build -t kiss-python-runner -f build/py-runner/Dockerfile build/
+
+docker-up: build-runner-image
 	docker-compose up -d --build
 
 docker-down:
@@ -43,10 +46,11 @@ easyjson-install:
 
 easyjson:
 	go run github.com/mailru/easyjson/easyjson -all ./internal/domain/
-	go run github.com/mailru/easyjson/easyjson -all ./internal/gateway/handler/
-	go run github.com/mailru/easyjson/easyjson -all ./internal/payment/yookassa/
 	go run github.com/mailru/easyjson/easyjson -all ./internal/pkg/dto/
 	go run github.com/mailru/easyjson/easyjson -all ./internal/pkg/httputil/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/auth/provider/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/gateway/handler/
+	go run github.com/mailru/easyjson/easyjson -all ./internal/payment/yookassa/
 	go run github.com/mailru/easyjson/easyjson -all ./internal/runner/notebook_session/
 
 run-gateway:
@@ -75,7 +79,7 @@ run-payment:
 
 proto-tools:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
 
 proto: proto-tools
 	protoc --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_KISS \

@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson6ff3ac1dDecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(in *jlexer.Lexer, out *errorResponse) {
+func easyjson7a1b8754DecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(in *jlexer.Lexer, out *errorResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -38,11 +38,7 @@ func easyjson6ff3ac1dDecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(in 
 				out.Error = string(in.String())
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -51,7 +47,7 @@ func easyjson6ff3ac1dDecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(in 
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(out *jwriter.Writer, in errorResponse) {
+func easyjson7a1b8754EncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(out *jwriter.Writer, in errorResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -67,23 +63,23 @@ func easyjson6ff3ac1dEncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(out
 // MarshalJSON supports json.Marshaler interface
 func (v errorResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(&w, v)
+	easyjson7a1b8754EncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v errorResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(w, v)
+	easyjson7a1b8754EncodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *errorResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(&r, v)
+	easyjson7a1b8754DecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *errorResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(l, v)
+	easyjson7a1b8754DecodeGithubComGoParkMailRu20261KISSInternalPkgHttputil(l, v)
 }

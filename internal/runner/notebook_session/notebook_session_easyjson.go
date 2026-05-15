@@ -51,11 +51,7 @@ func easyjson6f25a18aDecodeGithubComGoParkMailRu20261KISSInternalRunnerNotebookS
 				out.MimeType = string(in.String())
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -176,11 +172,7 @@ func easyjson6f25a18aDecodeGithubComGoParkMailRu20261KISSInternalRunnerNotebookS
 				in.Delim('}')
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}

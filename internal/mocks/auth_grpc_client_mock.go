@@ -362,6 +362,26 @@ func (mr *MockAuthServiceClientMockRecorder) Logout(ctx, in any, opts ...any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockAuthServiceClient)(nil).Logout), varargs...)
 }
 
+// OAuthCallback mocks base method.
+func (m *MockAuthServiceClient) OAuthCallback(ctx context.Context, in *auth.OAuthCallbackRequest, opts ...grpc.CallOption) (*auth.LoginResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "OAuthCallback", varargs...)
+	ret0, _ := ret[0].(*auth.LoginResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OAuthCallback indicates an expected call of OAuthCallback.
+func (mr *MockAuthServiceClientMockRecorder) OAuthCallback(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OAuthCallback", reflect.TypeOf((*MockAuthServiceClient)(nil).OAuthCallback), varargs...)
+}
+
 // OAuthLogin mocks base method.
 func (m *MockAuthServiceClient) OAuthLogin(ctx context.Context, in *auth.OAuthLoginRequest, opts ...grpc.CallOption) (*auth.LoginResponse, error) {
 	m.ctrl.T.Helper()
@@ -380,6 +400,26 @@ func (mr *MockAuthServiceClientMockRecorder) OAuthLogin(ctx, in any, opts ...any
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OAuthLogin", reflect.TypeOf((*MockAuthServiceClient)(nil).OAuthLogin), varargs...)
+}
+
+// OAuthStart mocks base method.
+func (m *MockAuthServiceClient) OAuthStart(ctx context.Context, in *auth.OAuthStartRequest, opts ...grpc.CallOption) (*auth.OAuthStartResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "OAuthStart", varargs...)
+	ret0, _ := ret[0].(*auth.OAuthStartResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OAuthStart indicates an expected call of OAuthStart.
+func (mr *MockAuthServiceClientMockRecorder) OAuthStart(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OAuthStart", reflect.TypeOf((*MockAuthServiceClient)(nil).OAuthStart), varargs...)
 }
 
 // Register mocks base method.

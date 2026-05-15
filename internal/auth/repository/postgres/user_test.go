@@ -166,7 +166,7 @@ func TestUserRepo_GetByEmail_Success(t *testing.T) {
 		"created_at", "updated_at",
 	}).AddRow(int64(1), "testuser", "test@example.com", "hashedpwd", "", "", "", true, false, "free", nil, int64(0), now, now)
 
-	mock.ExpectQuery("SELECT .+ FROM users WHERE email").
+	mock.ExpectQuery("SELECT .+ FROM users WHERE LOWER\\(email\\)").
 		WithArgs("test@example.com").
 		WillReturnRows(rows)
 
@@ -195,7 +195,7 @@ func TestUserRepo_GetByEmail_NotFound(t *testing.T) {
 
 	repo := NewUserRepository(db)
 
-	mock.ExpectQuery("SELECT .+ FROM users WHERE email").
+	mock.ExpectQuery("SELECT .+ FROM users WHERE LOWER\\(email\\)").
 		WithArgs("nonexistent@example.com").
 		WillReturnError(sql.ErrNoRows)
 

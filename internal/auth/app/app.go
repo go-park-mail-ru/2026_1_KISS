@@ -14,9 +14,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	authgrpc "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/grpc"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/auth/provider"
 	authpg "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/postgres"
 	authredis "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository/redis"
 	authusecase "github.com/go-park-mail-ru/2026_1_KISS/internal/auth/usecase"
+	"github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/config"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/database"
 	"github.com/go-park-mail-ru/2026_1_KISS/internal/pkg/grpcutil"
@@ -57,6 +59,8 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 	verificationRepo := authpg.NewVerificationRepository(db)
 	eventRepo := authpg.NewEventRepository(db)
 	subViewRepo := authpg.NewSubscriptionViewRepository(db)
+	oauthAccountRepo := authpg.NewOAuthAccountRepository(db)
+	oauthStateRepo := authredis.NewOAuthStateRepository(rdb)
 
 	notifConn, err := grpc.NewClient(cfg.GRPC.NotificationAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -71,7 +75,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		verificationRepo,
 		notifAdapter,
 		cfg.Auth.SessionTTL,
-	).WithSubscriptionView(subViewRepo)
+	).WithSubscriptionView(subViewRepo).WithAutoVerify(cfg.Auth.AutoVerify)
 
 	storConn, err := grpc.NewClient(cfg.GRPC.StorageAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -98,7 +102,31 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 			grpcutil.LoggingUnaryInterceptor(),
 		),
 	)
-	pb.RegisterAuthServiceServer(srv, authgrpc.NewServer(authUC, profileUC, eventUC, adminUC, statsUC))
+	providers := provider.Registry{}
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	if cfg.OAuth.Google.Enabled() {
+		providers[domain.OAuthProviderGoogle] = provider.NewGoogleProvider(
+			cfg.OAuth.Google.ClientID, cfg.OAuth.Google.ClientSecret, cfg.OAuth.Google.RedirectURL, httpClient,
+		)
+	}
+	if cfg.OAuth.Yandex.Enabled() {
+		providers[domain.OAuthProviderYandex] = provider.NewYandexProvider(
+			cfg.OAuth.Yandex.ClientID, cfg.OAuth.Yandex.ClientSecret, cfg.OAuth.Yandex.RedirectURL, httpClient,
+		)
+	}
+	if cfg.OAuth.VKID.Enabled() {
+		providers[domain.OAuthProviderVKID] = provider.NewVKIDProvider(
+			cfg.OAuth.VKID.ClientID, cfg.OAuth.VKID.ClientSecret, cfg.OAuth.VKID.RedirectURL, httpClient,
+		)
+	}
+	oauthUC := authusecase.NewOAuthUsecase(
+		userRepo, sessionRepo, oauthAccountRepo, oauthStateRepo, providers,
+		cfg.Auth.SessionTTL, cfg.OAuth.StateTTL,
+	)
+
+	pb.RegisterAuthServiceServer(srv,
+		authgrpc.NewServer(authUC, profileUC, eventUC, adminUC, statsUC).WithOAuthUsecase(oauthUC),
+	)
 
 	cleanupCtx, cancelCleanup := context.WithCancel(context.Background())
 	go authUC.StartCleanupLoop(cleanupCtx)

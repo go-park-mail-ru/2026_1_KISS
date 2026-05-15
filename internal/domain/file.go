@@ -21,16 +21,22 @@ func ValidFileCategory(c FileCategory) bool {
 }
 
 type File struct {
-	ID         string
-	OwnerID    int64
-	NotebookID *int64
-	Category   FileCategory
-	Filename   string
-	StorageKey string
-	URL        string
-	MIMEType   string
-	Size       int64
-	CreatedAt  time.Time
+	ID             string
+	OwnerID        int64
+	NotebookID     *int64
+	Category       FileCategory
+	Filename       string
+	StorageKey     string
+	URL            string
+	MIMEType       string
+	Size           int64
+	CreatedAt      time.Time
+	IsPublic       bool
+	ShareToken     *string
+	ShareExpiresAt *time.Time
+	DownloadsCount int64
+	YourPermission string
+	OwnerEmail     string
 }
 
 type StorageStats struct {

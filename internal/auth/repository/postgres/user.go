@@ -67,7 +67,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 	start := time.Now()
 	u := &domain.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT `+userColumns+` FROM users WHERE email = $1`, email,
+		`SELECT `+userColumns+` FROM users WHERE LOWER(email) = LOWER($1)`, email,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash,
 		&u.AvatarURL, &u.Status, &u.Description, &u.IsVerified, &u.IsAdmin,

@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/go-park-mail-ru/2026_1_KISS/internal/domain"
 	gomock "go.uber.org/mock/gomock"
@@ -99,6 +100,21 @@ func (mr *MockFileRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockFileRepository)(nil).GetByID), ctx, id)
 }
 
+// GetByShareToken mocks base method.
+func (m *MockFileRepository) GetByShareToken(ctx context.Context, token string) (*domain.File, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByShareToken", ctx, token)
+	ret0, _ := ret[0].(*domain.File)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByShareToken indicates an expected call of GetByShareToken.
+func (mr *MockFileRepositoryMockRecorder) GetByShareToken(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByShareToken", reflect.TypeOf((*MockFileRepository)(nil).GetByShareToken), ctx, token)
+}
+
 // GetStats mocks base method.
 func (m *MockFileRepository) GetStats(ctx context.Context) (*domain.StorageStats, error) {
 	m.ctrl.T.Helper()
@@ -127,6 +143,20 @@ func (m *MockFileRepository) GetStatsByOwner(ctx context.Context, ownerID int64)
 func (mr *MockFileRepositoryMockRecorder) GetStatsByOwner(ctx, ownerID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatsByOwner", reflect.TypeOf((*MockFileRepository)(nil).GetStatsByOwner), ctx, ownerID)
+}
+
+// IncrementDownloads mocks base method.
+func (m *MockFileRepository) IncrementDownloads(ctx context.Context, fileID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementDownloads", ctx, fileID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementDownloads indicates an expected call of IncrementDownloads.
+func (mr *MockFileRepositoryMockRecorder) IncrementDownloads(ctx, fileID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementDownloads", reflect.TypeOf((*MockFileRepository)(nil).IncrementDownloads), ctx, fileID)
 }
 
 // ListAll mocks base method.
@@ -159,4 +189,32 @@ func (m *MockFileRepository) ListByOwner(ctx context.Context, ownerID int64, cat
 func (mr *MockFileRepositoryMockRecorder) ListByOwner(ctx, ownerID, category, limit, offset any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByOwner", reflect.TypeOf((*MockFileRepository)(nil).ListByOwner), ctx, ownerID, category, limit, offset)
+}
+
+// Rename mocks base method.
+func (m *MockFileRepository) Rename(ctx context.Context, fileID string, ownerID int64, newName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rename", ctx, fileID, ownerID, newName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rename indicates an expected call of Rename.
+func (mr *MockFileRepositoryMockRecorder) Rename(ctx, fileID, ownerID, newName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockFileRepository)(nil).Rename), ctx, fileID, ownerID, newName)
+}
+
+// SetPublic mocks base method.
+func (m *MockFileRepository) SetPublic(ctx context.Context, fileID string, ownerID int64, isPublic bool, token *string, expiresAt *time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetPublic", ctx, fileID, ownerID, isPublic, token, expiresAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetPublic indicates an expected call of SetPublic.
+func (mr *MockFileRepositoryMockRecorder) SetPublic(ctx, fileID, ownerID, isPublic, token, expiresAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPublic", reflect.TypeOf((*MockFileRepository)(nil).SetPublic), ctx, fileID, ownerID, isPublic, token, expiresAt)
 }

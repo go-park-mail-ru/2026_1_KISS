@@ -1,4 +1,4 @@
-//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/auth_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository UserRepository,SessionRepository,VerificationRepository,EventRepository,SubscriptionViewRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=../../mocks/auth_repo_mock.go -package=mocks github.com/go-park-mail-ru/2026_1_KISS/internal/auth/repository UserRepository,SessionRepository,VerificationRepository,EventRepository,SubscriptionViewRepository,OAuthAccountRepository,OAuthStateRepository
 
 package repository
 
@@ -57,4 +57,16 @@ type ActiveSubscription struct {
 
 type SubscriptionViewRepository interface {
 	GetActive(ctx context.Context, userID int64) (*ActiveSubscription, error)
+}
+
+type OAuthAccountRepository interface {
+	Create(ctx context.Context, acc *domain.OAuthAccount) (int64, error)
+	GetByProviderID(ctx context.Context, provider, providerID string) (*domain.OAuthAccount, error)
+	ListByUserID(ctx context.Context, userID int64) ([]domain.OAuthAccount, error)
+	DeleteByID(ctx context.Context, id, userID int64) error
+}
+
+type OAuthStateRepository interface {
+	Save(ctx context.Context, st *domain.OAuthState, ttl time.Duration) error
+	Consume(ctx context.Context, state string) (*domain.OAuthState, error)
 }

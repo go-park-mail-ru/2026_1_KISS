@@ -13,6 +13,16 @@ service StorageService {
   rpc DeleteFileByURL(DeleteFileByURLRequest) returns (DeleteFileResponse);
 
   rpc GetUserStorageStats(GetUserStorageStatsRequest) returns (GetStorageStatsResponse);
+
+  rpc ShareFile(ShareFileRequest) returns (ShareFileResponse);
+  rpc RevokeShare(RevokeShareRequest) returns (RevokeShareResponse);
+  rpc ListShares(ListSharesRequest) returns (ListSharesResponse);
+  rpc ListSharedWithMe(ListSharedWithMeRequest) returns (ListFilesResponse);
+  rpc SetFilePublic(SetFilePublicRequest) returns (FileResponse);
+  rpc GetSharedFileByToken(GetSharedFileByTokenRequest) returns (FileResponse);
+  rpc IncrementDownloadCount(IncrementDownloadCountRequest) returns (IncrementDownloadCountResponse);
+  rpc RenameFile(RenameFileRequest) returns (FileResponse);
+  rpc GetDownloadable(GetDownloadableRequest) returns (GetDownloadableResponse);
 }
 
 message DeleteFileByURLRequest {
@@ -38,6 +48,13 @@ message FileInfo {
   string mime_type = 7;
   int64 size = 8;
   int64 created_at = 9;
+  bool is_public = 10;
+  string share_token = 11;
+  int64 share_expires_at = 12;
+  int64 downloads_count = 13;
+  string your_permission = 14;
+  string storage_key = 15;
+  string owner_email = 16;
 }
 
 message FileResponse {
@@ -86,4 +103,79 @@ message AdminListFilesRequest {
 
 message GetUserStorageStatsRequest {
   int64 user_id = 1;
+}
+
+message FileShareInfo {
+  string file_id = 1;
+  int64 user_id = 2;
+  string email = 3;
+  string permission_level = 4;
+  int64 created_at = 5;
+}
+
+message ShareFileRequest {
+  int64 requester_id = 1;
+  string file_id = 2;
+  int64 target_user_id = 3;
+  string permission_level = 4;
+}
+
+message ShareFileResponse {
+  FileShareInfo share = 1;
+}
+
+message RevokeShareRequest {
+  int64 requester_id = 1;
+  string file_id = 2;
+  int64 target_user_id = 3;
+}
+
+message RevokeShareResponse {}
+
+message ListSharesRequest {
+  int64 requester_id = 1;
+  string file_id = 2;
+}
+
+message ListSharesResponse {
+  repeated FileShareInfo shares = 1;
+}
+
+message ListSharedWithMeRequest {
+  int64 user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message SetFilePublicRequest {
+  int64 requester_id = 1;
+  string file_id = 2;
+  bool is_public = 3;
+  int64 expires_at = 4;
+}
+
+message GetSharedFileByTokenRequest {
+  string token = 1;
+}
+
+message IncrementDownloadCountRequest {
+  string file_id = 1;
+}
+
+message IncrementDownloadCountResponse {}
+
+message RenameFileRequest {
+  int64 requester_id = 1;
+  string file_id = 2;
+  string filename = 3;
+}
+
+message GetDownloadableRequest {
+  string file_id = 1;
+  int64 user_id = 2;
+}
+
+message GetDownloadableResponse {
+  FileInfo file = 1;
+  bool allowed = 2;
 }

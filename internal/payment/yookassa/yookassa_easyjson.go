@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(in *jlexer.Lexer, out *WebhookEvent) {
+func easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(in *jlexer.Lexer, out *WebhookEvent) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -50,11 +50,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 				(out.Object).UnmarshalEasyJSON(in)
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -63,7 +59,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 		in.Consumed()
 	}
 }
-func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(out *jwriter.Writer, in WebhookEvent) {
+func easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(out *jwriter.Writer, in WebhookEvent) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -88,27 +84,27 @@ func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 // MarshalJSON supports json.Marshaler interface
 func (v WebhookEvent) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(&w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v WebhookEvent) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *WebhookEvent) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(&r, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *WebhookEvent) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(l, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa(l, v)
 }
-func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(in *jlexer.Lexer, out *Payment) {
+func easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(in *jlexer.Lexer, out *Payment) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -191,11 +187,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 				in.Delim('}')
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -204,7 +196,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 		in.Consumed()
 	}
 }
-func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(out *jwriter.Writer, in Payment) {
+func easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(out *jwriter.Writer, in Payment) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -263,27 +255,27 @@ func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 // MarshalJSON supports json.Marshaler interface
 func (v Payment) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(&w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Payment) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Payment) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(&r, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Payment) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(l, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa1(l, v)
 }
-func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(in *jlexer.Lexer, out *CreatePaymentRequest) {
+func easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(in *jlexer.Lexer, out *CreatePaymentRequest) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -346,11 +338,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 				in.Delim('}')
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -359,7 +347,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 		in.Consumed()
 	}
 }
-func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(out *jwriter.Writer, in CreatePaymentRequest) {
+func easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(out *jwriter.Writer, in CreatePaymentRequest) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -408,27 +396,27 @@ func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 // MarshalJSON supports json.Marshaler interface
 func (v CreatePaymentRequest) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(&w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v CreatePaymentRequest) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *CreatePaymentRequest) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(&r, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *CreatePaymentRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(l, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa2(l, v)
 }
-func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(in *jlexer.Lexer, out *Confirmation) {
+func easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(in *jlexer.Lexer, out *Confirmation) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -467,11 +455,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 				out.ReturnURL = string(in.String())
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -480,7 +464,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 		in.Consumed()
 	}
 }
-func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(out *jwriter.Writer, in Confirmation) {
+func easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(out *jwriter.Writer, in Confirmation) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -510,27 +494,81 @@ func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 // MarshalJSON supports json.Marshaler interface
 func (v Confirmation) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(&w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Confirmation) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Confirmation) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(&r, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Confirmation) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(l, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa3(l, v)
 }
-func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(in *jlexer.Lexer, out *Amount) {
+func easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(in *jlexer.Lexer, out *Client) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(out *jwriter.Writer, in Client) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v Client) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v Client) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *Client) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *Client) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(l, v)
+}
+func easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa5(in *jlexer.Lexer, out *Amount) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -557,11 +595,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 				out.Currency = string(in.String())
 			}
 		default:
-			in.AddError(&jlexer.LexerError{
-				Offset: in.GetPos(),
-				Reason: "unknown field",
-				Data:   key,
-			})
+			in.SkipRecursive()
 		}
 		in.WantComma()
 	}
@@ -570,7 +604,7 @@ func easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 		in.Consumed()
 	}
 }
-func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(out *jwriter.Writer, in Amount) {
+func easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa5(out *jwriter.Writer, in Amount) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -590,23 +624,23 @@ func easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa
 // MarshalJSON supports json.Marshaler interface
 func (v Amount) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(&w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa5(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Amount) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6601e8cdEncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(w, v)
+	easyjson1f5bbc86EncodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa5(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Amount) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(&r, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa5(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Amount) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6601e8cdDecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa4(l, v)
+	easyjson1f5bbc86DecodeGithubComGoParkMailRu20261KISSInternalPaymentYookassa5(l, v)
 }
