@@ -32,11 +32,11 @@ func (s *Server) ExecuteFromPosition(ctx context.Context, req *pb.ExecuteFromPos
 	}
 	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
-	if err := s.runnerSvc.StartSession(ctx, req.GetNotebookId()); err != nil {
+	if _, err := s.runnerSvc.StartSession(ctx, req.GetNotebookId(), req.GetUserId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
 
-	results, err := s.runnerSvc.ExecuteFromPosition(ctx, req.GetNotebookId(), int(req.GetBlockPosition()))
+	results, err := s.runnerSvc.ExecuteFromPosition(ctx, req.GetNotebookId(), req.GetUserId(), int(req.GetBlockPosition()))
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
@@ -57,11 +57,11 @@ func (s *Server) ExecuteBlock(ctx context.Context, req *pb.ExecuteBlockRequest) 
 	}
 	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
-	if err := s.runnerSvc.StartSession(ctx, req.GetNotebookId()); err != nil {
+	if _, err := s.runnerSvc.StartSession(ctx, req.GetNotebookId(), req.GetUserId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
 
-	result, err := s.runnerSvc.ExecuteBlock(ctx, req.GetNotebookId(), int(req.GetBlockPosition()))
+	result, err := s.runnerSvc.ExecuteBlock(ctx, req.GetNotebookId(), req.GetUserId(), int(req.GetBlockPosition()))
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
@@ -77,7 +77,7 @@ func (s *Server) StopSession(ctx context.Context, req *pb.StopSessionRequest) (*
 	}
 	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
-	if err := s.runnerSvc.StopSession(ctx, req.GetNotebookId()); err != nil {
+	if err := s.runnerSvc.StopSession(ctx, req.GetNotebookId(), req.GetUserId()); err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
 	return &pb.StopSessionResponse{}, nil
@@ -153,19 +153,28 @@ func (s *Server) GetSessionStats(ctx context.Context, req *pb.GetSessionStatsReq
 		return nil, err
 	}
 
-	stats, err := s.runnerSvc.GetSessionStats(ctx, req.GetNotebookId())
+	stats, err := s.runnerSvc.GetSessionStats(ctx, req.GetNotebookId(), req.GetUserId())
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}
 
+	snapshotAge := int64(-1)
+	if stats.SnapshotAge > 0 {
+		snapshotAge = int64(stats.SnapshotAge.Seconds())
+	}
+
 	return &pb.GetSessionStatsResponse{
-		CpuPercent:     stats.CPUPercent,
-		MemoryUsage:    stats.MemoryUsage,
-		MemoryLimit:    stats.MemoryLimit,
-		MemoryPercent:  stats.MemoryPercent,
-		CpuCores:       stats.CPUCores,
-		DiskLimitBytes: stats.DiskLimitBytes,
-		GpuAvailable:   stats.GPUAvailable,
+		CpuPercent:         stats.CPUPercent,
+		MemoryUsage:        stats.MemoryUsage,
+		MemoryLimit:        stats.MemoryLimit,
+		MemoryPercent:      stats.MemoryPercent,
+		CpuCores:           stats.CPUCores,
+		DiskLimitBytes:     stats.DiskLimitBytes,
+		GpuAvailable:       stats.GPUAvailable,
+		QueuePosition:      stats.QueuePosition,
+		SnapshotAgeSeconds: snapshotAge,
+		SnapshotSizeBytes:  stats.SnapshotSizeBytes,
+		SessionState:       stats.SessionState,
 	}, nil
 }
 
@@ -176,11 +185,11 @@ func (s *Server) ExecuteBlockStream(req *pb.ExecuteBlockRequest, stream pb.Runne
 	}
 	ctx = ctxutil.SetUserID(ctx, req.GetUserId())
 
-	if err := s.runnerSvc.StartSession(ctx, req.GetNotebookId()); err != nil {
+	if _, err := s.runnerSvc.StartSession(ctx, req.GetNotebookId(), req.GetUserId()); err != nil {
 		return grpcutil.DomainToGRPCError(err)
 	}
 
-	result, err := s.runnerSvc.ExecuteBlockStreaming(ctx, req.GetNotebookId(), int(req.GetBlockPosition()), func(chunkType, data string) {
+	result, err := s.runnerSvc.ExecuteBlockStreaming(ctx, req.GetNotebookId(), req.GetUserId(), int(req.GetBlockPosition()), func(chunkType, data string) {
 		_ = stream.Send(&pb.ExecutionChunk{
 			ChunkType: chunkType,
 			Data:      data,

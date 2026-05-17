@@ -114,7 +114,7 @@ func (uc *StorageUsecase) GetFile(ctx context.Context, fileID string, userID int
 	return file, nil
 }
 
-func (uc *StorageUsecase) ListFiles(ctx context.Context, userID int64, category string, limit, offset int) ([]domain.File, int, error) {
+func (uc *StorageUsecase) ListFiles(ctx context.Context, userID int64, category string, notebookID *int64, limit, offset int) ([]domain.File, int, error) {
 	logger.Info(ctx, "usecase.storage.ListFiles", "user_id", userID, "category", category)
 
 	if limit <= 0 {
@@ -123,7 +123,21 @@ func (uc *StorageUsecase) ListFiles(ctx context.Context, userID int64, category 
 	if limit > 100 {
 		limit = 100
 	}
-	return uc.fileRepo.ListByOwner(ctx, userID, category, limit, offset)
+	return uc.fileRepo.ListByOwner(ctx, userID, category, notebookID, limit, offset)
+}
+
+func (uc *StorageUsecase) DownloadFile(ctx context.Context, fileID string, userID int64) (io.ReadCloser, int64, error) {
+	logger.Info(ctx, "usecase.storage.DownloadFile", "file_id", fileID, "user_id", userID)
+
+	file, err := uc.GetFile(ctx, fileID, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	rc, err := uc.fileStorage.Open(file.StorageKey)
+	if err != nil {
+		return nil, 0, fmt.Errorf("open file: %w", err)
+	}
+	return rc, file.Size, nil
 }
 
 func (uc *StorageUsecase) DeleteFile(ctx context.Context, fileID string, userID int64) error {

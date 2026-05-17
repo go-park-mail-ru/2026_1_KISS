@@ -13,7 +13,7 @@ type FileRepository interface {
 	Create(ctx context.Context, file *domain.File) error
 	GetByID(ctx context.Context, id string) (*domain.File, error)
 	GetByShareToken(ctx context.Context, token string) (*domain.File, error)
-	ListByOwner(ctx context.Context, ownerID int64, category string, limit, offset int) ([]domain.File, int, error)
+	ListByOwner(ctx context.Context, ownerID int64, category string, notebookID *int64, limit, offset int) ([]domain.File, int, error)
 	Delete(ctx context.Context, id string) error
 	DeleteByURL(ctx context.Context, url string) (string, error)
 	GetStats(ctx context.Context) (*domain.StorageStats, error)

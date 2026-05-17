@@ -176,9 +176,9 @@ func (mr *MockFileRepositoryMockRecorder) ListAll(ctx, category, ownerID, limit,
 }
 
 // ListByOwner mocks base method.
-func (m *MockFileRepository) ListByOwner(ctx context.Context, ownerID int64, category string, limit, offset int) ([]domain.File, int, error) {
+func (m *MockFileRepository) ListByOwner(ctx context.Context, ownerID int64, category string, notebookID *int64, limit, offset int) ([]domain.File, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListByOwner", ctx, ownerID, category, limit, offset)
+	ret := m.ctrl.Call(m, "ListByOwner", ctx, ownerID, category, notebookID, limit, offset)
 	ret0, _ := ret[0].([]domain.File)
 	ret1, _ := ret[1].(int)
 	ret2, _ := ret[2].(error)
@@ -186,9 +186,9 @@ func (m *MockFileRepository) ListByOwner(ctx context.Context, ownerID int64, cat
 }
 
 // ListByOwner indicates an expected call of ListByOwner.
-func (mr *MockFileRepositoryMockRecorder) ListByOwner(ctx, ownerID, category, limit, offset any) *gomock.Call {
+func (mr *MockFileRepositoryMockRecorder) ListByOwner(ctx, ownerID, category, notebookID, limit, offset any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByOwner", reflect.TypeOf((*MockFileRepository)(nil).ListByOwner), ctx, ownerID, category, limit, offset)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByOwner", reflect.TypeOf((*MockFileRepository)(nil).ListByOwner), ctx, ownerID, category, notebookID, limit, offset)
 }
 
 // Rename mocks base method.

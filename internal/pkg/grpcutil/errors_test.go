@@ -23,6 +23,7 @@ func TestDomainToGRPCError(t *testing.T) {
 		{"conflict", domain.ErrConflict, codes.AlreadyExists},
 		{"invalid_input", domain.ErrInvalidInput, codes.InvalidArgument},
 		{"forbidden", domain.ErrForbidden, codes.PermissionDenied},
+		{"service_unavailable", domain.ErrServiceUnavailable, codes.ResourceExhausted},
 		{"wrapped_not_found", fmt.Errorf("wrap: %w", domain.ErrNotFound), codes.NotFound},
 		{"unknown", fmt.Errorf("something broke"), codes.Internal},
 	}
@@ -58,6 +59,7 @@ func TestGRPCToDomainError(t *testing.T) {
 		{"already_exists", status.Error(codes.AlreadyExists, "x"), domain.ErrConflict},
 		{"invalid_argument", status.Error(codes.InvalidArgument, "x"), domain.ErrInvalidInput},
 		{"permission_denied", status.Error(codes.PermissionDenied, "x"), domain.ErrForbidden},
+		{"resource_exhausted", status.Error(codes.ResourceExhausted, "x"), domain.ErrServiceUnavailable},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

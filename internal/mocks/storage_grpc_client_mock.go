@@ -102,6 +102,26 @@ func (mr *MockStorageServiceClientMockRecorder) DeleteFileByURL(ctx, in any, opt
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileByURL", reflect.TypeOf((*MockStorageServiceClient)(nil).DeleteFileByURL), varargs...)
 }
 
+// DownloadFile mocks base method.
+func (m *MockStorageServiceClient) DownloadFile(ctx context.Context, in *storage.DownloadFileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[storage.DownloadFileChunk], error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DownloadFile", varargs...)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[storage.DownloadFileChunk])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DownloadFile indicates an expected call of DownloadFile.
+func (mr *MockStorageServiceClientMockRecorder) DownloadFile(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadFile", reflect.TypeOf((*MockStorageServiceClient)(nil).DownloadFile), varargs...)
+}
+
 // GetDownloadable mocks base method.
 func (m *MockStorageServiceClient) GetDownloadable(ctx context.Context, in *storage.GetDownloadableRequest, opts ...grpc.CallOption) (*storage.GetDownloadableResponse, error) {
 	m.ctrl.T.Helper()

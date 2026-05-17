@@ -23,6 +23,7 @@ func TestMapDomainError(t *testing.T) {
 		{"unauthorized", domain.ErrUnauthorized, http.StatusUnauthorized},
 		{"invalid input", domain.ErrInvalidInput, http.StatusBadRequest},
 		{"forbidden", domain.ErrForbidden, http.StatusForbidden},
+		{"service unavailable", domain.ErrServiceUnavailable, http.StatusServiceUnavailable},
 		{"wrapped not found", fmt.Errorf("wrap: %w", domain.ErrNotFound), http.StatusNotFound},
 		{"wrapped invalid input", fmt.Errorf("wrap: %w", domain.ErrInvalidInput), http.StatusBadRequest},
 		{"unknown error", errors.New("something"), http.StatusInternalServerError},

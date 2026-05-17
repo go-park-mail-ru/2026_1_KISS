@@ -50,11 +50,19 @@ var avatarsAllowed = map[string]struct{}{
 	"image/jpeg": {}, "image/png": {}, "image/gif": {}, "image/webp": {},
 }
 
+var sessionsAllowed = map[string]struct{}{
+	"application/octet-stream": {},
+}
+
 func allowedFor(category domain.FileCategory) map[string]struct{} {
-	if category == domain.FileCategoryAvatar {
+	switch category {
+	case domain.FileCategoryAvatar:
 		return avatarsAllowed
+	case domain.FileCategorySession:
+		return sessionsAllowed
+	default:
+		return commonAllowed
 	}
-	return commonAllowed
 }
 
 func Validate(category domain.FileCategory, filename, sniffedMIME string) error {

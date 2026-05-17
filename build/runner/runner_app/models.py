@@ -18,3 +18,14 @@ class ExecuteResponse(BaseModel):
     stderr: str
     result: str                        # text/plain result (backward compat)
     outputs: list[OutputItem] = []     # rich outputs (images, html, etc.)
+
+
+class SnapshotResponse(BaseModel):
+    data: str              # base64-encoded dill bytes
+    size_bytes: int
+    var_count: int
+    skipped_vars: list[str] = []
+
+
+class RestoreRequest(BaseModel):
+    data: str              # base64-encoded dill bytes

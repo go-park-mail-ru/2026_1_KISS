@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import threading
@@ -7,7 +8,7 @@ from queue import Empty
 from jupyter_client import KernelManager
 
 from .config import KERNEL_NAME
-from .models import ExecuteResponse, OutputItem
+from .models import ExecuteResponse, OutputItem, SnapshotResponse
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class KernelBridge:
     def __init__(self):
         self._km = None
         self._kc = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def start(self):
         if self._km is not None:
@@ -143,6 +144,96 @@ class KernelBridge:
             )
 
     MAX_OUTPUT_BYTES = 5 * 1024 * 1024
+
+    # Код, выполняемый в ядре для создания снапшота.
+    # Сериализует пользовательские переменные через dill в /tmp/_snapshot.dill.
+    _SNAPSHOT_CODE = r"""
+import dill as _dill, io as _io, types as _types
+_skip = []
+_save = {}
+for _k, _v in list(globals().items()):
+    if _k.startswith('_') or isinstance(_v, _types.ModuleType):
+        continue
+    try:
+        _dill.dumps(_v)
+        _save[_k] = _v
+    except Exception:
+        _skip.append(_k)
+_buf = _io.BytesIO()
+_dill.dump(_save, _buf)
+with open('/tmp/_snapshot.dill', 'wb') as _f:
+    _f.write(_buf.getvalue())
+_snapshot_var_count = len(_save)
+_snapshot_skipped = list(_skip)
+del _buf, _save, _k, _v, _skip
+"""
+
+    _RESTORE_CODE = r"""
+import dill as _dill
+try:
+    with open('/tmp/_snapshot.dill', 'rb') as _f:
+        _saved = _dill.load(_f)
+    for _k, _v in _saved.items():
+        try:
+            globals()[_k] = _v
+        except Exception:
+            pass
+    del _saved, _k, _v
+except Exception as _e:
+    print(f"[runner] snapshot restore failed: {_e}")
+"""
+
+    def take_snapshot(self) -> SnapshotResponse:
+        if self._kc is None:
+            raise RuntimeError("Kernel is not initialized")
+        with self._lock:
+            self.execute(self._SNAPSHOT_CODE, timeout=30)
+            try:
+                result = self.execute("print(_snapshot_var_count, '|', ','.join(_snapshot_skipped))", timeout=5)
+                parts = result.stdout.strip().split("|", 1)
+                var_count = int(parts[0].strip()) if parts else 0
+                skipped = [s.strip() for s in parts[1].split(",") if s.strip()] if len(parts) > 1 else []
+            except Exception:
+                var_count = 0
+                skipped = []
+
+        with open("/tmp/_snapshot.dill", "rb") as f:
+            raw = f.read()
+
+        return SnapshotResponse(
+            data=base64.b64encode(raw).decode(),
+            size_bytes=len(raw),
+            var_count=var_count,
+            skipped_vars=skipped,
+        )
+
+    def restore_snapshot(self, data_b64: str) -> None:
+        if self._kc is None:
+            raise RuntimeError("Kernel is not initialized")
+        raw = base64.b64decode(data_b64)
+        with open("/tmp/_snapshot.dill", "wb") as f:
+            f.write(raw)
+        with self._lock:
+            self.execute(self._RESTORE_CODE, timeout=30)
+
+    def restart_kernel(self) -> None:
+        logger.info("Restarting Jupyter kernel")
+        if self._kc is not None:
+            try:
+                self._kc.stop_channels()
+            except Exception:
+                logger.exception("Failed to stop channels before restart")
+            self._kc = None
+        if self._km is not None:
+            try:
+                self._km.restart_kernel(now=True)
+            except Exception:
+                logger.exception("Failed to restart kernel")
+        kc = self._km.blocking_client()
+        kc.start_channels()
+        kc.wait_for_ready(timeout=30)
+        self._kc = kc
+        logger.info("Kernel restarted and ready")
 
     def execute_streaming(self, code, timeout):
         if self._kc is None:

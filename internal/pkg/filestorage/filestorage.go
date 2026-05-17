@@ -7,4 +7,5 @@ import "io"
 type FileStorage interface {
 	Save(filename string, data io.Reader) (string, error)
 	Delete(path string) error
+	Open(storageKey string) (io.ReadCloser, error)
 }

@@ -42,63 +42,63 @@ func (m *MockRunnerService) EXPECT() *MockRunnerServiceMockRecorder {
 }
 
 // ExecuteBlock mocks base method.
-func (m *MockRunnerService) ExecuteBlock(ctx context.Context, notebookID int64, blockPosition int) (*domain.BlockExecutionResult, error) {
+func (m *MockRunnerService) ExecuteBlock(ctx context.Context, notebookID, userID int64, blockPosition int) (*domain.BlockExecutionResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteBlock", ctx, notebookID, blockPosition)
+	ret := m.ctrl.Call(m, "ExecuteBlock", ctx, notebookID, userID, blockPosition)
 	ret0, _ := ret[0].(*domain.BlockExecutionResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecuteBlock indicates an expected call of ExecuteBlock.
-func (mr *MockRunnerServiceMockRecorder) ExecuteBlock(ctx, notebookID, blockPosition any) *gomock.Call {
+func (mr *MockRunnerServiceMockRecorder) ExecuteBlock(ctx, notebookID, userID, blockPosition any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockRunnerService)(nil).ExecuteBlock), ctx, notebookID, blockPosition)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockRunnerService)(nil).ExecuteBlock), ctx, notebookID, userID, blockPosition)
 }
 
 // ExecuteBlockStreaming mocks base method.
-func (m *MockRunnerService) ExecuteBlockStreaming(ctx context.Context, notebookID int64, blockPosition int, onChunk func(string, string)) (*domain.BlockExecutionResult, error) {
+func (m *MockRunnerService) ExecuteBlockStreaming(ctx context.Context, notebookID, userID int64, blockPosition int, onChunk func(string, string)) (*domain.BlockExecutionResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteBlockStreaming", ctx, notebookID, blockPosition, onChunk)
+	ret := m.ctrl.Call(m, "ExecuteBlockStreaming", ctx, notebookID, userID, blockPosition, onChunk)
 	ret0, _ := ret[0].(*domain.BlockExecutionResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecuteBlockStreaming indicates an expected call of ExecuteBlockStreaming.
-func (mr *MockRunnerServiceMockRecorder) ExecuteBlockStreaming(ctx, notebookID, blockPosition, onChunk any) *gomock.Call {
+func (mr *MockRunnerServiceMockRecorder) ExecuteBlockStreaming(ctx, notebookID, userID, blockPosition, onChunk any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlockStreaming", reflect.TypeOf((*MockRunnerService)(nil).ExecuteBlockStreaming), ctx, notebookID, blockPosition, onChunk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlockStreaming", reflect.TypeOf((*MockRunnerService)(nil).ExecuteBlockStreaming), ctx, notebookID, userID, blockPosition, onChunk)
 }
 
 // ExecuteFromPosition mocks base method.
-func (m *MockRunnerService) ExecuteFromPosition(ctx context.Context, notebookID int64, startPosition int) ([]*domain.BlockExecutionResult, error) {
+func (m *MockRunnerService) ExecuteFromPosition(ctx context.Context, notebookID, userID int64, startPosition int) ([]*domain.BlockExecutionResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteFromPosition", ctx, notebookID, startPosition)
+	ret := m.ctrl.Call(m, "ExecuteFromPosition", ctx, notebookID, userID, startPosition)
 	ret0, _ := ret[0].([]*domain.BlockExecutionResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecuteFromPosition indicates an expected call of ExecuteFromPosition.
-func (mr *MockRunnerServiceMockRecorder) ExecuteFromPosition(ctx, notebookID, startPosition any) *gomock.Call {
+func (mr *MockRunnerServiceMockRecorder) ExecuteFromPosition(ctx, notebookID, userID, startPosition any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteFromPosition", reflect.TypeOf((*MockRunnerService)(nil).ExecuteFromPosition), ctx, notebookID, startPosition)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteFromPosition", reflect.TypeOf((*MockRunnerService)(nil).ExecuteFromPosition), ctx, notebookID, userID, startPosition)
 }
 
 // GetSessionStats mocks base method.
-func (m *MockRunnerService) GetSessionStats(ctx context.Context, notebookID int64) (*domain.ContainerResourceStats, error) {
+func (m *MockRunnerService) GetSessionStats(ctx context.Context, notebookID, userID int64) (*domain.SessionStats, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSessionStats", ctx, notebookID)
-	ret0, _ := ret[0].(*domain.ContainerResourceStats)
+	ret := m.ctrl.Call(m, "GetSessionStats", ctx, notebookID, userID)
+	ret0, _ := ret[0].(*domain.SessionStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSessionStats indicates an expected call of GetSessionStats.
-func (mr *MockRunnerServiceMockRecorder) GetSessionStats(ctx, notebookID any) *gomock.Call {
+func (mr *MockRunnerServiceMockRecorder) GetSessionStats(ctx, notebookID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionStats", reflect.TypeOf((*MockRunnerService)(nil).GetSessionStats), ctx, notebookID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionStats", reflect.TypeOf((*MockRunnerService)(nil).GetSessionStats), ctx, notebookID, userID)
 }
 
 // StartIdleReaper mocks base method.
@@ -114,29 +114,30 @@ func (mr *MockRunnerServiceMockRecorder) StartIdleReaper(ctx any) *gomock.Call {
 }
 
 // StartSession mocks base method.
-func (m *MockRunnerService) StartSession(ctx context.Context, notebookID int64) error {
+func (m *MockRunnerService) StartSession(ctx context.Context, notebookID, userID int64) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartSession", ctx, notebookID)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "StartSession", ctx, notebookID, userID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // StartSession indicates an expected call of StartSession.
-func (mr *MockRunnerServiceMockRecorder) StartSession(ctx, notebookID any) *gomock.Call {
+func (mr *MockRunnerServiceMockRecorder) StartSession(ctx, notebookID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartSession", reflect.TypeOf((*MockRunnerService)(nil).StartSession), ctx, notebookID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartSession", reflect.TypeOf((*MockRunnerService)(nil).StartSession), ctx, notebookID, userID)
 }
 
 // StopSession mocks base method.
-func (m *MockRunnerService) StopSession(ctx context.Context, notebookID int64) error {
+func (m *MockRunnerService) StopSession(ctx context.Context, notebookID, userID int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StopSession", ctx, notebookID)
+	ret := m.ctrl.Call(m, "StopSession", ctx, notebookID, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StopSession indicates an expected call of StopSession.
-func (mr *MockRunnerServiceMockRecorder) StopSession(ctx, notebookID any) *gomock.Call {
+func (mr *MockRunnerServiceMockRecorder) StopSession(ctx, notebookID, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopSession", reflect.TypeOf((*MockRunnerService)(nil).StopSession), ctx, notebookID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopSession", reflect.TypeOf((*MockRunnerService)(nil).StopSession), ctx, notebookID, userID)
 }

@@ -71,39 +71,37 @@ func (r *FileRepo) GetByShareToken(ctx context.Context, token string) (*domain.F
 	return f, nil
 }
 
-func (r *FileRepo) ListByOwner(ctx context.Context, ownerID int64, category string, limit, offset int) ([]domain.File, int, error) {
+func (r *FileRepo) ListByOwner(ctx context.Context, ownerID int64, category string, notebookID *int64, limit, offset int) ([]domain.File, int, error) {
 	logger.Info(ctx, "repo.file.ListByOwner", "owner_id", ownerID, "category", category)
 
-	var total int
+	where := `WHERE owner_id = $1`
+	args := []any{ownerID}
+	idx := 2
+
 	if category != "" {
-		err := r.db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM files WHERE owner_id = $1 AND category = $2`, ownerID, category,
-		).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count files: %w", err)
-		}
-	} else {
-		err := r.db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM files WHERE owner_id = $1`, ownerID,
-		).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count files: %w", err)
-		}
+		where += fmt.Sprintf(` AND category = $%d`, idx)
+		args = append(args, category)
+		idx++
+	}
+	if notebookID != nil {
+		where += fmt.Sprintf(` AND notebook_id = $%d`, idx)
+		args = append(args, *notebookID)
+		idx++
 	}
 
-	var rows *sql.Rows
-	var err error
-	if category != "" {
-		rows, err = r.db.QueryContext(ctx,
-			`SELECT `+fileSelectColumns+` FROM files WHERE owner_id = $1 AND category = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`,
-			ownerID, category, limit, offset,
-		)
-	} else {
-		rows, err = r.db.QueryContext(ctx,
-			`SELECT `+fileSelectColumns+` FROM files WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-			ownerID, limit, offset,
-		)
+	var total int
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM files `+where, args...,
+	).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count files: %w", err)
 	}
+
+	selectArgs := append(args, limit, offset) //nolint:gocritic
+	rows, err := r.db.QueryContext(ctx,
+		fmt.Sprintf(`SELECT `+fileSelectColumns+` FROM files %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, //nolint:gosec
+			where, idx, idx+1),
+		selectArgs...,
+	)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list files: %w", err)
 	}

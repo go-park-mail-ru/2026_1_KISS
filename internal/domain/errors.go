@@ -11,4 +11,5 @@ var (
 	ErrForbidden           = errors.New("forbidden")
 	ErrPaymentFailed       = errors.New("payment failed")
 	ErrYooKassaUnavailable = errors.New("yookassa unavailable")
+	ErrServiceUnavailable  = errors.New("service unavailable")
 )

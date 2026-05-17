@@ -59,6 +59,13 @@ func (s *LocalStorage) Save(filename string, data io.Reader) (string, error) {
 	return s.urlPrefix + filename, nil
 }
 
+func (s *LocalStorage) Open(storageKey string) (io.ReadCloser, error) {
+	if err := validateFilename(storageKey); err != nil {
+		return nil, err
+	}
+	return os.Open(filepath.Join(s.uploadDir, storageKey))
+}
+
 func (s *LocalStorage) Delete(path string) error {
 	if path == "" {
 		return nil

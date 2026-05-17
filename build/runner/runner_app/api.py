@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
 from .bridge import KernelBridge
-from .models import ExecuteRequest, ExecuteResponse
+from .models import ExecuteRequest, ExecuteResponse, RestoreRequest, SnapshotResponse
 
 
 logger = logging.getLogger(__name__)
@@ -56,5 +56,35 @@ def create_app() -> FastAPI:
                 yield json.dumps({"type": "error", "data": str(exc)}) + "\n"
 
         return StreamingResponse(generate(), media_type="application/x-ndjson")
+
+    @app.post("/snapshot", response_model=SnapshotResponse)
+    def snapshot():
+        try:
+            return bridge.take_snapshot()
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Snapshot failed")
+            raise HTTPException(status_code=500, detail="snapshot failed") from exc
+
+    @app.post("/restore")
+    def restore(req: RestoreRequest):
+        try:
+            bridge.restore_snapshot(req.data)
+            return {"status": "ok"}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Restore failed")
+            raise HTTPException(status_code=500, detail="restore failed") from exc
+
+    @app.post("/restart")
+    def restart():
+        try:
+            bridge.restart_kernel()
+            return {"status": "ok"}
+        except Exception as exc:
+            logger.exception("Kernel restart failed")
+            raise HTTPException(status_code=500, detail="restart failed") from exc
 
     return app

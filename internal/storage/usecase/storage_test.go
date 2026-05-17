@@ -145,9 +145,9 @@ func TestListFiles_DefaultLimit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	uc, repo, _ := newTestUsecase(ctrl)
 
-	repo.EXPECT().ListByOwner(gomock.Any(), int64(1), "", 20, 0).Return(nil, 0, nil)
+	repo.EXPECT().ListByOwner(gomock.Any(), int64(1), "", (*int64)(nil), 20, 0).Return(nil, 0, nil)
 
-	_, _, err := uc.ListFiles(context.Background(), 1, "", 0, 0)
+	_, _, err := uc.ListFiles(context.Background(), 1, "", nil, 0, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -177,9 +177,9 @@ func TestListFiles_CapLimit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	uc, repo, _ := newTestUsecase(ctrl)
 
-	repo.EXPECT().ListByOwner(gomock.Any(), int64(1), "", 100, 0).Return(nil, 0, nil)
+	repo.EXPECT().ListByOwner(gomock.Any(), int64(1), "", (*int64)(nil), 100, 0).Return(nil, 0, nil)
 
-	_, _, err := uc.ListFiles(context.Background(), 1, "", 999, 0)
+	_, _, err := uc.ListFiles(context.Background(), 1, "", nil, 999, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

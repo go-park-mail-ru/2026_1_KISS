@@ -67,6 +67,10 @@ message GetSessionStatsResponse {
   uint32 cpu_cores = 5;
   int64 disk_limit_bytes = 6;
   bool gpu_available = 7;
+  int32 queue_position = 8;
+  int64 snapshot_age_seconds = 9;
+  int64 snapshot_size_bytes = 10;
+  string session_state = 11;
 }
 
 message ExecutionChunk {

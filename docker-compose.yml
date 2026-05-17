@@ -126,6 +126,8 @@ services:
     depends_on:
       notebook:
         condition: service_healthy
+      storage:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9003 || exit 1"]
       interval: 5s
@@ -135,10 +137,14 @@ services:
       GRPC_PORT: "9003"
       METRICS_PORT: "9090"
       NOTEBOOK_GRPC_ADDR: "notebook:9002"
+      STORAGE_GRPC_ADDR: "storage:9004"
       RUNNER_IMAGE_PYTHON: kiss-python-runner
       RUNNER_STARTUP_TIMEOUT: "${RUNNER_STARTUP_TIMEOUT:-30s}"
       RUNNER_HEALTHCHECK_INTERVAL: "${RUNNER_HEALTHCHECK_INTERVAL:-300ms}"
       RUNNER_IDLE_TIMEOUT: "${RUNNER_IDLE_TIMEOUT:-15m}"
+      RUNNER_POOL_SIZE: "${RUNNER_POOL_SIZE:-5}"
+      RUNNER_QUEUE_MAX: "${RUNNER_QUEUE_MAX:-50}"
+      RUNNER_SNAPSHOT_MAX_BYTES: "${RUNNER_SNAPSHOT_MAX_BYTES:-536870912}"
       REDIS_HOST: "${REDIS_HOST:-redis}"
       REDIS_PORT: "${REDIS_INTERNAL_PORT:-6379}"
       NETWORK_NAME: "kiss_app-network"

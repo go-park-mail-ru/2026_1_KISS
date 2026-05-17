@@ -37,6 +37,9 @@ func TestValidate(t *testing.T) {
 
 		{"png renamed to jpg mismatch", domain.FileCategoryGeneral, "fake.png", "image/jpeg", true},
 		{"pdf renamed to png mismatch", domain.FileCategoryGeneral, "fake.png", "application/pdf", true},
+
+		{"session dill ok", domain.FileCategorySession, "snapshot.dill", "application/octet-stream", false},
+		{"session png rejected", domain.FileCategorySession, "snapshot.png", "image/png", true},
 	}
 
 	for _, c := range cases {

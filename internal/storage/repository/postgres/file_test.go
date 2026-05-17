@@ -149,7 +149,7 @@ func TestFileRepo_ListByOwner_WithCategory(t *testing.T) {
 			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
 		).AddRow("f-1", int64(1), nil, "datasets", "data.csv", "datasets/uuid.csv", "/uploads/datasets/uuid.csv", "text/csv", int64(500), now, false, nil, nil, int64(0)))
 
-	files, total, err := repo.ListByOwner(context.Background(), 1, "datasets", 20, 0)
+	files, total, err := repo.ListByOwner(context.Background(), 1, "datasets", nil, 20, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestFileRepo_ListByOwner_AllCategories(t *testing.T) {
 			[]string{"id", "owner_id", "notebook_id", "category", "filename", "storage_key", "url", "mime_type", "size", "created_at", "is_public", "share_token", "share_expires_at", "downloads_count"},
 		))
 
-	files, total, err := repo.ListByOwner(context.Background(), 1, "", 20, 0)
+	files, total, err := repo.ListByOwner(context.Background(), 1, "", nil, 20, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

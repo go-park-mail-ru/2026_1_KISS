@@ -32,13 +32,17 @@ type outputItemResponse struct {
 }
 
 type containerStatsResponse struct {
-	CPUPercent     float64 `json:"cpu_percent"`
-	MemoryUsage    int64   `json:"memory_usage"`
-	MemoryLimit    int64   `json:"memory_limit"`
-	MemoryPercent  float64 `json:"memory_percent"`
-	CPUCores       uint32  `json:"cpu_cores"`
-	DiskLimitBytes int64   `json:"disk_limit_bytes"`
-	GPUAvailable   bool    `json:"gpu_available"`
+	CPUPercent         float64 `json:"cpu_percent"`
+	MemoryUsage        int64   `json:"memory_usage"`
+	MemoryLimit        int64   `json:"memory_limit"`
+	MemoryPercent      float64 `json:"memory_percent"`
+	CPUCores           uint32  `json:"cpu_cores"`
+	DiskLimitBytes     int64   `json:"disk_limit_bytes"`
+	GPUAvailable       bool    `json:"gpu_available"`
+	QueuePosition      int32   `json:"queue_position"`
+	SnapshotAgeSeconds int64   `json:"snapshot_age_seconds"`
+	SnapshotSizeBytes  int64   `json:"snapshot_size_bytes"`
+	SessionState       string  `json:"session_state"`
 }
 
 type executionResultResponse struct {
@@ -175,13 +179,17 @@ func (h *RunnerHandler) GetContainerStats(w http.ResponseWriter, r *http.Request
 	}
 
 	httputil.JSON(w, http.StatusOK, containerStatsResponse{
-		CPUPercent:     resp.GetCpuPercent(),
-		MemoryUsage:    resp.GetMemoryUsage(),
-		MemoryLimit:    resp.GetMemoryLimit(),
-		MemoryPercent:  resp.GetMemoryPercent(),
-		CPUCores:       resp.GetCpuCores(),
-		DiskLimitBytes: resp.GetDiskLimitBytes(),
-		GPUAvailable:   resp.GetGpuAvailable(),
+		CPUPercent:         resp.GetCpuPercent(),
+		MemoryUsage:        resp.GetMemoryUsage(),
+		MemoryLimit:        resp.GetMemoryLimit(),
+		MemoryPercent:      resp.GetMemoryPercent(),
+		CPUCores:           resp.GetCpuCores(),
+		DiskLimitBytes:     resp.GetDiskLimitBytes(),
+		GPUAvailable:       resp.GetGpuAvailable(),
+		QueuePosition:      resp.GetQueuePosition(),
+		SnapshotAgeSeconds: resp.GetSnapshotAgeSeconds(),
+		SnapshotSizeBytes:  resp.GetSnapshotSizeBytes(),
+		SessionState:       resp.GetSessionState(),
 	})
 }
 

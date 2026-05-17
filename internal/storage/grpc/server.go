@@ -15,6 +15,8 @@ import (
 	pb "github.com/go-park-mail-ru/2026_1_KISS/pkg/api/storage"
 )
 
+const downloadChunkSize = 32 * 1024
+
 const defaultPageSize = 20
 
 type Server struct {
@@ -78,12 +80,48 @@ func (s *Server) GetFile(ctx context.Context, req *pb.GetFileRequest) (*pb.FileR
 	return &pb.FileResponse{File: fileToProto(file)}, nil
 }
 
+func (s *Server) DownloadFile(req *pb.DownloadFileRequest, stream pb.StorageService_DownloadFileServer) error {
+	rc, size, err := s.uc.DownloadFile(stream.Context(), req.GetFileId(), req.GetUserId())
+	if err != nil {
+		return grpcutil.DomainToGRPCError(err)
+	}
+	defer rc.Close()
+
+	buf := make([]byte, downloadChunkSize)
+	first := true
+	for {
+		n, readErr := rc.Read(buf)
+		if n > 0 {
+			chunk := &pb.DownloadFileChunk{Data: buf[:n]}
+			if first {
+				chunk.TotalSize = size
+				first = false
+			}
+			if sendErr := stream.Send(chunk); sendErr != nil {
+				return sendErr
+			}
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return status.Errorf(codes.Internal, "read file: %v", readErr)
+		}
+	}
+	return nil
+}
+
 func (s *Server) ListFiles(ctx context.Context, req *pb.ListFilesRequest) (*pb.ListFilesResponse, error) {
 	limit := int(req.GetLimit())
 	if limit <= 0 {
 		limit = defaultPageSize
 	}
-	files, total, err := s.uc.ListFiles(ctx, req.GetUserId(), req.GetCategory(), limit, int(req.GetOffset()))
+	var notebookID *int64
+	if req.NotebookId != nil {
+		v := req.GetNotebookId()
+		notebookID = &v
+	}
+	files, total, err := s.uc.ListFiles(ctx, req.GetUserId(), req.GetCategory(), notebookID, limit, int(req.GetOffset()))
 	if err != nil {
 		return nil, grpcutil.DomainToGRPCError(err)
 	}

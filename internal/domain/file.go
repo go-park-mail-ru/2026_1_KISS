@@ -9,11 +9,12 @@ const (
 	FileCategoryFeedback FileCategory = "feedback"
 	FileCategoryDataset  FileCategory = "datasets"
 	FileCategoryGeneral  FileCategory = "files"
+	FileCategorySession  FileCategory = "sessions"
 )
 
 func ValidFileCategory(c FileCategory) bool {
 	switch c {
-	case FileCategoryAvatar, FileCategoryFeedback, FileCategoryDataset, FileCategoryGeneral:
+	case FileCategoryAvatar, FileCategoryFeedback, FileCategoryDataset, FileCategoryGeneral, FileCategorySession:
 		return true
 	default:
 		return false

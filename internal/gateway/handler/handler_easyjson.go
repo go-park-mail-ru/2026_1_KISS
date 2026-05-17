@@ -5647,6 +5647,30 @@ func easyjson888c126aDecodeGithubComGoParkMailRu20261KISSInternalGatewayHandler5
 			} else {
 				out.GPUAvailable = bool(in.Bool())
 			}
+		case "queue_position":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.QueuePosition = int32(in.Int32())
+			}
+		case "snapshot_age_seconds":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.SnapshotAgeSeconds = int64(in.Int64())
+			}
+		case "snapshot_size_bytes":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.SnapshotSizeBytes = int64(in.Int64())
+			}
+		case "session_state":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.SessionState = string(in.String())
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -5695,6 +5719,26 @@ func easyjson888c126aEncodeGithubComGoParkMailRu20261KISSInternalGatewayHandler5
 		const prefix string = ",\"gpu_available\":"
 		out.RawString(prefix)
 		out.Bool(bool(in.GPUAvailable))
+	}
+	{
+		const prefix string = ",\"queue_position\":"
+		out.RawString(prefix)
+		out.Int32(int32(in.QueuePosition))
+	}
+	{
+		const prefix string = ",\"snapshot_age_seconds\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.SnapshotAgeSeconds))
+	}
+	{
+		const prefix string = ",\"snapshot_size_bytes\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.SnapshotSizeBytes))
+	}
+	{
+		const prefix string = ",\"session_state\":"
+		out.RawString(prefix)
+		out.String(string(in.SessionState))
 	}
 	out.RawByte('}')
 }

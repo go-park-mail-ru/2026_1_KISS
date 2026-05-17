@@ -31,6 +31,8 @@ func DomainToGRPCError(err error) error {
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, domain.ErrYooKassaUnavailable):
 		return status.Error(codes.Unavailable, err.Error())
+	case errors.Is(err, domain.ErrServiceUnavailable):
+		return status.Error(codes.ResourceExhausted, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal server error")
 	}
@@ -62,6 +64,8 @@ func GRPCToDomainError(err error) error {
 		return domain.ErrPaymentFailed
 	case codes.Unavailable:
 		return domain.ErrYooKassaUnavailable
+	case codes.ResourceExhausted:
+		return domain.ErrServiceUnavailable
 	default:
 		return err
 	}

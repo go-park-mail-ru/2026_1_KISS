@@ -25,6 +25,8 @@ func MapDomainError(w http.ResponseWriter, err error) {
 		Error(w, http.StatusUnprocessableEntity, err.Error())
 	case errors.Is(err, domain.ErrYooKassaUnavailable):
 		Error(w, http.StatusBadGateway, "payment provider unavailable")
+	case errors.Is(err, domain.ErrServiceUnavailable):
+		Error(w, http.StatusServiceUnavailable, err.Error())
 	default:
 		Error(w, http.StatusInternalServerError, "internal server error")
 	}

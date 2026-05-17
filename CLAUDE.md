@@ -34,7 +34,7 @@ make build-runner-image
 docker build -t kiss-python-runner -f build/py-runner/Dockerfile build/
 ```
 
-Note: the Dockerfile expects the build context to be `build/` (it `COPY`s from `py-runner/` and `runner/` subdirectories). The image is created on-demand by the runner service when a notebook session starts, so it is **not** held by any long-running container — `docker image prune -a` will remove it. The deploy workflow and `make docker-up` rebuild it explicitly.
+Note: the Dockerfile expects the build context to be `build/` (it `COPY`s from `py-runner/` and `runner/` subdirectories). The image is used by the worker pool to pre-warm containers at startup — `docker image prune -a` will remove it. The deploy workflow and `make docker-up` rebuild it explicitly.
 
 ## Architecture
 
@@ -58,9 +58,15 @@ Client (HTTP:8080) --> Gateway --> Auth Service          (gRPC:9001, PostgreSQL 
 
 **Notebook Service** (`cmd/notebook`) — CRUD for notebooks and code blocks. Owns `notebooks`, `blocks`, `block_outputs`, `file_permissions` tables. Exposes `GetBlocksByNotebookID` for Runner.
 
-**Runner Service** (`cmd/runner`) — code execution in Docker containers. No database (sessions in-memory). Uses `NotebookAdapter`/`BlockAdapter` (`internal/runner/grpc/notebook_adapter.go`) that implement repository interfaces via gRPC calls to Notebook Service. Manages container lifecycle, idle session reaping via background goroutine.
+**Runner Service** (`cmd/runner`) — code execution in Docker containers. No database (sessions in-memory). Uses `NotebookAdapter`/`BlockAdapter` (`internal/runner/grpc/notebook_adapter.go`) that implement repository interfaces via gRPC calls to Notebook Service.
 
-**Storage Service** (`cmd/storage`) — centralized file storage with metadata. Owns `files` table in PostgreSQL. Stores files on local filesystem (`/app/uploads/`) organized by categories: `avatars`, `feedback`, `datasets`, `files`. Exposes gRPC streaming upload, file CRUD, and admin analytics endpoints.
+Architecture: fixed-size **worker pool** (`internal/runner/pool/`) of pre-warmed containers. Execution lifecycle per request: `StartSession` → acquire worker from pool → restore dill snapshot (if exists) → execute → save dill snapshot to Storage Service → release worker back to pool. Workers are released immediately after execution completes (async after snapshot save for single-block execution, sync for run-all). `StopSession` is a no-op if worker was already released. Idle reaper (`StartIdleReaper`) runs as a safety net for sessions that were acquired but never executed (e.g. client disconnect).
+
+Key env vars: `RUNNER_POOL_SIZE` (default 5), `RUNNER_QUEUE_MAX` (default 50), `RUNNER_SNAPSHOT_MAX_BYTES` (default 512 MiB), `RUNNER_IDLE_TIMEOUT` (default 15m). When pool is exhausted, requests queue up to `RUNNER_QUEUE_MAX`; beyond that, `ErrServiceUnavailable` → HTTP 503.
+
+Python agent endpoints (inside container): `POST /execute`, `POST /snapshot` (returns base64 dill dump of kernel globals), `POST /restore` (restores globals from base64 dill), `POST /restart` (kernel restart, called by pool on worker release).
+
+**Storage Service** (`cmd/storage`) — centralized file storage with metadata. Owns `files` table in PostgreSQL. Stores files on local filesystem (`/app/uploads/`) organized by categories: `avatars`, `feedback`, `datasets`, `files`, `sessions` (runner kernel snapshots). Exposes gRPC streaming upload/download (`UploadFile`, `DownloadFile`), file CRUD, and admin analytics endpoints. `ListFiles` accepts optional `notebook_id` filter for snapshot lookup.
 
 **Issue Service** (`cmd/issue`) — feedback and support tickets. Owns `issues` and `issue_messages` tables. CRUD for issues with status workflow (New → In Progress → Resolved → Closed) and admin responses.
 
@@ -105,11 +111,11 @@ internal/{service}/
 └── repository/          # Data access (interfaces in interfaces.go, postgres/ implementations)
 ```
 
-**Error flow:** Domain errors (`internal/domain/errors.go`: ErrNotFound, ErrUnauthorized, ErrConflict, ErrInvalidInput, ErrForbidden, ErrSessionExpired) → `grpcutil.DomainToGRPCError()` maps to gRPC status codes → Gateway uses `grpcutil.GRPCToDomainError()` → `httputil.MapDomainError()` maps to HTTP status codes.
+**Error flow:** Domain errors (`internal/domain/errors.go`: ErrNotFound, ErrUnauthorized, ErrConflict, ErrInvalidInput, ErrForbidden, ErrSessionExpired, ErrServiceUnavailable) → `grpcutil.DomainToGRPCError()` maps to gRPC status codes → Gateway uses `grpcutil.GRPCToDomainError()` → `httputil.MapDomainError()` maps to HTTP status codes. `ErrServiceUnavailable` → `ResourceExhausted` (gRPC) → 503 (HTTP), used when runner pool queue is full.
 
 **Proto definitions** in `api/proto/{auth,notebook,runner,storage,issue,notification}/`. Generated Go code in `pkg/api/`. Regenerate with `make proto` (requires `protoc`, `protoc-gen-go`, `protoc-gen-go-grpc`).
 
-**Mocks** in `internal/mocks/`, generated via `go.uber.org/mock`. `go:generate` directives are in interface files. gRPC client mocks (AuthServiceClient, NotebookServiceClient, RunnerServiceClient, StorageServiceClient, IssueServiceClient, NotificationServiceClient) used for gateway handler tests.
+**Mocks** in `internal/mocks/`, generated via `go.uber.org/mock`. `go:generate` directives are in interface files. gRPC client mocks (AuthServiceClient, NotebookServiceClient, RunnerServiceClient, StorageServiceClient, IssueServiceClient, NotificationServiceClient) used for gateway handler tests. Runner-specific mocks: `MockWorkerPool` (from `runner_service.WorkerPool` interface), `MockRepository` (from `snapshot.Repository`), `MockManager` (from `container.Manager`).
 
 **Testing:** gomock for interfaces, `sqlmock` for PostgreSQL repos, `miniredis` for Redis, `httptest` for HTTP handlers, `bufconn` for gRPC server tests. Table-driven tests throughout.
 
@@ -121,6 +127,10 @@ All config via environment variables, loaded in `internal/pkg/config/config.go`.
 - `REDIS_HOST`, `REDIS_PORT` — Redis connection
 - `GRPC_PORT` — per-service gRPC listen port
 - `MAIL_FROM`, `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `APP_URL` — email/notification config
+- `RUNNER_POOL_SIZE` — number of pre-warmed worker containers (default 5)
+- `RUNNER_QUEUE_MAX` — max pending acquire requests before 503 (default 50)
+- `RUNNER_SNAPSHOT_MAX_BYTES` — max dill snapshot size in bytes (default 512 MiB)
+- `RUNNER_IDLE_TIMEOUT` — idle eviction timeout; sessions are released this long after last activity (default 1m)
 
 ## Monitoring
 

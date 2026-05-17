@@ -130,6 +130,9 @@ type RunnerConfig struct {
 	PidsLimit           int64
 	IdleTimeout         time.Duration
 	ExecutionTimeout    time.Duration
+	PoolSize            int
+	QueueMax            int
+	SnapshotMaxBytes    int64
 }
 
 func Load() *Config {
@@ -173,8 +176,11 @@ func Load() *Config {
 			NetworkName:         getEnv("NETWORK_NAME", "bridge"), // 2026_1_kiss_app-network
 			TmpfsSize:           getEnv("RUNNER_TMPFS_SIZE", "100m"),
 			PidsLimit:           getEnvInt64("RUNNER_PIDS_LIMIT", 64),
-			IdleTimeout:         getEnvDuration("RUNNER_IDLE_TIMEOUT", 15*time.Minute),
+			IdleTimeout:         getEnvDuration("RUNNER_IDLE_TIMEOUT", 1*time.Minute),
 			ExecutionTimeout:    getEnvDuration("RUNNER_EXECUTION_TIMEOUT", 120*time.Second),
+			PoolSize:            int(getEnvInt64("RUNNER_POOL_SIZE", 5)),
+			QueueMax:            int(getEnvInt64("RUNNER_QUEUE_MAX", 50)),
+			SnapshotMaxBytes:    getEnvInt64("RUNNER_SNAPSHOT_MAX_BYTES", 512*1024*1024),
 		},
 		Upload: UploadConfig{
 			Dir:             getEnv("UPLOAD_DIR", "/app/uploads"),

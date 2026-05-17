@@ -44,6 +44,7 @@ func New(cfg *config.Config, grpcPort string) (*App, error) {
 		domain.FileCategoryDataset:  cfg.Upload.MaxDatasetSize,
 		domain.FileCategoryFeedback: cfg.Upload.MaxFeedbackSize,
 		domain.FileCategoryGeneral:  cfg.Upload.MaxSize,
+		domain.FileCategorySession:  cfg.Runner.SnapshotMaxBytes,
 	}
 
 	storageUC := storageusecase.New(fileRepo, shareRepo, fs, maxSizes)

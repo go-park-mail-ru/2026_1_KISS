@@ -54,6 +54,21 @@ func (mr *MockFileStorageMockRecorder) Delete(path any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockFileStorage)(nil).Delete), path)
 }
 
+// Open mocks base method.
+func (m *MockFileStorage) Open(storageKey string) (io.ReadCloser, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Open", storageKey)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Open indicates an expected call of Open.
+func (mr *MockFileStorageMockRecorder) Open(storageKey any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Open", reflect.TypeOf((*MockFileStorage)(nil).Open), storageKey)
+}
+
 // Save mocks base method.
 func (m *MockFileStorage) Save(filename string, data io.Reader) (string, error) {
 	m.ctrl.T.Helper()
